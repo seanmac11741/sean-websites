@@ -1,0 +1,104 @@
+:root {
+    --colorprimary: black;
+    --colorsecondary: white;
+    --coloraccent: #940000;
+    --ff: "DM Sans", sans-serif;
+    --h1: bold max(36px, 4vw) / max(48px, 5vw) var(--ff);
+    /* ^ is how you do dynamically resizing headings */
+    --h2: bold 36px/36px var(--ff);
+    --h3: bold 24px/30px var(--ff);
+    --links: bold 18px/18px var(--ff);
+    --p: 18px/30px var(--ff);
+    --subtext: 12px/20px var(--ff);
+    --transition: 0.3s ease-in-out;
+    --shadow: #00000030 0px 0px 10px 0px;
+    --shadowdark: #00000030 0px 5px 10px 5px;
+}
+
+.hero {
+    margin-top: 0px;
+}
+
+html {
+    scroll-snap-type: y mandatory;
+}
+
+.section {
+    margin: 0px auto;
+    max-width: 1080px;
+    height: 100vh;
+    scroll-snap-align: start;
+}
+
+.dark-mode {
+    --colorprimary: white;
+    --colorsecondary: black;
+}
+
+h1 {
+    font: var(--h1);
+    margin-top: 8px;
+}
+
+h2 {
+    font: var(--h2);
+    margin-top: 8px;
+}
+
+.col {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.col>* {
+    flex: 1;
+    min-width: 320px;
+}
+
+a {
+    margin-top: 20px;
+    text-decoration: none;
+}
+
+.price-cards {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.price-cards>* {
+    flex: 1;
+    min-width: 200px;
+}
+
+.price-card {
+    background-color: var(--colorsecondary);
+    box-shadow: var(--shadow);
+    border-radius: 10px;
+    padding: 20px 28px 40px 28px;
+}
+
+.dark-shadow {
+    box-shadow: var(--shadowdark);
+}
+
+.social-icons {
+    display: flex;
+    gap: 20px;
+}
+
+.social-icons img {
+    width: 20px;
+}
+
+svg {
+    fill: var(--colorprimary);
+    width: 20px;
+}
+
+svg:hover {
+    fill: var(--coloraccent);
+}
