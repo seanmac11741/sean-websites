@@ -15,6 +15,14 @@
     --shadowdark: #00000030 0px 5px 10px 5px;
 }
 
+body {
+    font: var(--p);
+    background-color: var(--colorsecondary);
+    color: var(--colorprimary);
+    text-align: center;
+    margin: auto;
+}
+
 .hero {
     margin-top: 0px;
 }
@@ -26,13 +34,82 @@ html {
 .section {
     margin: 0px auto;
     max-width: 1080px;
-    height: 100vh;
+    height: 50vh;
     scroll-snap-align: start;
 }
 
 .dark-mode {
     --colorprimary: white;
     --colorsecondary: black;
+}
+
+/* Toggle switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 62px;
+    height: 31px;
+    overflow: hidden;
+}
+
+/* Hides the checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Full shape */
+.toggle {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: solid 1px var(--colorprimary);
+    border-radius: 30px;
+}
+
+/* Circle button */
+.toggle-button {
+    position: relative;
+    height: 30px;
+    width: 30px;
+    border-radius: 15px;
+    background-color: var(--colorprimary);
+    transition: 0.4s ease-in-out;
+}
+
+/* Animation */
+input:checked+.toggle .toggle-button {
+    transform: translateX(30px);
+}
+
+/* Moon */
+.toggle-button:before {
+    position: absolute;
+    content: "";
+    height: 17px;
+    width: 17px;
+    /* todo make my own images instead */
+    background-image: url("https://github.com/iamsajidcom/CT500/assets/130640271/4df5ffb5-6569-4ea5-b710-a3cbbc3ef6d1");
+    left: -23px;
+    bottom: 6px;
+    transition: 0.4s ease-in-out;
+}
+
+/* Sun */
+.toggle-button:after {
+    position: absolute;
+    content: "";
+    /* todo make my own images instead */
+    background-image: url("https://github.com/iamsajidcom/CT500/assets/130640271/44310954-3ea1-4c64-a033-0babdd8e8bba");
+    right: -25px;
+    top: 5px;
+    height: 20px;
+    width: 20px;
+    transition: 0.4s ease-in-out;
 }
 
 h1 {
