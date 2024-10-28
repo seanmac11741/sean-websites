@@ -15,6 +15,23 @@
     --shadowdark: #00000030 0px 5px 10px 5px;
 }
 
+.subtext {
+    font: var(--subtext);
+}
+
+header {
+    position: sticky;
+    top: 0;
+    background: var(--colorsecondary);
+    z-index: 5;
+    margin: auto;
+    width: 90%;
+    max-width: 1080px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 body {
     font: var(--p);
     background-color: var(--colorsecondary);
@@ -27,15 +44,21 @@ body {
     margin-top: 0px;
 }
 
-html {
+/* html {
     scroll-snap-type: y mandatory;
-}
+} */
 
 .section {
     margin: 0px auto;
     max-width: 1080px;
     height: 50vh;
     scroll-snap-align: start;
+}
+
+.mode {
+    display: flex;
+    gap: 8px;
+    height: 20px;
 }
 
 .dark-mode {
