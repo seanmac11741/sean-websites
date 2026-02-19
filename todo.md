@@ -3,6 +3,16 @@
 ## Bugs
 * Fix the favicon to be something cool with my name: Sean McConnell
 * Years of experience should auto update from the date: April 2015
+* The "L" in mcconnell is getting cutoff in small screens
+
+## Other
+* Link my Strava account on socials 
+* "wow, beautiful website! can you make me one?" Yes, with a google form that people can fill out.  
+* Buy me a coffee
+
+## Blog ideas
+* How I built this site with Claude 
+* How to use AI like a software engineer
 
 ## CI/CD
 add ci cd builds with github later
