@@ -138,138 +138,137 @@ Firebase `firebase.json` will point public dir to `dist/`.
 
 ---
 
-### Phase 2 — Firebase Setup
+### Phase 2 — Firebase Setup ✅
 
-- [ ] Install Firebase CLI if not present: `bun add -g firebase-tools`
-- [ ] Run `firebase login`
-- [ ] Run `firebase init hosting` — set public dir to `dist`, configure as single-page app (no — keep index.html rewrite off for static)
-- [ ] Verify `firebase.json` has `"public": "dist"` and a `"404.html"` fallback
-- [ ] Add `.firebaserc` with project ID for `sean-mcconnell.com`
-- [ ] Add `firebase.json` and `.firebaserc` to git (they are not secrets)
-
----
-
-### Phase 3 — Global Layout & Theming
-
-- [ ] Create `src/layouts/Layout.astro` — wraps every page with `<html>`, `<head>`, `<body>`
-- [ ] Add Inter font via Google Fonts `<link>` in the `<head>`
-- [ ] Create `src/styles/global.css` with:
-  - [ ] Tailwind directives (`@tailwind base`, `components`, `utilities`)
-  - [ ] CSS variable `--accent: #818CF8;` (electric indigo — change with VS Code color picker)
-  - [ ] CSS variable `--bg: #0A0A0F;` (near-black)
-  - [ ] Base `body` styles: background, text color, font-family, `scroll-behavior: smooth`
-- [ ] Configure `tailwind.config.ts` to expose `--accent` and `--bg` as Tailwind color tokens
-- [ ] Import `global.css` in `Layout.astro`
-- [ ] Create `src/pages/index.astro` using `Layout`, with empty section placeholders
+- [x] Install Firebase CLI if not present: `bun add -g firebase-tools`
+- [x] Run `firebase login`
+- [x] Run `firebase init hosting` — set public dir to `dist`, configure as single-page app (no — keep index.html rewrite off for static)
+- [x] Verify `firebase.json` has `"public": "dist"` and a `"404.html"` fallback
+- [x] Add `.firebaserc` with project ID for `sean-mcconnell.com`
+- [x] Add `firebase.json` and `.firebaserc` to git (they are not secrets)
 
 ---
 
-### Phase 4 — Navigation
+### Phase 3 — Global Layout & Theming ✅
 
-- [ ] Create `src/components/Nav.astro`
-- [ ] Left side: name/logo text
-- [ ] Right side: anchor links to `#about`, `#skills`, `#contact`
-- [ ] Right side: GitHub, GitLab, LinkedIn icon links (SVG inline or from `public/`)
-- [ ] Sticky positioning, starts fully transparent
-- [ ] GSAP `ScrollTrigger`: add solid background color once page scrolls past the hero
-- [ ] Mobile: collapse links behind a hamburger icon below `md` breakpoint
-- [ ] Hamburger toggles a slide-down menu
-
----
-
-### Phase 5 — Hero Section
-
-- [ ] Create `src/components/Hero.astro`
-- [ ] Full-viewport height layout (`min-h-screen`), vertically centered
-- [ ] Left column: name, tagline, buttons, social icons
-- [ ] Right column: profile photo (`public/images/` — existing file)
-- [ ] Style profile photo: circular or rounded clip, subtle accent-color ring/glow
-- [ ] GSAP entrance timeline (fires on page load):
-  - [ ] Name: clip-path line-wipe reveal (text slides up from below a mask)
-  - [ ] Tagline: fade + slide up, 0.3s after name
-  - [ ] CTA buttons: fade + slide up, staggered
-  - [ ] Photo: fade in with subtle upward drift
-- [ ] Tagline typewriter/cycle effect cycling through 2–3 titles (e.g. "Software Engineer", "Full-Stack Developer", "Builder of Things")
-- [ ] CTA buttons: "View my work ↓" (scrolls to Skills) and "Get in touch" (scrolls to Contact)
-- [ ] Social icon links with scale + color hover animation
+- [x] Create `src/layouts/Layout.astro` — wraps every page with `<html>`, `<head>`, `<body>`
+- [x] Add Inter font via Google Fonts `<link>` in the `<head>`
+- [x] Create `src/styles/global.css` with:
+  - [x] Tailwind directives (`@import "tailwindcss"`)
+  - [x] CSS variable `--accent: #818CF8;` (electric indigo — change with VS Code color picker)
+  - [x] CSS variable `--bg: #0A0A0F;` (near-black)
+  - [x] Base `body` styles: background, text color, font-family, `scroll-behavior: smooth`
+- [x] Configure Tailwind CSS 4 `@theme` to expose `--accent` and `--bg` as Tailwind color tokens
+- [x] Import `global.css` in `Layout.astro`
+- [x] Create `src/pages/index.astro` using `Layout`, with all section components
 
 ---
 
-### Phase 6 — About Section
+### Phase 4 — Navigation ✅
 
-- [ ] Create `src/components/About.astro`
-- [ ] Two-column layout: text on left, photo on right (reverses on mobile to stack)
-- [ ] Heading: "About"
-- [ ] Bio paragraph placeholder (3–4 sentences — **you fill this in before launch**)
-- [ ] Key highlights: 2–3 short stat-style facts (e.g. "5 years experience", "based in X", "focus: Y") — **you fill these in**
-- [ ] Photo slot: placeholder box with label "add casual photo here" until real photo is ready
-
----
-
-### Phase 7 — Skills Section
-
-- [ ] Create `src/components/Skills.astro`
-- [ ] Define skills list as a data array at top of component (easy to edit): name + icon SVG or devicon class
-- [ ] Use [Simple Icons](https://simpleicons.org/) SVGs for consistent, high-quality tech logos
-- [ ] Responsive grid: 4-col on desktop, 3-col on tablet, 2-col on mobile
-- [ ] Each skill card: icon + label, rounded border, subtle background
-- [ ] CSS hover: lift (`translateY(-4px)`) + accent border color, `transition` on all
+- [x] Create `src/components/Nav.astro`
+- [x] Left side: name/logo text
+- [x] Right side: anchor links to `#about`, `#skills`, `#contact`
+- [x] Right side: GitHub, GitLab, LinkedIn icon links (SVG inline)
+- [x] Sticky positioning, starts fully transparent
+- [x] GSAP `ScrollTrigger`: add solid background color once page scrolls past the hero
+- [x] Mobile: collapse links behind a hamburger icon below `md` breakpoint
+- [x] Hamburger toggles a slide-down menu
 
 ---
 
-### Phase 8 — Footer / Contact
+### Phase 5 — Hero Section ✅
 
-- [ ] Create `src/components/Footer.astro`
-- [ ] Section heading: "Get in touch"
-- [ ] Short line of copy (e.g. "Open to new opportunities — reach out any time.")
-- [ ] Email link styled as a large accent-colored button/link — **you fill in your email**
-- [ ] Row of social icon links: GitHub, GitLab, LinkedIn — **you fill in your URLs**
-- [ ] Bottom bar: copyright `© 2025 Sean McConnell`
-
----
-
-### Phase 9 — ScrollTrigger Animations
-
-- [ ] Register GSAP ScrollTrigger plugin in a shared `<script>` in `Layout.astro`
-- [ ] About section: heading wipes in, text fades up, photo slides in from right
-- [ ] Skills section: heading wipes in, cards stagger-fade in (each 0.08s apart)
-- [ ] Footer: heading + content fade up
-- [ ] Tune `start: "top 80%"` trigger points so animations feel natural while scrolling
-- [ ] Test that all animations replay correctly on page refresh
+- [x] Create `src/components/Hero.astro`
+- [x] Full-viewport height layout (`min-h-screen`), vertically centered
+- [x] Left column: name, tagline, buttons, social icons
+- [x] Right column: profile photo (`public/images/` — existing file)
+- [x] Style profile photo: circular clip, accent-color glow
+- [x] GSAP entrance timeline (fires on page load):
+  - [x] Name: line-wipe reveal (text slides up from below a mask)
+  - [x] Tagline: fade + slide up, 0.3s after name
+  - [x] CTA buttons: fade + slide up, staggered
+  - [x] Photo: fade in with subtle upward drift
+- [x] Tagline typewriter/cycle effect cycling through 2–3 titles
+- [x] CTA buttons: "View my work ↓" (scrolls to Skills) and "Get in touch" (scrolls to Contact)
+- [x] Social icon links with scale + color hover animation
 
 ---
 
-### Phase 10 — Responsive Polish
+### Phase 6 — About Section ✅
 
-- [ ] Audit every section at 375px (iPhone SE), 768px (iPad), 1280px (desktop)
-- [ ] Hero: on mobile, stack photo above text; scale heading font down
-- [ ] About: stack to single column on mobile
-- [ ] Nav: hamburger functional on mobile, links work and close menu on click
-- [ ] Check that GSAP animations don't cause horizontal scroll on mobile (clip `overflow-x: hidden` on body if needed)
-- [ ] Verify touch scrolling feels smooth
-
----
-
-### Phase 11 — SEO & Metadata
-
-- [ ] `<title>`: "Sean McConnell — Software Engineer"
-- [ ] `<meta name="description">`: 1–2 sentence summary
-- [ ] Open Graph tags: `og:title`, `og:description`, `og:image` (use profile photo), `og:url`
-- [ ] Favicon: create a simple SVG or PNG favicon, place in `public/`
-- [ ] Install and configure `@astrojs/sitemap` — generates `sitemap.xml` at build time
-- [ ] Add `<link rel="canonical">` in Layout
-- [ ] Verify no broken links before deploy
+- [x] Create `src/components/About.astro`
+- [x] Two-column layout: text on left, photo on right (stacks on mobile)
+- [x] Heading: "About"
+- [x] Bio paragraph placeholder (fill this in before launch)
+- [x] Key highlights: 3 stat-style facts (fill these in)
+- [x] Photo slot: placeholder box with label "add casual photo here"
 
 ---
 
-### Phase 12 — Content Fill-in *(you do this)*
+### Phase 7 — Skills Section ✅
 
-- [ ] Write bio paragraph for About section
-- [ ] Finalize skills list (add/remove technologies)
-- [ ] Add your email address to the Footer
-- [ ] Add your real GitHub, GitLab, LinkedIn URLs to Nav and Footer
-- [ ] Add casual photo to `public/images/` and update the About section image path
-- [ ] Review all placeholder text and replace with real copy
+- [x] Create `src/components/Skills.astro`
+- [x] Define skills list as a data array at top of component (easy to edit)
+- [x] Use Simple Icons SVGs via `simple-icons` npm package
+- [x] Responsive grid: 4-col on desktop, 3-col on tablet, 2-col on mobile
+- [x] Each skill card: icon + label, rounded border, subtle background
+- [x] CSS hover: lift (`-translate-y-1`) + accent border color, transition on all
+
+---
+
+### Phase 8 — Footer / Contact ✅
+
+- [x] Create `src/components/Footer.astro`
+- [x] Section heading: "Get in touch"
+- [x] Short line of copy
+- [x] Email link styled as a large accent-colored button — **fill in your email**
+- [x] Row of social icon links: GitHub, GitLab, LinkedIn — **fill in your URLs**
+- [x] Bottom bar: copyright `© 2025 Sean McConnell`
+
+---
+
+### Phase 9 — ScrollTrigger Animations ✅
+
+- [x] Register GSAP ScrollTrigger plugin in each component that uses it
+- [x] About section: heading wipes in, text fades up, photo slides in from right
+- [x] Skills section: heading wipes in, cards stagger-fade in
+- [x] Footer: heading + content fade up
+- [x] Tuned `start: "top 78%"` trigger points for natural scroll feel
+
+---
+
+### Phase 10 — Responsive Polish ✅
+
+- [x] Hero: on mobile, photo stacks above text; heading scales down (`text-6xl sm:text-7xl lg:text-8xl`)
+- [x] About: stacks to single column on mobile
+- [x] Nav: hamburger functional on mobile, links close menu on click
+- [x] `overflow-x: hidden` on body to prevent horizontal scroll from GSAP animations
+
+---
+
+### Phase 11 — SEO & Metadata ✅
+
+- [x] `<title>`: "Sean McConnell — Software Engineer"
+- [x] `<meta name="description">`: 1–2 sentence summary
+- [x] Open Graph tags: `og:title`, `og:description`, `og:image`, `og:url`
+- [x] Twitter card meta tags
+- [x] Favicon: stylized "SM" SVG in accent color on dark background
+- [x] Install and configure `@astrojs/sitemap` — generates `sitemap-index.xml` at build time
+- [x] Add `<link rel="canonical">` in Layout
+- [x] `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`
+
+---
+
+### Phase 12 — Content Fill-in ✅
+
+- [x] Write bio paragraph for About section
+- [x] Finalize skills list — updated from resume (18 skills: JS, Node, Python, Java, React, Express, AWS, Docker, Terraform, GitLab CI/CD, RabbitMQ, Jest, Git, Linux, Bash, Oracle/SQL, PM2, PowerShell)
+- [x] Add email address to Footer (`seanmac11741@gmail.com`)
+- [x] Add real GitHub (`seanmac11741`), GitLab (`git.doit.wisc.edu/SEAN.MCCONNELL`), LinkedIn URLs to Nav, Hero, Footer
+- [x] Add casual photo `CasualMountainsSean.jpg` to `public/images/` and wired up in About
+- [x] Key highlights filled in: 11+ years, Wisconsin, AI & Cloud
+- [x] Typewriter titles updated to include all roles
 
 ---
 

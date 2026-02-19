@@ -26,21 +26,26 @@ bun run preview    # preview the dist/ build locally
 firebase deploy    # deploy dist/ to Firebase Hosting
 ```
 
-## Current State (as of Phase 1 complete)
+## Current State (as of Phase 12 complete)
 
-Phase 1 (scaffold) is done. Phases 2–13 remain. See `plan.md` for the full checklist.
+Phases 1–12 are done. Only Phase 13 (deploy) remains.
 
-What exists so far:
-- Astro project scaffolded at repo root with minimal template
-- Tailwind CSS 4 integrated (config in `src/styles/global.css` with `@theme`)
-- GSAP 3.14 installed
-- Old vanilla JS site files deleted; `public/images/ProfilePictureSeanWhiteSweater.png` kept
+What exists:
+- All components: Nav, Hero, About, Skills, Footer — fully implemented with GSAP animations
+- `src/layouts/Layout.astro` — HTML shell with Inter font, OG tags, canonical URL, sitemap
+- `src/styles/global.css` — Tailwind 4 `@theme` with `--color-accent` / `--color-dark` tokens
+- `public/favicon.svg` — stylized "SM" in accent color on dark background
+- `simple-icons` — used in Skills.astro for 18 real tech skills from resume
+- `@astrojs/sitemap` — generates sitemap on build
+- `firebase.json` / `.firebaserc` — Firebase Hosting configured, public dir = `dist/`
+- GSAP ScrollTrigger animations use `immediateRender: false` + `once: true` — safe when page loads already scrolled to a section
 
-What does NOT exist yet (being built):
-- `src/layouts/Layout.astro` — needs to be created
-- `src/components/` — all components (Hero, About, Skills, Footer, Nav) need to be created
-- `src/styles/global.css` — exists from Tailwind scaffold, needs CSS variables and theme added
-- `firebase.json` / `.firebaserc` — Firebase not yet configured
+**Content is complete. To deploy:**
+```bash
+bun run build
+bun run preview   # optional local check
+firebase deploy
+```
 
 ## Architecture
 
@@ -78,4 +83,4 @@ public/
 - Do not stop mid-implementation — complete each phase fully, mark it done in `plan.md`, then pause for review
 - Do not add unnecessary comments, JSDoc, or `any`/`unknown` types
 - Run typecheck continuously while implementing
-- Sean handles all git commits — do not run git commands
+- **Never run any git commands** — Sean always handles all git operations (commit, push, branch, etc.) manually. Do not run `git add`, `git commit`, `git push`, or any other git command under any circumstances.

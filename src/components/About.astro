@@ -1,0 +1,90 @@
+---
+---
+
+<section id="about" class="py-24 lg:py-32">
+  <div class="max-w-6xl mx-auto px-6">
+
+    <div class="overflow-hidden mb-16">
+      <h2 id="about-heading" class="text-4xl sm:text-5xl font-black text-white">About</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 items-start">
+
+      <div id="about-text">
+        <p class="text-slate-300 text-lg leading-relaxed mb-6">
+          Software Engineer with 11 years of experience building technical solutions in Higher Education. 
+        </p>
+        <p class="text-slate-400 leading-relaxed">
+          Currently, I am focused on building effective, secure solutions with AI and cloud technologies. I have a passion for learning and sharing knowledge, and I am always looking for new challenges and opportunities to grow as a developer.
+        </p>
+      </div>
+
+      <div id="about-photo" class="flex justify-center md:justify-end">
+        <img
+          src="/images/CasualMountainsSean.jpg"
+          alt="Sean McConnell hiking in the mountains"
+          class="w-72 h-80 rounded-2xl object-cover object-center border border-white/10"
+        />
+      </div>
+
+    </div>
+
+    <div id="about-highlights" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 pt-12 border-t border-white/10">
+      <div class="about-highlight text-center sm:text-left">
+        <div class="text-3xl font-black mb-1" style="color: var(--accent)">11+</div>
+        <div class="text-sm text-slate-400 font-medium">Years of Experience</div>
+      </div>
+      <div class="about-highlight text-center sm:text-left">
+        <div class="text-3xl font-black mb-1" style="color: var(--accent)">Wisconsin</div>
+        <div class="text-sm text-slate-400 font-medium">Based in</div>
+      </div>
+      <div class="about-highlight text-center sm:text-left">
+        <div class="text-3xl font-black mb-1" style="color: var(--accent)">AI & Cloud</div>
+        <div class="text-sm text-slate-400 font-medium">Specialty</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  gsap.from('#about-heading', {
+    scrollTrigger: { trigger: '#about', start: 'top 78%', once: true },
+    immediateRender: false,
+    yPercent: 110,
+    duration: 0.8,
+    ease: 'power3.out',
+  });
+
+  gsap.from('#about-text', {
+    scrollTrigger: { trigger: '#about', start: 'top 70%', once: true },
+    immediateRender: false,
+    opacity: 0,
+    y: 30,
+    duration: 0.8,
+    ease: 'power2.out',
+  });
+
+  gsap.from('#about-photo', {
+    scrollTrigger: { trigger: '#about', start: 'top 70%', once: true },
+    immediateRender: false,
+    opacity: 0,
+    x: 30,
+    duration: 0.8,
+    ease: 'power2.out',
+  });
+
+  gsap.from('.about-highlight', {
+    scrollTrigger: { trigger: '#about-highlights', start: 'top 82%', once: true },
+    immediateRender: false,
+    opacity: 0,
+    y: 20,
+    stagger: 0.15,
+    duration: 0.6,
+    ease: 'power2.out',
+  });
+</script>

@@ -1,7 +1,14 @@
 # TODO
 
 ## Bugs
-Fix the favicon to be something cool with my name: Sean McConnell
+* Fix the favicon to be something cool with my name: Sean McConnell
+* Years of experience should auto update from the date: April 2015
+
+## CI/CD
+add ci cd builds with github later
+
+## Presentations section
+A section with descriptions and links to my various presentations I have recently done at conferences. This needs to be easily updatable
 
 ## Projects Section
 

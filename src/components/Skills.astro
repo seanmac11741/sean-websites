@@ -1,0 +1,105 @@
+---
+import type { SimpleIcon } from 'simple-icons';
+import {
+  siJavascript,
+  siNodedotjs,
+  siPython,
+  siReact,
+  siExpress,
+  siDocker,
+  siTerraform,
+  siGitlab,
+  siRabbitmq,
+  siJest,
+  siGit,
+  siLinux,
+  siGnubash,
+  siPm2,
+} from 'simple-icons';
+
+type Skill = { name: string; icon: SimpleIcon | null; abbrev?: string };
+
+const skills: Skill[] = [
+  { name: 'JavaScript', icon: siJavascript },
+  { name: 'Node.js', icon: siNodedotjs },
+  { name: 'Python', icon: siPython },
+  { name: 'Java', icon: null, abbrev: 'JAVA' },
+  { name: 'React', icon: siReact },
+  { name: 'Express.js', icon: siExpress },
+  { name: 'AWS', icon: null, abbrev: 'AWS' },
+  { name: 'Docker', icon: siDocker },
+  { name: 'Terraform', icon: siTerraform },
+  { name: 'GitLab CI/CD', icon: siGitlab },
+  { name: 'RabbitMQ', icon: siRabbitmq },
+  { name: 'Jest', icon: siJest },
+  { name: 'Git', icon: siGit },
+  { name: 'Linux', icon: siLinux },
+  { name: 'Bash', icon: siGnubash },
+  { name: 'Oracle / SQL', icon: null, abbrev: 'SQL' },
+  { name: 'PM2', icon: siPm2 },
+  { name: 'PowerShell', icon: null, abbrev: 'PS' },
+];
+---
+
+<section id="skills" class="py-24 lg:py-32">
+  <div class="max-w-6xl mx-auto px-6">
+
+    <div class="overflow-hidden mb-16">
+      <h2 id="skills-heading" class="text-4xl sm:text-5xl font-black text-white">Skills</h2>
+    </div>
+
+    <div id="skills-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {skills.map((skill) => (
+        <div class="skill-card group flex flex-col items-center gap-3 p-6 rounded-xl border border-white/10 bg-surface/40 hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200 cursor-default">
+          {skill.icon ? (
+            <svg
+              role="img"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-8 h-8 opacity-80 group-hover:opacity-100 transition-opacity duration-200"
+              aria-label={skill.name}
+            >
+              <path d={skill.icon.path} fill={`#${skill.icon.hex}`} />
+            </svg>
+          ) : (
+            <div
+              class="w-8 h-8 flex items-center justify-center font-black text-xs tracking-tight opacity-80 group-hover:opacity-100 transition-opacity duration-200"
+              style="color: var(--accent)"
+              aria-hidden="true"
+            >
+              {skill.abbrev}
+            </div>
+          )}
+          <span class="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors duration-200 text-center leading-tight">
+            {skill.name}
+          </span>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  gsap.from('#skills-heading', {
+    scrollTrigger: { trigger: '#skills', start: 'top 78%', once: true },
+    immediateRender: false,
+    yPercent: 110,
+    duration: 0.8,
+    ease: 'power3.out',
+  });
+
+  gsap.from('.skill-card', {
+    scrollTrigger: { trigger: '#skills-grid', start: 'top 78%', once: true },
+    immediateRender: false,
+    opacity: 0,
+    y: 28,
+    stagger: 0.05,
+    duration: 0.5,
+    ease: 'power2.out',
+  });
+</script>
