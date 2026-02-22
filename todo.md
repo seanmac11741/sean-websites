@@ -12,7 +12,7 @@
 
 ## Blog ideas
 * How I built this site with Claude 
-* How to use AI like a software engineer
+* How to use AI like a software engineerg
 
 ## CI/CD
 add ci cd builds with github later
