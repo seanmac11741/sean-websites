@@ -17,6 +17,25 @@ To preview the production build before deploying:
 bun run build && bun run preview
 ```
 
+### Deploying to Firebase
+
+The site is hosted on Firebase Hosting and serves the `dist/` directory. Domain: `sean-mcconnell.com`.
+
+```bash
+bun run build       # build the Astro site to dist/
+firebase deploy     # deploy dist/ to Firebase Hosting
+```
+
+Or as a single command:
+```bash
+bun run build && firebase deploy
+```
+
+Prerequisites:
+* `firebase-tools` installed globally (`npm install -g firebase-tools`)
+* Logged in via `firebase login`
+* Firebase project is `sean-mcconnell-site` (configured in `.firebaserc`)
+
 ### Helpful Claude commands
 * Resume last conversation where I left off: 
 ```
