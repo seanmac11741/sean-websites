@@ -32,7 +32,7 @@ bun run build && firebase deploy
 ```
 
 Prerequisites:
-* `firebase-tools` installed globally (`npm install -g firebase-tools`)
+* `firebase-tools` installed globally (`bun install -g firebase-tools`)
 * Logged in via `firebase login`
 * Firebase project is `sean-mcconnell-site` (configured in `.firebaserc`)
 

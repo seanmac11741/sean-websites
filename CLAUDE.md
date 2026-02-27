@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Personal portfolio site for Sean McConnell, deploying to `sean-mcconnell.com` via Firebase Hosting.
+Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted on Firebase Hosting.
 
-**Full plan, phases, and task checklist:** `plan.md`
-**Deferred work (blog, projects section):** `todo.md`
+**Completed build plan:** `plan.md`
+**Deferred work (blog, projects, bugs):** `todo.md`
 
 ## Stack
 
@@ -16,6 +16,7 @@ Personal portfolio site for Sean McConnell, deploying to `sean-mcconnell.com` vi
 - **Animations:** GSAP 3 + ScrollTrigger
 - **Runtime / PM:** Bun
 - **Hosting:** Firebase Hosting (`dist/` → Firebase)
+- **Domain:** `sean-mcconnell.com` (registered on Squarespace, DNS pointing to Firebase)
 
 ## Commands
 
@@ -23,64 +24,51 @@ Personal portfolio site for Sean McConnell, deploying to `sean-mcconnell.com` vi
 bun run dev        # dev server at localhost:4321
 bun run build      # builds to dist/
 bun run preview    # preview the dist/ build locally
-firebase deploy    # deploy dist/ to Firebase Hosting
-```
-
-## Current State (as of Phase 12 complete)
-
-Phases 1–12 are done. Only Phase 13 (deploy) remains.
-
-What exists:
-- All components: Nav, Hero, About, Skills, Footer — fully implemented with GSAP animations
-- `src/layouts/Layout.astro` — HTML shell with Inter font, OG tags, canonical URL, sitemap
-- `src/styles/global.css` — Tailwind 4 `@theme` with `--color-accent` / `--color-dark` tokens
-- `public/favicon.svg` — stylized "SM" in accent color on dark background
-- `simple-icons` — used in Skills.astro for 18 real tech skills from resume
-- `@astrojs/sitemap` — generates sitemap on build
-- `firebase.json` / `.firebaserc` — Firebase Hosting configured, public dir = `dist/`
-- GSAP ScrollTrigger animations use `immediateRender: false` + `once: true` — safe when page loads already scrolled to a section
-
-**Content is complete. To deploy:**
-```bash
-bun run build
-bun run preview   # optional local check
-firebase deploy
+bun run build && firebase deploy   # build and deploy to production
 ```
 
 ## Architecture
 
-Astro static site — `bun run build` outputs plain HTML/CSS/JS to `dist/`, which Firebase Hosting serves.
+Single-page static site. `bun run build` outputs HTML/CSS/JS to `dist/`, which Firebase Hosting serves.
 
 ```
 src/
-  layouts/Layout.astro     ← shared HTML shell, imports global.css, loads GSAP
+  layouts/Layout.astro     ← HTML shell, Inter font, OG tags, canonical URL, GSAP
   pages/index.astro        ← single page, imports all section components
   components/
-    Nav.astro
-    Hero.astro
-    About.astro
-    Skills.astro
-    Footer.astro
-  styles/global.css        ← Tailwind @import, --accent CSS variable, base styles
+    Nav.astro              ← sticky nav, scroll-triggered bg, mobile hamburger
+    Hero.astro             ← full-viewport, GSAP text reveal, typewriter titles
+    About.astro            ← two-column bio + photo, key highlights
+    Skills.astro           ← responsive grid, 18 skills via simple-icons
+    Footer.astro           ← email CTA, social links, copyright
+  styles/global.css        ← Tailwind @import, @theme tokens, base styles
 public/
-  images/                  ← profile photo: ProfilePictureSeanWhiteSweater.png
+  images/                  ← ProfilePictureSeanWhiteSweater.png, CasualMountainsSean.jpg
   favicon.svg / favicon.ico
 ```
 
-## Design Decisions
+**Page flow:** Hero → About → Skills → Contact/Footer
 
-- **Accent color:** `#818CF8` (electric indigo) — defined as `--accent` CSS variable in `global.css`. Change with VS Code color picker in one place.
-- **Background:** `#0A0A0F` (near-black)
-- **Font:** Inter from Google Fonts
-- **Dark theme** only (no light/dark toggle)
-- **Single-page layout:** Hero → About → Skills → Contact/Footer (no routing)
-- **No Projects section at launch** — deferred to `todo.md`
-- Social links needed: GitHub, GitLab, LinkedIn (URLs to be filled in by Sean)
-- Email address to be filled in by Sean before deploy
+## Design Tokens
+
+All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
+
+- **Accent color:** `#818CF8` (electric indigo) — `--color-accent`
+- **Background:** `#0A0A0F` (near-black) — `--color-dark`
+- **Font:** Inter (Google Fonts)
+- **Dark theme only** (no light/dark toggle)
+
+## Key Implementation Details
+
+- GSAP ScrollTrigger animations use `immediateRender: false` + `once: true` — safe when page loads already scrolled to a section
+- `simple-icons` npm package provides SVGs for the Skills section
+- `@astrojs/sitemap` generates sitemap on build
+- `firebase.json` only deploys hosting (functions/firestore/storage removed — `functions/` dir still exists if needed later)
+- `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`
 
 ## User Preferences
 
-- Do not stop mid-implementation — complete each phase fully, mark it done in `plan.md`, then pause for review
+- Do not stop mid-implementation — complete each phase fully, mark it done, then pause for review
 - Do not add unnecessary comments, JSDoc, or `any`/`unknown` types
 - Run typecheck continuously while implementing
-- **Never run any git commands** — Sean always handles all git operations (commit, push, branch, etc.) manually. Do not run `git add`, `git commit`, `git push`, or any other git command under any circumstances.
+- **Never run any git commands** — Sean handles all git operations manually

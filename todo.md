@@ -4,11 +4,13 @@
 * Fix the favicon to be something cool with my name: Sean McConnell
 * Years of experience should auto update from the date: April 2015
 * The "L" in mcconnell is getting cutoff in small screens
+* Skills section sucks. Just a bunch of weird icons with things on them... Should be closer to a cv, with examples of some cool projects. Rewrite entirely
 
 ## Other
 * Link my Strava account on socials 
 * "wow, beautiful website! can you make me one?" Yes, with a google form that people can fill out.  
 * Buy me a coffee
+* Sean 2. An Ai bot that I train on all my blog posts that I write. It should be something like a RAG system, that has access to my writings and code and acts like me. It will be terrible at first, but should get better as I add more data to it. Just text at first of me writing, but later, it would be cool to add like a vlog-style video thing, where I can make a video of myself, and have the bot interview me to get more of an idea of my full personality so it can act more like me. Could have veo for video generation and audio generation of my voice as well. Backend cloud functions to train a model, and a front end chat interface, where anyone that comes to the site could do a one-shot interaction with me. Ask my bot anything and it will respond (once and only once) in my voice. Would be hard to make this so that I don't get 1 million requests, would have to limit per IP address or something. 
 
 ## Blog ideas
 * How I built this site with Claude 
