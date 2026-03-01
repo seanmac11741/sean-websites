@@ -15,6 +15,7 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 - **Styling:** Tailwind CSS 4 (via `@tailwindcss/vite` plugin — no `tailwind.config.ts`, config lives in `src/styles/global.css` using `@theme`)
 - **Animations:** GSAP 3 + ScrollTrigger
 - **Runtime / PM:** Bun
+- **Testing:** Vitest
 - **Hosting:** Firebase Hosting (`dist/` → Firebase)
 - **Domain:** `sean-mcconnell.com` (registered on Squarespace, DNS pointing to Firebase)
 
@@ -24,6 +25,7 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 bun run dev        # dev server at localhost:4321
 bun run build      # builds to dist/
 bun run preview    # preview the dist/ build locally
+bun run test       # run vitest tests
 bun run build && firebase deploy   # build and deploy to production
 ```
 
@@ -38,13 +40,18 @@ src/
   components/
     Nav.astro              ← sticky nav, scroll-triggered bg, mobile hamburger
     Hero.astro             ← full-viewport, GSAP text reveal, typewriter titles
-    About.astro            ← two-column bio + photo, key highlights
+    About.astro            ← two-column bio + photo, key highlights, dynamic years
     Skills.astro           ← responsive grid, 18 skills via simple-icons
-    Footer.astro           ← email CTA, social links, copyright
+    Footer.astro           ← email CTA, social links, "Request a website" CTA, copyright
   styles/global.css        ← Tailwind @import, @theme tokens, base styles
 public/
-  images/                  ← ProfilePictureSeanWhiteSweater.png, CasualMountainsSean.jpg
-  favicon.svg / favicon.ico
+  images/                  ← ProfilePictureSeanWhiteSweater.png, CasualMountainsSean.jpg,
+                             Gemini_Generated_Image_SeanLogo.png (logo source),
+                             sean-mcconnellcomQR.png (QR code for stickers)
+  favicon.ico              ← converted from Gemini logo image
+  apple-touch-icon.png     ← 192x192 from same logo
+tests/
+  phase14.test.ts          ← vitest tests for Phase 14 changes
 ```
 
 **Page flow:** Hero → About → Skills → Contact/Footer
@@ -65,6 +72,10 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - `@astrojs/sitemap` generates sitemap on build
 - `firebase.json` only deploys hosting (functions/firestore/storage removed — `functions/` dir still exists if needed later)
 - `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`
+- Years of experience in About.astro is computed at build time from April 2015 start date — updates on each `bun run build`
+- Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout
+- Social links (GitHub, GitLab, LinkedIn, Strava) appear in Nav, Hero, and Footer
+- Footer "Request a website" CTA links to Google Form: `https://forms.gle/fFCFyQH7dG6xXtkVA`
 
 ## User Preferences
 

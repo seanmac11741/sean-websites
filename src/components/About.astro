@@ -1,4 +1,7 @@
 ---
+const startDate = new Date(2015, 3);
+const now = new Date();
+const years = Math.floor((now.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 ---
 
 <section id="about" class="py-24 lg:py-32">
@@ -12,7 +15,7 @@
 
       <div id="about-text">
         <p class="text-slate-300 text-lg leading-relaxed mb-6">
-          Software Engineer at UW-Madison with 11 years of experience building technical solutions in Higher Education. 
+          Software Engineer at UW-Madison with {years} years of experience building technical solutions in Higher Education.
         </p>
         <p class="text-slate-400 leading-relaxed">
           Currently, I am focused on building effective, secure solutions with AI and cloud technologies like AWS and GCP. I have a passion for learning and sharing knowledge, and I am always looking for new challenges and opportunities to grow as a developer.
@@ -31,7 +34,7 @@
 
     <div id="about-highlights" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 pt-12 border-t border-white/10">
       <div class="about-highlight text-center sm:text-left">
-        <div class="text-3xl font-black mb-1" style="color: var(--accent)">11+</div>
+        <div class="text-3xl font-black mb-1" style="color: var(--accent)">{years}+</div>
         <div class="text-sm text-slate-400 font-medium">Years of Experience</div>
       </div>
       <div class="about-highlight text-center sm:text-left">

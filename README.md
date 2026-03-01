@@ -52,7 +52,7 @@ Add a detailed todo list to the plan, with all the phases and individual tasks n
 ```
 * Implementation
 ```
-Implement the next phase in plan.md. Stop to ask me questions if you need to. Mark each task as complete when you are done. do not add unecessary comments or jsdocs. Write tests as you go to verify that what you made so far is working. 
+Implement phase x in plan.md. Stop to ask me questions if you need to. Mark each task as complete when you are done. do not add unecessary comments or jsdocs. Write tests as you go with vitest to verify that what you made so far is working. 
 ```
 
 ```

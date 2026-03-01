@@ -1,6 +1,6 @@
 # Personal Website Plan — sean-mcconnell.com
 
-All 13 phases are complete. The site is live at `sean-mcconnell.com`.
+All 14 phases are complete. The site is live at `sean-mcconnell.com`.
 
 **Deferred work and future ideas:** `todo.md`
 
@@ -31,11 +31,4 @@ All 13 phases are complete. The site is live at `sean-mcconnell.com`.
 11. **SEO & Metadata** — OG tags, sitemap, favicon, canonical URL
 12. **Content Fill-in** — Real bio, skills from resume, social links, photos
 13. **Deploy** — Built and deployed to Firebase Hosting, custom domain connected with SSL
-
-## New issues to fix: 
-* Fix the favicon to be something cool with my name: Sean McConnell image in images folder
-* QR code image with link in the images folder. Could do somethign with this? probably just save it so I can make some stickers later
-* Years of experience should auto update from the date: April 2015
-* The "L" in mcconnell is getting cutoff in small screens
-* Link my Strava account on socials 
-* "wow, beautiful website! can you make me one?" Yes, with a google form that people can fill out.  
+14. **Post-Launch Fixes** — New favicon from logo image, dynamic years of experience, McConnell text cutoff fix, Strava social links, "Request a website" CTA with Google Form
