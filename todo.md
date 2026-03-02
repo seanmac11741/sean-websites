@@ -17,7 +17,7 @@
 * How to use AI like a software engineerg
 
 ## CI/CD
-add ci cd builds with github later
+~~add ci cd builds with github later~~ ✅ Phase 15 — GitHub Actions: test → build → deploy on push to `main`
 
 ## Presentations section
 A section with descriptions and links to my various presentations I have recently done at conferences. This needs to be easily updatable

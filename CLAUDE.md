@@ -26,8 +26,20 @@ bun run dev        # dev server at localhost:4321
 bun run build      # builds to dist/
 bun run preview    # preview the dist/ build locally
 bun run test       # run vitest tests
-bun run build && firebase deploy   # build and deploy to production
 ```
+
+## CI/CD
+
+Pushing to `main` triggers a GitHub Actions workflow (`.github/workflows/deploy.yml`) that runs tests, builds, and deploys to Firebase Hosting automatically.
+
+```
+git push origin main
+  └─→ GitHub Actions: bun install → bun run test → bun run build → firebase deploy
+```
+
+- **Secret:** `FIREBASE_SERVICE_ACCOUNT` (service account JSON stored in GitHub repo secrets)
+- **Action:** `FirebaseExtended/action-hosting-deploy@v0` deploys `dist/` to production
+- A failing test blocks the deploy
 
 ## Architecture
 
@@ -50,8 +62,11 @@ public/
                              sean-mcconnellcomQR.png (QR code for stickers)
   favicon.ico              ← converted from Gemini logo image
   apple-touch-icon.png     ← 192x192 from same logo
+.github/
+  workflows/deploy.yml     ← CI/CD: test → build → deploy on push to main
 tests/
   phase14.test.ts          ← vitest tests for Phase 14 changes
+  phase15.test.ts          ← vitest tests for Phase 15 (CI/CD workflow)
 ```
 
 **Page flow:** Hero → About → Skills → Contact/Footer
