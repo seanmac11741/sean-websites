@@ -25,8 +25,8 @@ describe('14a — Favicon', () => {
 describe('14b — Dynamic years of experience', () => {
   const about = readFileSync('src/components/About.astro', 'utf-8');
 
-  it('has frontmatter that calculates years from April 2015', () => {
-    expect(about).toContain('new Date(2015, 3)');
+  it('has frontmatter that calculates years from April 23 2015', () => {
+    expect(about).toContain('new Date(2015, 3, 23)');
   });
 
   it('uses {years} in the bio paragraph instead of hardcoded number', () => {
@@ -34,9 +34,9 @@ describe('14b — Dynamic years of experience', () => {
     expect(about).not.toMatch(/with \d+ years of experience/);
   });
 
-  it('uses {years}+ in the highlights instead of hardcoded number', () => {
-    expect(about).toContain('{years}+');
-    expect(about).not.toContain('>11+<');
+  it('has a live experience timer with hover detail', () => {
+    expect(about).toContain('id="experience-timer"');
+    expect(about).toContain('id="timer-hover"');
   });
 });
 

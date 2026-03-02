@@ -9,6 +9,16 @@
 ## Other
 * ~~Link my Strava account on socials~~ ✅ Phase 14d
 * ~~"wow, beautiful website! can you make me one?" Yes, with a google form that people can fill out.~~ ✅ Phase 14e — [Google Form](https://forms.gle/fFCFyQH7dG6xXtkVA)
+* ~~Years of experience - a reverse timer, with years, months, days, minutes, seconds since my start date as a developer in April 23rd, 2015. It should look awesome and professional, while showing off my technical skills~~ ✅ Phase 16 — Live experience timer (YRS/MO/DAYS/HRS/MIN/SEC)
+* Highlight card hover interactions (match the experience timer pattern):
+  * **"Based in Wisconsin"** — pick one:
+    1. Show a mini weather widget (live temp + conditions via a free API like Open-Meteo for Madison, WI)
+    2. Show "Madison, WI — America's Dairyland" with a fun Wisconsin fact that rotates on each hover
+    3. Show coordinates "43.0731° N, 89.4012° W" with a subtle pin icon — clean & techy
+  * **"AI & Cloud Specialty"** — pick one:
+    1. Show a compact list of key certifications or tools: "AWS · GCP · LLMs · RAG · Agents"
+    2. Show "Building with AI since 2023" with a one-liner about current focus area
+    3. Show a mini tag cloud of specialties that subtly pulse in accent color
 * Buy me a coffee
 * Sean 2. An Ai bot that I train on all my blog posts that I write. It should be something like a RAG system, that has access to my writings and code and acts like me. It will be terrible at first, but should get better as I add more data to it. Just text at first of me writing, but later, it would be cool to add like a vlog-style video thing, where I can make a video of myself, and have the bot interview me to get more of an idea of my full personality so it can act more like me. Could have veo for video generation and audio generation of my voice as well. Backend cloud functions to train a model, and a front end chat interface, where anyone that comes to the site could do a one-shot interaction with me. Ask my bot anything and it will respond (once and only once) in my voice. Would be hard to make this so that I don't get 1 million requests, would have to limit per IP address or something.
 

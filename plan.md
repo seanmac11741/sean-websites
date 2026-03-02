@@ -1,6 +1,6 @@
 # Personal Website Plan — sean-mcconnell.com
 
-All 15 phases are complete. The site is live at `sean-mcconnell.com`.
+All 16 phases are complete. The site is live at `sean-mcconnell.com`.
 
 **Deferred work and future ideas:** `todo.md`
 
@@ -33,6 +33,7 @@ All 15 phases are complete. The site is live at `sean-mcconnell.com`.
 13. **Deploy** — Built and deployed to Firebase Hosting, custom domain connected with SSL
 14. **Post-Launch Fixes** — New favicon from logo image, dynamic years of experience, McConnell text cutoff fix, Strava social links, "Request a website" CTA with Google Form
 15. **CI/CD with GitHub Actions** — Automated test → build → deploy on push to `main`
+16. **Live Experience Timer** — Real-time ticking counter (YRS/MO/DAYS/HRS/MIN/SEC) since April 23, 2015
 
 ## Phase 15 — CI/CD with GitHub Actions
 
@@ -89,11 +90,11 @@ Sean Note - I have created this on github and firebase console.
 
 ### 15c — Test the pipeline
 
-- [ ] Push to `main` and verify the workflow runs in the GitHub Actions tab
-- [ ] Confirm tests pass in the workflow logs
-- [ ] Confirm build succeeds in the workflow logs
-- [ ] Confirm `sean-mcconnell.com` updates after the deploy step completes
-- [ ] Verify a failing test blocks the deploy (break a test temporarily, push, confirm deploy doesn't happen)
+- [x] Push to `main` and verify the workflow runs in the GitHub Actions tab
+- [x] Confirm tests pass in the workflow logs
+- [x] Confirm build succeeds in the workflow logs
+- [x] Confirm `sean-mcconnell.com` updates after the deploy step completes
+- [x] Verify a failing test blocks the deploy (break a test temporarily, push, confirm deploy doesn't happen)
 
 ---
 
@@ -102,3 +103,81 @@ Sean Note - I have created this on github and firebase console.
 - [x] Update `CLAUDE.md` with CI/CD info
 - [x] Cross off CI/CD in `todo.md`
 - [x] Update `plan.md` with Phase 15 completion
+
+---
+
+## Phase 16 — Live Experience Timer
+
+Replace the static `{years}+` / "Years of Experience" highlight in the About section with a live-ticking counter showing the exact duration since **April 23, 2015** — years, months, days, hours, minutes, and seconds. Should look polished and professional while showcasing technical skill.
+
+### What changes
+
+Currently in `About.astro`, the first highlight card reads:
+
+```
+{years}+
+Years of Experience
+```
+
+This becomes a live counter with six labeled units (YRS, MO, DAYS, HRS, MIN, SEC) that tick in real-time. The other two highlight cards ("Wisconsin" and "AI & Cloud") stay as-is.
+
+### Design
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  11         00        10        14        32        07           │
+│  YRS        MO       DAYS      HRS       MIN       SEC          │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- Each unit is a number + label pair arranged in a horizontal row
+- Numbers use the accent color (`#818CF8`), large bold font
+- Labels are small, uppercase, muted text (`text-slate-500`)
+- Thin vertical dividers between units (subtle `border-r border-white/10`)
+- The timer spans the full width of the highlights row, replacing the first card — the other two highlight cards ("Wisconsin", "AI & Cloud") sit beside it
+- Responsive: on mobile (`sm:` and below), the six counter units wrap into a 3×2 grid so nothing gets cramped
+- Seconds digit ticks every second via `setInterval`
+
+### How it works
+
+1. **Build time (Astro frontmatter):** Compute the initial values for all six units from the start date `new Date(2015, 3, 23)` — same approach as the current `years` calculation but more granular. These render into the HTML so the page isn't blank on first paint.
+
+2. **Client-side (`<script>` tag):** A `setInterval(fn, 1000)` recalculates and updates all six DOM elements every second. The calculation uses proper calendar math (not just milliseconds) so "months" and "days" are accurate.
+
+3. **GSAP entrance:** The counter entrance animation stays the same as the current highlight stagger — it animates in with the rest of the About section via ScrollTrigger.
+
+### Steps
+
+#### 16a — Update About.astro with the live timer
+
+- [x] Change the start date in frontmatter from `new Date(2015, 3)` to `new Date(2015, 3, 23)` (April 23)
+- [x] Add frontmatter logic to compute initial values for all six units: years, months, days, hours, minutes, seconds
+- [x] Replace the first highlight card markup with the timer layout — six number/label pairs with IDs for client-side updates (`#timer-years`, `#timer-months`, `#timer-days`, `#timer-hours`, `#timer-minutes`, `#timer-seconds`)
+- [x] Style the timer: accent-colored numbers, muted labels, vertical dividers, responsive 3×2 grid on mobile
+- [x] Add a `<script>` tag with `setInterval` that recalculates the duration every second and updates the DOM
+- [x] Keep the existing GSAP ScrollTrigger animation — the `.about-highlight` class stays on the timer container so it animates in with the section
+
+#### 16b — Update the bio text
+
+- [x] The bio paragraph currently says `{years} years of experience` — update it to also use the more precise start date (`new Date(2015, 3, 23)`) so it stays consistent with the timer
+
+#### 16c — Update global.css (if needed)
+
+- [x] Add any timer-specific styles that can't be handled inline with Tailwind (e.g., tabular-nums for the counter digits so they don't shift width as they tick)
+
+#### 16d — Write tests
+
+- [x] Test that About.astro contains the start date `new Date(2015, 3, 23)`
+- [x] Test that the timer has all six unit elements (`timer-years`, `timer-months`, etc.)
+- [x] Test that the `setInterval` logic exists in the component
+- [x] Test that the bio still references years of experience dynamically (not hardcoded)
+- [x] Test that the other two highlight cards ("Wisconsin", "AI & Cloud") are unchanged
+- [x] Run `bun run test` and confirm all tests pass
+
+#### 16e — Visual check + docs
+
+- [ ] Run `bun run dev` and verify the timer ticks correctly in the browser
+- [ ] Verify the timer looks good on mobile and desktop
+- [x] Update `CLAUDE.md` if any architectural details change
+- [x] Cross off the timer item in `todo.md`
+- [x] Mark Phase 16 complete in `plan.md`

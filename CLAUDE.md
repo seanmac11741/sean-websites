@@ -52,7 +52,7 @@ src/
   components/
     Nav.astro              ← sticky nav, scroll-triggered bg, mobile hamburger
     Hero.astro             ← full-viewport, GSAP text reveal, typewriter titles
-    About.astro            ← two-column bio + photo, key highlights, dynamic years
+    About.astro            ← two-column bio + photo, live experience timer, highlights
     Skills.astro           ← responsive grid, 18 skills via simple-icons
     Footer.astro           ← email CTA, social links, "Request a website" CTA, copyright
   styles/global.css        ← Tailwind @import, @theme tokens, base styles
@@ -67,6 +67,7 @@ public/
 tests/
   phase14.test.ts          ← vitest tests for Phase 14 changes
   phase15.test.ts          ← vitest tests for Phase 15 (CI/CD workflow)
+  phase16.test.ts          ← vitest tests for Phase 16 (live experience timer)
 ```
 
 **Page flow:** Hero → About → Skills → Contact/Footer
@@ -87,7 +88,7 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - `@astrojs/sitemap` generates sitemap on build
 - `firebase.json` only deploys hosting (functions/firestore/storage removed — `functions/` dir still exists if needed later)
 - `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`
-- Years of experience in About.astro is computed at build time from April 2015 start date — updates on each `bun run build`
+- About section has a live experience timer (YRS/MO/DAYS/HRS/MIN/SEC) counting from April 23, 2015 — server-rendered initial values + client-side `setInterval` for live ticking. Uses `tabular-nums` to prevent digit width shifting.
 - Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout
 - Social links (GitHub, GitLab, LinkedIn, Strava) appear in Nav, Hero, and Footer
 - Footer "Request a website" CTA links to Google Form: `https://forms.gle/fFCFyQH7dG6xXtkVA`

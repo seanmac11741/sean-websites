@@ -1,7 +1,23 @@
 ---
-const startDate = new Date(2015, 3);
+const startDate = new Date(2015, 3, 23);
 const now = new Date();
-const years = Math.floor((now.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+
+const years = now.getFullYear() - startDate.getFullYear() - (now < new Date(now.getFullYear(), startDate.getMonth(), startDate.getDate()) ? 1 : 0);
+
+let months = now.getMonth() - startDate.getMonth();
+let days = now.getDate() - startDate.getDate();
+if (days < 0) {
+  months--;
+  const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  days += prevMonth.getDate();
+}
+if (months < 0) months += 12;
+
+const hours = now.getHours();
+const minutes = now.getMinutes();
+const seconds = now.getSeconds();
+
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <section id="about" class="py-24 lg:py-32">
@@ -33,9 +49,27 @@ const years = Math.floor((now.getTime() - startDate.getTime()) / (365.25 * 24 * 
     </div>
 
     <div id="about-highlights" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 pt-12 border-t border-white/10">
-      <div class="about-highlight text-center sm:text-left">
-        <div class="text-3xl font-black mb-1" style="color: var(--accent)">{years}+</div>
-        <div class="text-sm text-slate-400 font-medium">Years of Experience</div>
+      <div id="experience-timer" class="about-highlight text-center sm:text-left relative cursor-default">
+        <div id="timer-default" class="transition-opacity duration-300">
+          <div id="timer-years" class="text-3xl font-black mb-1 timer-digit" style="color: var(--accent)">{years}+</div>
+          <div class="text-sm text-slate-400 font-medium">Years of Experience</div>
+        </div>
+        <div id="timer-hover" class="absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none">
+          <div class="text-sm font-semibold text-slate-300 mb-1.5">Exact years of experience as a software engineer</div>
+          <div class="flex items-center justify-center sm:justify-start gap-2 text-xs text-slate-500">
+            <span><span id="timer-hover-years" class="timer-digit font-bold" style="color: var(--accent)">{years}</span> yrs</span>
+            <span class="text-white/10">|</span>
+            <span><span id="timer-months" class="timer-digit font-bold" style="color: var(--accent)">{pad(months)}</span> mo</span>
+            <span class="text-white/10">|</span>
+            <span><span id="timer-days" class="timer-digit font-bold" style="color: var(--accent)">{pad(days)}</span> days</span>
+            <span class="text-white/10">|</span>
+            <span><span id="timer-hours" class="timer-digit font-bold" style="color: var(--accent)">{pad(hours)}</span> hrs</span>
+            <span class="text-white/10">|</span>
+            <span><span id="timer-minutes" class="timer-digit font-bold" style="color: var(--accent)">{pad(minutes)}</span> min</span>
+            <span class="text-white/10">|</span>
+            <span><span id="timer-seconds" class="timer-digit font-bold" style="color: var(--accent)">{pad(seconds)}</span> sec</span>
+          </div>
+        </div>
       </div>
       <div class="about-highlight text-center sm:text-left">
         <div class="text-3xl font-black mb-1" style="color: var(--accent)">Wisconsin</div>
@@ -89,5 +123,66 @@ const years = Math.floor((now.getTime() - startDate.getTime()) / (365.25 * 24 * 
     stagger: 0.15,
     duration: 0.6,
     ease: 'power2.out',
+  });
+
+  const START = new Date(2015, 3, 23);
+
+  function pad(n: number): string {
+    return String(n).padStart(2, '0');
+  }
+
+  function calcDuration() {
+    const now = new Date();
+
+    let y = now.getFullYear() - START.getFullYear();
+    let m = now.getMonth() - START.getMonth();
+    let d = now.getDate() - START.getDate();
+
+    if (d < 0) {
+      m--;
+      const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      d += prevMonth.getDate();
+    }
+    if (m < 0) {
+      y--;
+      m += 12;
+    }
+
+    return {
+      years: y,
+      months: m,
+      days: d,
+      hours: now.getHours(),
+      minutes: now.getMinutes(),
+      seconds: now.getSeconds(),
+    };
+  }
+
+  function updateTimer() {
+    const d = calcDuration();
+    const el = (id: string) => document.getElementById(id);
+    el('timer-years')!.textContent = d.years + '+';
+    el('timer-hover-years')!.textContent = String(d.years);
+    el('timer-months')!.textContent = pad(d.months);
+    el('timer-days')!.textContent = pad(d.days);
+    el('timer-hours')!.textContent = pad(d.hours);
+    el('timer-minutes')!.textContent = pad(d.minutes);
+    el('timer-seconds')!.textContent = pad(d.seconds);
+  }
+
+  updateTimer();
+  setInterval(updateTimer, 1000);
+
+  const timer = document.getElementById('experience-timer')!;
+  const defaultView = document.getElementById('timer-default')!;
+  const hoverView = document.getElementById('timer-hover')!;
+
+  timer.addEventListener('mouseenter', () => {
+    defaultView.style.opacity = '0';
+    hoverView.style.opacity = '1';
+  });
+  timer.addEventListener('mouseleave', () => {
+    defaultView.style.opacity = '1';
+    hoverView.style.opacity = '0';
   });
 </script>

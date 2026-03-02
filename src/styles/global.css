@@ -27,6 +27,10 @@ body {
   overflow-x: hidden;
 }
 
+.timer-digit {
+  font-variant-numeric: tabular-nums;
+}
+
 .typewriter-cursor {
   display: inline-block;
   width: 2px;
