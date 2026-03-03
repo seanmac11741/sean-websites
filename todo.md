@@ -24,7 +24,8 @@
 
 ## Blog ideas
 * How I built this site with Claude
-* How to use AI like a software engineerg
+* How to use AI like a software engineer
+* How to use gemini cli with obsidian
 
 ## CI/CD
 ~~add ci cd builds with github later~~ ✅ Phase 15 — GitHub Actions: test → build → deploy on push to `main`
@@ -38,6 +39,7 @@ Add a Projects showcase section between Skills and Contact:
 - Cards with project name, brief description, tech tags, link to GitHub/GitLab
 - GSAP scroll-triggered entrance (staggered card reveal)
 - Data can live in a `src/data/projects.ts` array for easy editing
+- Showcase of what this website does and how it does it. This project section should be fairly meta, showing latest ci/cd build status, how I'm using GCP and firebase to secure it, how I'm using AI to build features, and generally show off all the cool things I'm doing on this site as a project to show off my tech skills
 
 ## Blog — /blog/[slug]
 
