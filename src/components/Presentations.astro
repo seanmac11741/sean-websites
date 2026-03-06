@@ -1,0 +1,86 @@
+---
+type Presentation = {
+  title: string;
+  event: string;
+  date: string;
+  description: string;
+  link: string;
+  image: string;
+};
+
+const presentations: Presentation[] = [
+  {
+    title: 'Adding Guardrails to AI with GitHub Copilot',
+    event: 'Alliance 2026',
+    date: '2026-03-09',
+    description: 'Using AI effectively and safely in the Filesystem',
+    link: 'https://docs.google.com/presentation/d/1L3efRCwZOOlnf-U4ySECNgPCVpKw4jQ6TgGtBLooF0g/edit?usp=sharing',
+    image: '/images/presentations/AllianceTitleSlide2026.jpg',
+  },
+];
+
+const formatDate = (dateStr: string) =>
+  new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+---
+
+<section id="presentations" class="py-24 lg:py-32">
+  <div class="max-w-6xl mx-auto px-6">
+
+    <div class="overflow-hidden mb-16">
+      <h2 id="presentations-heading" class="text-4xl sm:text-5xl font-black text-white">Presentations</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {presentations.map((p) => (
+        <a
+          href={p.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="presentation-card group rounded-xl border border-white/10 bg-surface/40 overflow-hidden hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200"
+        >
+          <img
+            src={p.image}
+            alt={p.title}
+            class="w-full aspect-video object-cover"
+            loading="lazy"
+          />
+          <div class="p-5 flex flex-col gap-2">
+            <h3 class="text-lg font-semibold text-white group-hover:text-accent transition-colors duration-200">{p.title}</h3>
+            <p class="text-sm text-slate-400">{p.event} &middot; {formatDate(p.date)}</p>
+            <p class="text-sm text-slate-500">{p.description}</p>
+            <span class="text-accent text-sm font-medium mt-2">View Slides &rarr;</span>
+          </div>
+        </a>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  gsap.from('#presentations-heading', {
+    scrollTrigger: { trigger: '#presentations', start: 'top 78%', once: true },
+    immediateRender: false,
+    yPercent: 110,
+    duration: 0.8,
+    ease: 'power3.out',
+  });
+
+  gsap.from('.presentation-card', {
+    scrollTrigger: { trigger: '#presentations', start: 'top 78%', once: true },
+    immediateRender: false,
+    opacity: 0,
+    y: 28,
+    stagger: 0.1,
+    duration: 0.5,
+    ease: 'power2.out',
+  });
+</script>

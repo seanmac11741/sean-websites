@@ -53,6 +53,7 @@ src/
     Nav.astro              ← sticky nav, scroll-triggered bg, mobile hamburger
     Hero.astro             ← full-viewport, GSAP text reveal, typewriter titles
     About.astro            ← two-column bio + photo, live experience timer, highlights
+    Presentations.astro    ← conference talks, data-driven frontmatter array, title slide images
     Skills.astro           ← categorized grid with experience bars, 6 categories, 23 skills
     Footer.astro           ← email CTA, social links, "Request a website" CTA, copyright
   styles/global.css        ← Tailwind @import, @theme tokens, base styles
@@ -69,9 +70,10 @@ tests/
   phase15.test.ts          ← vitest tests for Phase 15 (CI/CD workflow)
   phase16.test.ts          ← vitest tests for Phase 16 (live experience timer)
   phase17.test.ts          ← vitest tests for Phase 17 (skills rewrite)
+  phase18.test.ts          ← vitest tests for Phase 18 (presentations section)
 ```
 
-**Page flow:** Hero → About → Skills → Contact/Footer
+**Page flow:** Hero → About → Presentations → Skills → Contact/Footer
 
 ## Design Tokens
 

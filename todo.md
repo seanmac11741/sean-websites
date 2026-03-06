@@ -32,7 +32,7 @@
 ~~add ci cd builds with github later~~ ✅ Phase 15 — GitHub Actions: test → build → deploy on push to `main`
 
 ## Presentations section
-A section with descriptions and links to my various presentations I have recently done at conferences. This needs to be easily updatable
+~~A section with descriptions and links to my various presentations I have recently done at conferences. This needs to be easily updatable~~ ✅ Phase 18 — Data-driven presentations section with title slide images
 
 ## Projects Section
 
