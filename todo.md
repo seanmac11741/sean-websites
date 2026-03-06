@@ -4,7 +4,8 @@
 * ~~Fix the favicon to be something cool with my name: Sean McConnell~~ ✅ Phase 14a
 * ~~Years of experience should auto update from the date: April 2015~~ ✅ Phase 14b
 * ~~The "L" in mcconnell is getting cutoff in small screens~~ ✅ Phase 14c
-* Skills section sucks. Just a bunch of weird icons with things on them... Should be closer to a cv, with examples of some cool projects. Rewrite entirely
+*Favicon has white square background. I want it to be a circle with no background behind it
+* ~~Skills section sucks. Just a bunch of weird icons with things on them... Should be closer to a cv, with examples of some cool projects. Rewrite entirely~~ ✅ Phase 17 — Categorized grid with experience bars (6 categories, 23 skills)
 
 ## Other
 * ~~Link my Strava account on socials~~ ✅ Phase 14d

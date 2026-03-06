@@ -1,6 +1,6 @@
 # Personal Website Plan — sean-mcconnell.com
 
-All 16 phases are complete. The site is live at `sean-mcconnell.com`.
+All 17 phases are complete. The site is live at `sean-mcconnell.com`.
 
 **Deferred work and future ideas:** `todo.md`
 
@@ -24,7 +24,7 @@ All 16 phases are complete. The site is live at `sean-mcconnell.com`.
 4. **Navigation** — Sticky nav with scroll-triggered background, mobile hamburger menu
 5. **Hero Section** — Full-viewport with GSAP text reveal, typewriter titles, profile photo
 6. **About Section** — Two-column layout, bio, key highlights, casual photo
-7. **Skills Section** — Responsive grid of 18 tech skills using `simple-icons`
+7. **Skills Section** — ~~Responsive grid of 18 tech skills using `simple-icons`~~ Rewritten in Phase 17
 8. **Footer / Contact** — Email CTA, social links, copyright
 9. **ScrollTrigger Animations** — All sections animate on scroll entry
 10. **Responsive Polish** — Mobile-first layout, overflow-x fix
@@ -34,6 +34,7 @@ All 16 phases are complete. The site is live at `sean-mcconnell.com`.
 14. **Post-Launch Fixes** — New favicon from logo image, dynamic years of experience, McConnell text cutoff fix, Strava social links, "Request a website" CTA with Google Form
 15. **CI/CD with GitHub Actions** — Automated test → build → deploy on push to `main`
 16. **Live Experience Timer** — Real-time ticking counter (YRS/MO/DAYS/HRS/MIN/SEC) since April 23, 2015
+17. **Skills Section Rewrite** — Categorized grid with experience bars (6 categories, 23 skills, no icons)
 
 ## Phase 15 — CI/CD with GitHub Actions
 
@@ -181,3 +182,173 @@ This becomes a live counter with six labeled units (YRS, MO, DAYS, HRS, MIN, SEC
 - [x] Update `CLAUDE.md` if any architectural details change
 - [x] Cross off the timer item in `todo.md`
 - [x] Mark Phase 16 complete in `plan.md`
+
+---
+
+## Phase 17 — Skills Section Rewrite (categorized grid + experience bars)
+
+Replace the flat icon grid with categorized skill cards showing experience bars. Each card has a skill name, years of experience, and a thin accent-colored bar (relative scale: 10 yrs = 100%).
+
+### Skill Data
+
+```
+Category: Languages
+  JavaScript      9 yrs
+  Python          3 yrs
+  Java            2 yrs
+  SQL            10 yrs
+  Bash           10 yrs
+
+Category: Web Development
+  Node.js         9 yrs
+  React           3 yrs
+  REST APIs       8 yrs
+  Full Stack      7 yrs
+
+Category: Cloud & Infrastructure
+  GCP / Firebase  5 yrs
+  AWS             2 yrs
+  Docker          6 yrs
+  Terraform       2 yrs
+
+Category: DevOps & CI/CD
+  CI/CD Pipelines 8 yrs
+  Testing         9 yrs
+  Linux          10 yrs
+  Git            10 yrs
+
+Category: Messaging & Data
+  RabbitMQ        6 yrs
+  SQL Databases  10 yrs
+
+Category: AI & Automation
+  GitHub Copilot  4 yrs
+  Claude          1 yr
+  Agentic Engineering  1 yr
+```
+
+### Design
+
+```
+Skills
+──────────────────────────────────────────────────────
+
+Languages
+┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
+│ JavaScript │ │ Python     │ │ Java       │ │ SQL        │ │ Bash       │
+│ █████████░ │ │ ███░░░░░░░ │ │ ██░░░░░░░░ │ │ ██████████ │ │ ██████████ │
+│ 9 yrs      │ │ 3 yrs      │ │ 2 yrs      │ │ 10 yrs     │ │ 10 yrs     │
+└────────────┘ └────────────┘ └────────────┘ └────────────┘ └────────────┘
+
+Web Development                     Cloud & Infrastructure
+┌────────────┐ ┌────────────┐       ┌────────────┐ ┌────────────┐
+│ Node.js    │ │ React      │       │ GCP        │ │ Docker     │
+│ █████████░ │ │ ███░░░░░░░ │       │ █████░░░░░ │ │ ██████░░░░ │
+│ 9 yrs      │ │ 3 yrs      │       │ 5 yrs      │ │ 6 yrs      │
+└────────────┘ └────────────┘       └────────────┘ └────────────┘
+  ...etc
+```
+Skills that will appear on the site (review these — 6 categories, 23 skills):
+
+**Languages:** JavaScript (9 yrs), Python (3 yrs), Java (2 yrs), SQL (10 yrs), Bash (10 yrs)
+
+**Web Development:** Node.js (9 yrs), React (3 yrs), REST APIs (8 yrs), Full Stack (7 yrs)
+
+**Cloud & Infrastructure:** GCP / Firebase (5 yrs), AWS (2 yrs), Docker (6 yrs), Terraform (2 yrs)
+
+**DevOps & CI/CD:** CI/CD Pipelines (8 yrs), Testing (9 yrs), Linux (10 yrs), Git (10 yrs)
+
+**Messaging & Data:** RabbitMQ (6 yrs), SQL Databases (10 yrs)
+
+**AI & Automation:** GitHub Copilot (4 yrs), Claude (1 yr), Agentic Engineering (1 yr)
+
+- Organized under category headings (accent-colored, bold)
+- Each card: skill name (white, semibold) + thin accent bar + "X yrs" text
+- Bar width = `(years / 10) * 100%` — relative to the longest skill (10 yrs)
+- Bar is accent color (`#818CF8`), background track is `white/5`
+- Cards in a responsive grid: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` within each category
+- Hover: card border goes accent, slight lift (`-translate-y-1`)
+- No icons — the bars and years tell the story
+- GSAP ScrollTrigger: category headings + staggered card reveal per category
+- Data lives in frontmatter as a structured array — easy to add/remove/reorder
+
+### Steps
+
+#### 17a — Rewrite the Skills.astro frontmatter (data + types)
+
+- [x] Remove the `import type { SimpleIcon } from 'simple-icons'` import
+- [x] Remove all individual `simple-icons` imports (`siJavascript`, `siNodedotjs`, etc.)
+- [x] Remove the old `Skill` type and `skills` array
+- [x] Define a new `Skill` type: `{ name: string; years: number }`
+- [x] Define a `Category` type: `{ title: string; skills: Skill[] }`
+- [x] Create the `categories` array with all 6 categories and 23 skills (exact data from the plan above)
+- [x] Compute `maxYears` constant (= 10) for bar-width scaling: `width = (skill.years / maxYears) * 100%`
+- [x] Verify data: Languages (5), Web Development (4), Cloud & Infrastructure (4), DevOps & CI/CD (4), Messaging & Data (2), AI & Automation (3) = 23 total
+
+#### 17b — Replace the markup
+
+- [x] Keep the outer `<section id="skills">` wrapper and `<h2 id="skills-heading">` — unchanged
+- [x] Remove the old `<div id="skills-grid">` flat grid and its `.skill-card` children
+- [x] Add a new container that iterates over `categories`
+- [x] For each category, render:
+  - [x] **Category heading**: `<h3>` with the category title, accent-colored, uppercase, `tracking-wider`, `text-sm font-bold`, with `mb-4 mt-10` (first category gets `mt-0`)
+  - [x] **Grid container**: `<div>` with `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4`
+  - [x] **Skill cards** (inside grid): each card is a `<div class="skill-card">` containing:
+    - [x] Skill name: `<span>` with `text-sm font-semibold text-white`
+    - [x] Bar track: `<div>` with `h-1 rounded-full bg-white/5 mt-3`
+    - [x] Bar fill: nested `<div>` with `h-1 rounded-full bg-accent` and inline `style="width: {pct}%"` where `pct = (skill.years / maxYears) * 100`
+    - [x] Years label: `<span>` with `text-xs text-slate-500 mt-2` showing `{skill.years} yr{skill.years !== 1 ? 's' : ''}`
+
+#### 17c — Style the cards
+
+- [x] Card base: `rounded-xl border border-white/10 bg-surface/40 p-4 flex flex-col`
+- [x] Card hover: `hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200 cursor-default`
+- [x] Confirm accent bar color matches `#818CF8` (uses `bg-accent` which maps to `--color-accent`)
+- [x] Confirm category headings use the accent color (`text-accent`)
+- [x] Verify responsive breakpoints: 2 cols on mobile, 3 cols on `sm`, 4 cols on `lg` — same as current grid
+
+#### 17d — GSAP animations
+
+- [x] Keep the existing `#skills-heading` reveal animation (yPercent: 110, trigger at 78%)
+- [x] Remove the old single `.skill-card` stagger animation
+- [x] Add per-category staggered card reveals — give each category grid a unique class or `data-category` attribute
+- [x] For each category group, create a `gsap.from('.skill-card', ...)` scoped to that group's container
+- [x] Use `ScrollTrigger` per group: `trigger` = the category grid container, `start: 'top 78%'`, `once: true`
+- [x] Set `immediateRender: false` on all animations (matches existing pattern)
+- [x] Stagger value: `0.05` per card within each group (same as current)
+
+#### 17e — Remove `simple-icons` dependency
+
+- [x] Confirm no other file in `src/` imports from `simple-icons` (already verified: only Skills.astro uses it)
+- [x] Remove `"simple-icons"` from `dependencies` in `package.json`
+- [x] Run `bun install` to regenerate the lockfile without the removed package
+- [x] Verify `bun run build` still succeeds after removal
+
+#### 17f — Write tests (`tests/phase17.test.ts`)
+
+- [x] Create `tests/phase17.test.ts` using the same pattern as `phase16.test.ts` (read file as string, assert contents)
+- [x] Read `Skills.astro` source with `readFileSync`
+- [x] Test that all 6 category names are present: "Languages", "Web Development", "Cloud & Infrastructure", "DevOps & CI/CD", "Messaging & Data", "AI & Automation"
+- [x] Test that all 23 skill names are present in the markup (JavaScript, Python, Java, SQL, Bash, Node.js, React, REST APIs, Full Stack, GCP / Firebase, AWS, Docker, Terraform, CI/CD Pipelines, Testing, Linux, Git, RabbitMQ, SQL Databases, GitHub Copilot, Claude, Agentic Engineering)
+- [x] Test that experience bars exist — check for `bg-accent` and `bg-white/5` (bar fill + track classes)
+- [x] Test that years labels exist — check for `yr` text in the component
+- [x] Test that `simple-icons` is NOT imported — `expect(skills).not.toContain('simple-icons')`
+- [x] Test that the `#skills-heading` and `#skills` IDs are preserved (GSAP + nav links depend on them)
+- [x] Read `package.json` and test that `simple-icons` is not in dependencies
+- [x] Run `bun run test` and confirm all tests pass (including prior phase tests)
+
+#### 17g — Update CLAUDE.md
+
+- [x] Update the Skills.astro description in the Architecture section: change "responsive grid, 18 skills via simple-icons" to "categorized grid with experience bars, 6 categories, 23 skills"
+- [x] Remove any mention of `simple-icons` from CLAUDE.md
+- [x] Add note about the skill data structure (frontmatter array of categories → skills with years)
+
+#### 17h — Visual check + docs
+
+- [x] Run `bun run dev` and verify the skills section renders correctly in the browser
+- [x] Check responsive layout: mobile (2 cols), tablet/sm (3 cols), desktop/lg (4 cols)
+- [x] Verify hover states work (border accent, lift)
+- [x] Verify GSAP scroll animations fire per category group
+- [x] Verify experience bars have correct relative widths (10 yrs = 100%, 1 yr = 10%)
+- [x] Cross off the skills item in `todo.md`
+- [x] Mark Phase 17 complete in `plan.md` summary and completed phases list

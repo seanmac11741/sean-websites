@@ -53,7 +53,7 @@ src/
     Nav.astro              ← sticky nav, scroll-triggered bg, mobile hamburger
     Hero.astro             ← full-viewport, GSAP text reveal, typewriter titles
     About.astro            ← two-column bio + photo, live experience timer, highlights
-    Skills.astro           ← responsive grid, 18 skills via simple-icons
+    Skills.astro           ← categorized grid with experience bars, 6 categories, 23 skills
     Footer.astro           ← email CTA, social links, "Request a website" CTA, copyright
   styles/global.css        ← Tailwind @import, @theme tokens, base styles
 public/
@@ -68,6 +68,7 @@ tests/
   phase14.test.ts          ← vitest tests for Phase 14 changes
   phase15.test.ts          ← vitest tests for Phase 15 (CI/CD workflow)
   phase16.test.ts          ← vitest tests for Phase 16 (live experience timer)
+  phase17.test.ts          ← vitest tests for Phase 17 (skills rewrite)
 ```
 
 **Page flow:** Hero → About → Skills → Contact/Footer
@@ -84,7 +85,7 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 ## Key Implementation Details
 
 - GSAP ScrollTrigger animations use `immediateRender: false` + `once: true` — safe when page loads already scrolled to a section
-- `simple-icons` npm package provides SVGs for the Skills section
+- Skills section uses a frontmatter array of categories (each with a title and array of `{ name, years }` skills) — no external icon package
 - `@astrojs/sitemap` generates sitemap on build
 - `firebase.json` only deploys hosting (functions/firestore/storage removed — `functions/` dir still exists if needed later)
 - `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`

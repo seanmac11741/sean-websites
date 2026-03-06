@@ -1,43 +1,62 @@
 ---
-import type { SimpleIcon } from 'simple-icons';
-import {
-  siJavascript,
-  siNodedotjs,
-  siPython,
-  siReact,
-  siExpress,
-  siDocker,
-  siTerraform,
-  siGitlab,
-  siRabbitmq,
-  siJest,
-  siGit,
-  siLinux,
-  siGnubash,
-  siPm2,
-} from 'simple-icons';
+type Skill = { name: string; years: number };
+type Category = { title: string; skills: Skill[] };
 
-type Skill = { name: string; icon: SimpleIcon | null; abbrev?: string };
+const maxYears = 10;
 
-const skills: Skill[] = [
-  { name: 'JavaScript', icon: siJavascript },
-  { name: 'Node.js', icon: siNodedotjs },
-  { name: 'Python', icon: siPython },
-  { name: 'Java', icon: null, abbrev: 'JAVA' },
-  { name: 'React', icon: siReact },
-  { name: 'Express.js', icon: siExpress },
-  { name: 'AWS', icon: null, abbrev: 'AWS' },
-  { name: 'Docker', icon: siDocker },
-  { name: 'Terraform', icon: siTerraform },
-  { name: 'GitLab CI/CD', icon: siGitlab },
-  { name: 'RabbitMQ', icon: siRabbitmq },
-  { name: 'Jest', icon: siJest },
-  { name: 'Git', icon: siGit },
-  { name: 'Linux', icon: siLinux },
-  { name: 'Bash', icon: siGnubash },
-  { name: 'Oracle / SQL', icon: null, abbrev: 'SQL' },
-  { name: 'PM2', icon: siPm2 },
-  { name: 'PowerShell', icon: null, abbrev: 'PS' },
+const categories: Category[] = [
+  {
+    title: 'Languages',
+    skills: [
+      { name: 'JavaScript', years: 9 },
+      { name: 'Python', years: 3 },
+      { name: 'Java', years: 2 },
+      { name: 'SQL', years: 10 },
+      { name: 'Bash', years: 10 },
+    ],
+  },
+  {
+    title: 'Web Development',
+    skills: [
+      { name: 'Node.js', years: 9 },
+      { name: 'React', years: 3 },
+      { name: 'REST APIs', years: 8 },
+      { name: 'Full Stack', years: 7 },
+    ],
+  },
+  {
+    title: 'Cloud & Infrastructure',
+    skills: [
+      { name: 'GCP / Firebase', years: 5 },
+      { name: 'AWS', years: 2 },
+      { name: 'Docker', years: 6 },
+      { name: 'Terraform', years: 2 },
+    ],
+  },
+  {
+    title: 'DevOps & CI/CD',
+    skills: [
+      { name: 'CI/CD Pipelines', years: 8 },
+      { name: 'Testing', years: 9 },
+      { name: 'Linux', years: 10 },
+      { name: 'Git', years: 10 },
+    ],
+  },
+  {
+    title: 'Messaging & Data',
+    skills: [
+      { name: 'RabbitMQ', years: 6 },
+      { name: 'SQL Databases', years: 10 },
+    ],
+  },
+  {
+    title: 'AI & Automation',
+    skills: [
+      { name: 'GitHub Copilot', years: 4 },
+      { name: 'Claude', years: 1 },
+      { name: 'Agentic Engineering', years: 1 },
+    ],
+  },
 ];
 ---
 
@@ -48,34 +67,24 @@ const skills: Skill[] = [
       <h2 id="skills-heading" class="text-4xl sm:text-5xl font-black text-white">Skills</h2>
     </div>
 
-    <div id="skills-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      {skills.map((skill) => (
-        <div class="skill-card group flex flex-col items-center gap-3 p-6 rounded-xl border border-white/10 bg-surface/40 hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200 cursor-default">
-          {skill.icon ? (
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-8 h-8 opacity-80 group-hover:opacity-100 transition-opacity duration-200"
-              aria-label={skill.name}
-            >
-              <path d={skill.icon.path} fill={`#${skill.icon.hex}`} />
-            </svg>
-          ) : (
-            <div
-              class="w-8 h-8 flex items-center justify-center font-black text-xs tracking-tight opacity-80 group-hover:opacity-100 transition-opacity duration-200"
-              style="color: var(--accent)"
-              aria-hidden="true"
-            >
-              {skill.abbrev}
+    {categories.map((cat, i) => (
+      <div class="skills-category" data-category={cat.title}>
+        <h3 class={`text-sm font-bold text-accent uppercase tracking-wider ${i === 0 ? 'mt-0' : 'mt-10'} mb-4`}>
+          {cat.title}
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {cat.skills.map((skill) => (
+            <div class="skill-card rounded-xl border border-white/10 bg-surface/40 p-4 flex flex-col hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200 cursor-default">
+              <span class="text-sm font-semibold text-white">{skill.name}</span>
+              <div class="h-1 rounded-full bg-white/5 mt-3">
+                <div class="h-1 rounded-full bg-accent" style={`width: ${(skill.years / maxYears) * 100}%`}></div>
+              </div>
+              <span class="text-xs text-slate-500 mt-2">{skill.years} {skill.years !== 1 ? 'yrs' : 'yr'}</span>
             </div>
-          )}
-          <span class="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors duration-200 text-center leading-tight">
-            {skill.name}
-          </span>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    ))}
 
   </div>
 </section>
@@ -93,13 +102,15 @@ const skills: Skill[] = [
     ease: 'power3.out',
   });
 
-  gsap.from('.skill-card', {
-    scrollTrigger: { trigger: '#skills-grid', start: 'top 78%', once: true },
-    immediateRender: false,
-    opacity: 0,
-    y: 28,
-    stagger: 0.05,
-    duration: 0.5,
-    ease: 'power2.out',
+  document.querySelectorAll('.skills-category').forEach((group) => {
+    gsap.from(group.querySelectorAll('.skill-card'), {
+      scrollTrigger: { trigger: group, start: 'top 78%', once: true },
+      immediateRender: false,
+      opacity: 0,
+      y: 28,
+      stagger: 0.05,
+      duration: 0.5,
+      ease: 'power2.out',
+    });
   });
 </script>
