@@ -1,6 +1,6 @@
 # Personal Website Plan — sean-mcconnell.com
 
-All 18 phases are complete. The site is live at `sean-mcconnell.com`.
+All 19 phases are complete. The site is live at `sean-mcconnell.com`.
 
 **Deferred work and future ideas:** `todo.md`
 
@@ -36,3 +36,4 @@ All 18 phases are complete. The site is live at `sean-mcconnell.com`.
 16. **Live Experience Timer** — Real-time ticking counter since April 23, 2015
 17. **Skills Section Rewrite** — Categorized grid with experience bars (6 categories, 23 skills)
 18. **Presentations Section** — Conference talks with title slide images, data-driven frontmatter, nav link
+19. **Highlight Card Hover Interactions** — Weather widget (Wisconsin, Open-Meteo API, 30-min cache) + AWS Certified badge with yellow accent (AI & Cloud), mobile tap-to-toggle
