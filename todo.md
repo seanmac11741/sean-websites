@@ -23,6 +23,12 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 
 ## CI/CD
 ~~add ci cd builds with github later~~ ✅ Phase 15 — GitHub Actions: test → build → deploy on push to `main`
+* Figure out how to add the build passed icons that are on github to my webpage and the github readme? 
+
+## Tools page 
+A separate page at sean-mcconnell.com/tools 
+* Flow state room. A timer that counts down from 90 minutes with cool animations and a big button you can push to start it. it should also embed any number of youtube videos that are "concentration/flow state music" and play it for you. When the timer gets to zero, it should beep super loud and tell the user to take a break. 
+* CV resume builder. Just a thing you can enter a bunch of info into and it builds out a one page resume. Should all be done client side with javascript, no file saving on a database or anything. Should be a download button though, if I can just stream the file out like that? Might have to write it to local storage or something. 
 
 ## Presentations section
 ~~A section with descriptions and links to my various presentations I have recently done at conferences. This needs to be easily updatable~~ ✅ Phase 18 — Data-driven presentations section with title slide images
