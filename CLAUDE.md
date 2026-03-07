@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Critical Rules
+
+- **Never run any git commands** — Sean handles all git operations manually
+- Keep `CLAUDE.md` current — update the tests list, architecture, and key implementation details whenever a phase completes or significant changes are made
+
 ## Project
 
 Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted on Firebase Hosting.
@@ -55,7 +60,7 @@ src/
     About.astro            ← two-column bio + photo, live experience timer, highlights
     Presentations.astro    ← conference talks, data-driven frontmatter array, title slide images
     Skills.astro           ← categorized grid with experience bars, 6 categories, 23 skills
-    Footer.astro           ← email CTA, social links, "Request a website" CTA, copyright
+    Footer.astro           ← email CTA, social links, "Request a website" + "Buy me a coffee" CTAs, copyright
   styles/global.css        ← Tailwind @import, @theme tokens, base styles
 public/
   images/                  ← ProfilePictureSeanWhiteSweater.png, CasualMountainsSean.jpg,
@@ -71,6 +76,8 @@ tests/
   phase16.test.ts          ← vitest tests for Phase 16 (live experience timer)
   phase17.test.ts          ← vitest tests for Phase 17 (skills rewrite)
   phase18.test.ts          ← vitest tests for Phase 18 (presentations section)
+  phase19.test.ts          ← vitest tests for Phase 19 (highlight card hover interactions)
+  phase20.test.ts          ← vitest tests for Phase 20 (Buy Me a Coffee link)
 ```
 
 **Page flow:** Hero → About → Presentations → Skills → Contact/Footer
@@ -95,10 +102,3 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout
 - Social links (GitHub, GitLab, LinkedIn, Strava) appear in Nav, Hero, and Footer
 - Footer "Request a website" CTA links to Google Form: `https://forms.gle/fFCFyQH7dG6xXtkVA`
-
-## User Preferences
-
-- Do not stop mid-implementation — complete each phase fully, mark it done, then pause for review
-- Do not add unnecessary comments, JSDoc, or `any`/`unknown` types
-- Run typecheck continuously while implementing
-- **Never run any git commands** — Sean handles all git operations manually
