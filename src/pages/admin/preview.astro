@@ -1,0 +1,152 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Preview — Sean McConnell" description="Blog post preview">
+  <div id="preview-app" class="min-h-screen bg-dark text-white">
+    <!-- Loading -->
+    <div id="preview-loading" class="flex items-center justify-center min-h-screen">
+      <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Preview content -->
+    <div id="preview-content" class="hidden">
+      <!-- Preview banner -->
+      <div class="bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-sm text-center py-2">
+        Preview Mode — This is how the post will appear on the public blog
+      </div>
+
+      <article class="max-w-3xl mx-auto px-6 py-12">
+        <header class="mb-8">
+          <h1 id="preview-title" class="text-4xl font-bold text-white mb-4"></h1>
+          <div class="flex flex-wrap items-center gap-3 text-sm text-slate-400">
+            <time id="preview-date"></time>
+            <span class="text-white/20">·</span>
+            <span id="preview-reading-time"></span>
+          </div>
+          <div id="preview-tags" class="flex flex-wrap gap-2 mt-4"></div>
+        </header>
+        <div id="preview-body" class="prose-blog"></div>
+      </article>
+    </div>
+  </div>
+
+  <script>
+    import { auth, db, ADMIN_EMAIL } from '../../lib/firebase';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { doc, getDoc } from 'firebase/firestore';
+    import { generateHTML } from '@tiptap/html';
+    import StarterKit from '@tiptap/starter-kit';
+    import Image from '@tiptap/extension-image';
+    import Link from '@tiptap/extension-link';
+    import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+    import { common, createLowlight } from 'lowlight';
+
+    const lowlight = createLowlight(common);
+    const extensions = [
+      StarterKit.configure({ codeBlock: false }),
+      Image,
+      Link,
+      CodeBlockLowlight.configure({ lowlight }),
+    ];
+
+    const previewLoading = document.getElementById('preview-loading')!;
+    const previewContent = document.getElementById('preview-content')!;
+
+    function wordCount(json: any): number {
+      let count = 0;
+      function walk(node: any) {
+        if (node.text) count += node.text.split(/\s+/).filter(Boolean).length;
+        if (node.content) node.content.forEach(walk);
+      }
+      walk(json);
+      return count;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || user.email !== ADMIN_EMAIL) {
+        window.location.href = '/admin';
+        return;
+      }
+
+      const slug = new URLSearchParams(window.location.search).get('slug');
+      if (!slug) {
+        window.location.href = '/admin';
+        return;
+      }
+
+      const snap = await getDoc(doc(db, 'posts', slug));
+      if (!snap.exists()) {
+        document.getElementById('preview-loading')!.innerHTML = '<p class="text-slate-400">Post not found.</p>';
+        return;
+      }
+
+      const data = snap.data();
+
+      document.getElementById('preview-title')!.textContent = data.title || 'Untitled';
+
+      const date = data.publishedAt?.toDate() || data.createdAt?.toDate() || new Date();
+      document.getElementById('preview-date')!.textContent = date.toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric',
+      });
+
+      const words = data.content ? wordCount(data.content) : 0;
+      const minutes = Math.max(1, Math.round(words / 200));
+      document.getElementById('preview-reading-time')!.textContent = `${minutes} min read`;
+
+      const tagsContainer = document.getElementById('preview-tags')!;
+      (data.tags || []).forEach((tag: string) => {
+        const span = document.createElement('span');
+        span.className = 'text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full';
+        span.textContent = tag;
+        tagsContainer.appendChild(span);
+      });
+
+      if (data.content) {
+        const html = generateHTML(data.content, extensions);
+        document.getElementById('preview-body')!.innerHTML = html;
+      }
+
+      previewLoading.classList.add('hidden');
+      previewContent.classList.remove('hidden');
+    });
+  </script>
+</Layout>
+
+<style is:global>
+  .prose-blog h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; color: white; }
+  .prose-blog h2 { font-size: 1.5em; font-weight: 600; margin: 0.83em 0; color: white; }
+  .prose-blog h3 { font-size: 1.25em; font-weight: 600; margin: 1em 0; color: white; }
+  .prose-blog p { margin: 0.75em 0; color: #cbd5e1; line-height: 1.75; }
+  .prose-blog ul { list-style: disc; padding-left: 1.5em; margin: 0.75em 0; color: #cbd5e1; }
+  .prose-blog ol { list-style: decimal; padding-left: 1.5em; margin: 0.75em 0; color: #cbd5e1; }
+  .prose-blog li { margin: 0.25em 0; }
+  .prose-blog a { color: #818CF8; text-decoration: underline; }
+  .prose-blog a:hover { color: #a5b4fc; }
+  .prose-blog img { max-width: 100%; border-radius: 0.5rem; margin: 1.5em 0; }
+  .prose-blog pre {
+    background: #1e1e2e;
+    border-radius: 0.5rem;
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+    color: #e2e8f0;
+  }
+  .prose-blog code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+  }
+  .prose-blog p code {
+    background: rgba(255,255,255,0.1);
+    padding: 0.15em 0.4em;
+    border-radius: 0.25em;
+  }
+  .prose-blog blockquote {
+    border-left: 3px solid #818CF8;
+    padding-left: 1em;
+    margin: 1em 0;
+    color: #94a3b8;
+  }
+</style>

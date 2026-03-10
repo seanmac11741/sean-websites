@@ -1,0 +1,167 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+---
+
+<Layout title="Blog — Sean McConnell" description="Blog post">
+  <Nav />
+  <main class="min-h-screen bg-dark text-white pt-24 pb-16">
+    <!-- Loading -->
+    <div id="post-loading" class="flex justify-center py-24">
+      <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- 404 -->
+    <div id="post-not-found" class="hidden text-center py-24 max-w-3xl mx-auto px-6">
+      <h1 class="text-4xl font-bold text-white mb-4">Post Not Found</h1>
+      <p class="text-slate-400 mb-6">This post doesn't exist or hasn't been published yet.</p>
+      <a href="/blog" class="text-accent hover:text-white transition-colors duration-200">Back to blog</a>
+    </div>
+
+    <!-- Post content -->
+    <article id="post-content" class="hidden max-w-3xl mx-auto px-6">
+      <header class="mb-8">
+        <h1 id="post-title" class="text-4xl font-bold text-white mb-4"></h1>
+        <div class="flex flex-wrap items-center gap-3 text-sm text-slate-400">
+          <time id="post-date"></time>
+          <span class="text-white/20">·</span>
+          <span id="post-reading-time"></span>
+        </div>
+        <div id="post-tags" class="flex flex-wrap gap-2 mt-4"></div>
+        <p id="post-description" class="text-slate-400 mt-4 text-lg"></p>
+      </header>
+      <div id="post-body" class="prose-blog"></div>
+      <footer class="mt-16 pt-8 border-t border-white/10">
+        <a href="/blog" class="text-accent hover:text-white transition-colors duration-200">&larr; Back to blog</a>
+      </footer>
+    </article>
+  </main>
+
+  <script>
+    import { generateHTML } from '@tiptap/html';
+    import StarterKit from '@tiptap/starter-kit';
+    import Image from '@tiptap/extension-image';
+    import Link from '@tiptap/extension-link';
+    import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+    import { common, createLowlight } from 'lowlight';
+
+    const lowlight = createLowlight(common);
+    const extensions = [
+      StarterKit.configure({ codeBlock: false }),
+      Image,
+      Link,
+      CodeBlockLowlight.configure({ lowlight }),
+    ];
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug') || window.location.pathname.replace(/^\/blog\//, '').replace(/\/$/, '');
+
+    function wordCount(json: any): number {
+      let count = 0;
+      function walk(node: any) {
+        if (node.text) count += node.text.split(/\s+/).filter(Boolean).length;
+        if (node.content) node.content.forEach(walk);
+      }
+      walk(json);
+      return count;
+    }
+
+    async function loadPost() {
+      if (!slug) {
+        document.getElementById('post-loading')!.classList.add('hidden');
+        document.getElementById('post-not-found')!.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/blog/${slug}`);
+        if (!res.ok) {
+          document.getElementById('post-loading')!.classList.add('hidden');
+          document.getElementById('post-not-found')!.classList.remove('hidden');
+          return;
+        }
+
+        const post = await res.json();
+
+        document.getElementById('post-title')!.textContent = post.title;
+        document.title = `${post.title} — Sean McConnell`;
+
+        const meta = document.querySelector('meta[name="description"]');
+        if (meta && post.description) meta.setAttribute('content', post.description);
+
+        if (post.publishedAt) {
+          document.getElementById('post-date')!.textContent = new Date(post.publishedAt).toLocaleDateString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric',
+          });
+        }
+
+        if (post.content) {
+          const words = wordCount(post.content);
+          const minutes = Math.max(1, Math.round(words / 200));
+          document.getElementById('post-reading-time')!.textContent = `${minutes} min read`;
+
+          const html = generateHTML(post.content, extensions);
+          document.getElementById('post-body')!.innerHTML = html;
+        }
+
+        const tagsContainer = document.getElementById('post-tags')!;
+        (post.tags || []).forEach((tag: string) => {
+          const span = document.createElement('span');
+          span.className = 'text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full';
+          span.textContent = tag;
+          tagsContainer.appendChild(span);
+        });
+
+        if (post.description) {
+          document.getElementById('post-description')!.textContent = post.description;
+        }
+
+        document.getElementById('post-loading')!.classList.add('hidden');
+        document.getElementById('post-content')!.classList.remove('hidden');
+      } catch {
+        document.getElementById('post-loading')!.classList.add('hidden');
+        document.getElementById('post-not-found')!.classList.remove('hidden');
+      }
+    }
+
+    loadPost();
+  </script>
+</Layout>
+
+<style is:global>
+  .prose-blog h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; color: white; }
+  .prose-blog h2 { font-size: 1.5em; font-weight: 600; margin: 0.83em 0; color: white; }
+  .prose-blog h3 { font-size: 1.25em; font-weight: 600; margin: 1em 0; color: white; }
+  .prose-blog p { margin: 0.75em 0; color: #cbd5e1; line-height: 1.75; }
+  .prose-blog ul { list-style: disc; padding-left: 1.5em; margin: 0.75em 0; color: #cbd5e1; }
+  .prose-blog ol { list-style: decimal; padding-left: 1.5em; margin: 0.75em 0; color: #cbd5e1; }
+  .prose-blog li { margin: 0.25em 0; }
+  .prose-blog a { color: #818CF8; text-decoration: underline; }
+  .prose-blog a:hover { color: #a5b4fc; }
+  .prose-blog img { max-width: 100%; border-radius: 0.5rem; margin: 1.5em 0; }
+  .prose-blog pre {
+    background: #1e1e2e;
+    border-radius: 0.5rem;
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+    color: #e2e8f0;
+  }
+  .prose-blog code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+  }
+  .prose-blog p code {
+    background: rgba(255,255,255,0.1);
+    padding: 0.15em 0.4em;
+    border-radius: 0.25em;
+  }
+  .prose-blog blockquote {
+    border-left: 3px solid #818CF8;
+    padding-left: 1em;
+    margin: 1em 0;
+    color: #94a3b8;
+  }
+</style>

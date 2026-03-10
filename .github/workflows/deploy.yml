@@ -2,25 +2,34 @@ name: Deploy to Firebase
 
 on:
   push:
-    branches: [main]
+    branches: [main, issue/blogcreation]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: oven-sh/setup-bun@v2
-
       - run: bun install
-
+      - run: cd functions && bun install
       - run: bun run test
-
       - run: bun run build
+      - run: cd functions && npx tsc
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: cd functions && bun install
+      - run: bun run build
+      - run: cd functions && npx tsc
+      - uses: w9jds/firebase-action@v13.29.1
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: sean-mcconnell-site
+          args: deploy
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: sean-mcconnell-site

@@ -2,8 +2,16 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    match /posts/{postId} {
+      allow read: if resource.data.status == 'published';
+      allow write: if request.auth != null
+        && request.auth.token.email == 'seanmac11741@gmail.com';
+    }
+
+    match /config/{docId} {
+      allow read: if false;
+      allow write: if request.auth != null
+        && request.auth.token.email == 'seanmac11741@gmail.com';
     }
   }
 }
