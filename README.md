@@ -20,6 +20,12 @@ bun run build && bun run preview
 
 ### Deploying to Firebase
 
+
+Prerequisites:
+* `firebase-tools` installed globally (`bun install -g firebase-tools`)
+* Logged in via `firebase login`
+* Firebase project is `sean-mcconnell-site` (configured in `.firebaserc`)
+
 The site is hosted on Firebase Hosting and serves the `dist/` directory. Domain: `sean-mcconnell.com`.
 
 ```bash
@@ -32,10 +38,20 @@ Or as a single command:
 bun run build && firebase deploy
 ```
 
-Prerequisites:
-* `firebase-tools` installed globally (`bun install -g firebase-tools`)
-* Logged in via `firebase login`
-* Firebase project is `sean-mcconnell-site` (configured in `.firebaserc`)
+### Deploying a preview (without touching the live site)
+
+First deploy functions + rules (these are project-wide, not channel-specific):
+```bash
+firebase deploy --only functions,firestore:rules,storage
+```
+
+Then deploy hosting to a preview channel:
+```bash
+bun run build
+firebase hosting:channel:deploy blog-preview
+```
+
+This gives you a temporary URL like `sean-mcconnell-site--blog-preview-xxxxx.web.app` to test on. Preview channels auto-expire after 7 days.
 
 ### Helpful Claude commands
 * Resume last conversation where I left off: 
