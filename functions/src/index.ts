@@ -14,7 +14,7 @@ function setCors(res: any) {
   res.set("Access-Control-Allow-Headers", "Content-Type");
 }
 
-export const api = onRequest(async (req, res) => {
+export const api = onRequest({ invoker: "public" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
