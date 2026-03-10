@@ -4,6 +4,7 @@
 * Sean 2. An Ai bot that I train on all my blog posts that I write. It should be something like a RAG system, that has access to my writings and code and acts like me. It will be terrible at first, but should get better as I add more data to it. Just text at first of me writing, but later, it would be cool to add like a vlog-style video thing, where I can make a video of myself, and have the bot interview me to get more of an idea of my full personality so it can act more like me. Could have veo for video generation and audio generation of my voice as well. Backend cloud functions to train a model, and a front end chat interface, where anyone that comes to the site could do a one-shot interaction with me. Ask my bot anything and it will respond (once and only once) in my voice. Would be hard to make this so that I don't get 1 million requests, would have to limit per IP address or something.
 Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 * My most recent run from strava api? not sure if possible without strava login. Maybe use Garmin?
+* Accept payments on my website. Have somewhere I can place an invoice for a customer and they get a link to my website at sean-mcconnell.com/invoice123. I think it needs to be behind auth based on email address of my client? Otherwise anyone could access the invoice. 
 
 
 ## Blog ideas
@@ -13,6 +14,7 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 
 ## CI/CD
 * Figure out how to add the build passed icons that are on github to my webpage and the github readme?
+* AI Agents with Claude triggered in github actions. One for code review and qa first. It should just review a PR when I want to merge in a new request. 
 
 ## Tools page
 A separate page at sean-mcconnell.com/tools

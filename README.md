@@ -1,7 +1,8 @@
 # sean-mcconnell.com
 
 ## Personal notes
-* I used Claude code to make this site. I will try not to touch the actual code at all. 
+* I used Claude code to make this site. I will try not to touch the actual code at all.
+* This site is a live demo of my skills. Every feature is intentional — Firebase Hosting, Cloud Functions, Firestore, Firebase Auth, Firebase Storage, CI/CD with GitHub Actions, GSAP animations, Astro SSG. If I know how to use it, it's running on this site. 
 
 ### Running locally
 
