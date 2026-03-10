@@ -1,0 +1,356 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Editor — Sean McConnell" description="Blog post editor">
+  <div id="editor-app" class="min-h-screen bg-dark text-white">
+    <!-- Loading -->
+    <div id="editor-loading" class="flex items-center justify-center min-h-screen">
+      <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Editor UI (hidden until auth) -->
+    <div id="editor-ui" class="hidden">
+      <!-- Top bar -->
+      <header class="border-b border-white/10 bg-surface/50 backdrop-blur-sm sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <a href="/admin" class="text-slate-400 hover:text-white text-sm transition-colors duration-200">&larr; Posts</a>
+            <span id="save-indicator" class="text-slate-500 text-xs">Saved</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="preview-btn" class="text-sm text-slate-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors duration-200">
+              Preview
+            </button>
+            <button id="publish-btn" class="text-sm bg-accent hover:bg-accent/80 text-white px-4 py-1.5 rounded-lg font-medium transition-colors duration-200">
+              Publish
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Metadata -->
+      <div class="max-w-3xl mx-auto px-6 pt-8">
+        <input
+          id="post-title"
+          type="text"
+          placeholder="Post title"
+          class="w-full bg-transparent text-3xl font-bold text-white placeholder-slate-600 outline-none border-none mb-3"
+        />
+        <div class="flex flex-wrap gap-4 mb-2">
+          <div class="flex items-center gap-2">
+            <label class="text-slate-500 text-xs">Slug:</label>
+            <input
+              id="post-slug"
+              type="text"
+              placeholder="post-slug"
+              class="bg-transparent text-slate-300 text-sm outline-none border-b border-white/10 focus:border-accent pb-0.5 w-48 transition-colors duration-200"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-slate-500 text-xs">Tags:</label>
+            <input
+              id="post-tags"
+              type="text"
+              placeholder="tag1, tag2"
+              class="bg-transparent text-slate-300 text-sm outline-none border-b border-white/10 focus:border-accent pb-0.5 w-48 transition-colors duration-200"
+            />
+          </div>
+        </div>
+        <textarea
+          id="post-description"
+          placeholder="Short description for SEO and blog listing..."
+          rows="2"
+          class="w-full bg-transparent text-slate-400 text-sm placeholder-slate-600 outline-none border-b border-white/10 focus:border-accent resize-none mb-6 transition-colors duration-200"
+        ></textarea>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="max-w-3xl mx-auto px-6 mb-4">
+        <div id="toolbar" class="flex flex-wrap gap-1 p-2 bg-surface border border-white/10 rounded-lg">
+          <button data-action="h1" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Heading 1">H1</button>
+          <button data-action="h2" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Heading 2">H2</button>
+          <button data-action="h3" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Heading 3">H3</button>
+          <span class="w-px bg-white/10 mx-1"></span>
+          <button data-action="bold" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors font-bold" title="Bold">B</button>
+          <button data-action="italic" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors italic" title="Italic">I</button>
+          <span class="w-px bg-white/10 mx-1"></span>
+          <button data-action="bulletList" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Bullet List">UL</button>
+          <button data-action="orderedList" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Ordered List">OL</button>
+          <span class="w-px bg-white/10 mx-1"></span>
+          <button data-action="link" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Link">Link</button>
+          <button data-action="codeBlock" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors font-mono" title="Code Block">&lt;/&gt;</button>
+          <button data-action="image" class="toolbar-btn px-2 py-1 text-xs rounded hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Image">IMG</button>
+          <input id="image-upload" type="file" accept="image/*" class="hidden" />
+        </div>
+      </div>
+
+      <!-- Editor content area -->
+      <div class="max-w-3xl mx-auto px-6 pb-24">
+        <div id="editor" class="prose-editor min-h-[400px] bg-surface border border-white/10 rounded-lg p-6 text-slate-200 outline-none"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { auth, db, storage, ADMIN_EMAIL } from '../../lib/firebase';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+    import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+    import { Editor } from '@tiptap/core';
+    import StarterKit from '@tiptap/starter-kit';
+    import Image from '@tiptap/extension-image';
+    import Link from '@tiptap/extension-link';
+    import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+    import { common, createLowlight } from 'lowlight';
+
+    const lowlight = createLowlight(common);
+
+    const editorLoading = document.getElementById('editor-loading')!;
+    const editorUI = document.getElementById('editor-ui')!;
+    const titleInput = document.getElementById('post-title') as HTMLInputElement;
+    const slugInput = document.getElementById('post-slug') as HTMLInputElement;
+    const tagsInput = document.getElementById('post-tags') as HTMLInputElement;
+    const descInput = document.getElementById('post-description') as HTMLTextAreaElement;
+    const saveIndicator = document.getElementById('save-indicator')!;
+    const imageUpload = document.getElementById('image-upload') as HTMLInputElement;
+
+    const params = new URLSearchParams(window.location.search);
+    const editSlug = params.get('slug');
+    let currentSlug = editSlug || '';
+    let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+    let isNewPost = !editSlug;
+
+    function slugify(text: string): string {
+      return text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    const editor = new Editor({
+      element: document.getElementById('editor')!,
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        Image,
+        Link.configure({ openOnClick: false }),
+        CodeBlockLowlight.configure({ lowlight }),
+      ],
+      content: '<p></p>',
+      editorProps: {
+        attributes: {
+          class: 'outline-none min-h-[400px]',
+        },
+      },
+      onUpdate: () => scheduleSave(),
+    });
+
+    titleInput.addEventListener('input', () => {
+      if (isNewPost) {
+        slugInput.value = slugify(titleInput.value);
+      }
+      scheduleSave();
+    });
+    slugInput.addEventListener('input', scheduleSave);
+    tagsInput.addEventListener('input', scheduleSave);
+    descInput.addEventListener('input', scheduleSave);
+
+    // Toolbar actions
+    document.getElementById('toolbar')!.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      switch (action) {
+        case 'h1': editor.chain().focus().toggleHeading({ level: 1 }).run(); break;
+        case 'h2': editor.chain().focus().toggleHeading({ level: 2 }).run(); break;
+        case 'h3': editor.chain().focus().toggleHeading({ level: 3 }).run(); break;
+        case 'bold': editor.chain().focus().toggleBold().run(); break;
+        case 'italic': editor.chain().focus().toggleItalic().run(); break;
+        case 'bulletList': editor.chain().focus().toggleBulletList().run(); break;
+        case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break;
+        case 'codeBlock': editor.chain().focus().toggleCodeBlock().run(); break;
+        case 'link': {
+          const url = prompt('Enter URL:');
+          if (url) editor.chain().focus().setLink({ href: url }).run();
+          break;
+        }
+        case 'image': imageUpload.click(); break;
+      }
+    });
+
+    // Image upload
+    imageUpload.addEventListener('change', async () => {
+      const file = imageUpload.files?.[0];
+      if (!file) return;
+      const slug = slugInput.value || 'untitled';
+      const filename = `${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, `blog/${slug}/${filename}`);
+      saveIndicator.textContent = 'Uploading image...';
+      try {
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        editor.chain().focus().setImage({ src: url }).run();
+        saveIndicator.textContent = 'Saved';
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        saveIndicator.textContent = 'Upload failed';
+      }
+      imageUpload.value = '';
+    });
+
+    // Debounced auto-save
+    function scheduleSave() {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveIndicator.textContent = 'Unsaved changes';
+      saveTimeout = setTimeout(() => save(), 3000);
+    }
+
+    async function save() {
+      const slug = slugInput.value;
+      if (!slug) return;
+
+      saveIndicator.textContent = 'Saving...';
+      try {
+        const postRef = doc(db, 'posts', slug);
+        const existing = await getDoc(postRef);
+        const data: Record<string, any> = {
+          title: titleInput.value,
+          slug,
+          description: descInput.value,
+          tags: tagsInput.value.split(',').map((t) => t.trim()).filter(Boolean),
+          content: editor.getJSON(),
+          updatedAt: serverTimestamp(),
+        };
+
+        if (!existing.exists()) {
+          data.status = 'draft';
+          data.createdAt = serverTimestamp();
+        }
+
+        if (isNewPost && slug) {
+          currentSlug = slug;
+          isNewPost = false;
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('slug', slug);
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+
+        await setDoc(postRef, data, { merge: true });
+        saveIndicator.textContent = 'Saved';
+      } catch (err) {
+        console.error('Save failed:', err);
+        saveIndicator.textContent = 'Save failed';
+      }
+    }
+
+    // Load existing post
+    async function loadPost(slug: string) {
+      const postRef = doc(db, 'posts', slug);
+      const snap = await getDoc(postRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        titleInput.value = data.title || '';
+        slugInput.value = data.slug || slug;
+        descInput.value = data.description || '';
+        tagsInput.value = (data.tags || []).join(', ');
+        if (data.content) editor.commands.setContent(data.content);
+
+        const publishBtn = document.getElementById('publish-btn')!;
+        if (data.status === 'published') {
+          publishBtn.textContent = 'Unpublish';
+          publishBtn.classList.remove('bg-accent', 'hover:bg-accent/80');
+          publishBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        }
+      }
+    }
+
+    // Preview button
+    document.getElementById('preview-btn')!.addEventListener('click', () => {
+      const slug = slugInput.value;
+      if (slug) window.open(`/admin/preview?slug=${slug}`, '_blank');
+    });
+
+    // Publish/Unpublish button
+    document.getElementById('publish-btn')!.addEventListener('click', async () => {
+      const slug = slugInput.value;
+      if (!slug) return;
+
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        await save();
+      }
+
+      const postRef = doc(db, 'posts', slug);
+      const snap = await getDoc(postRef);
+      if (!snap.exists()) return;
+
+      const currentStatus = snap.data().status;
+      const publishBtn = document.getElementById('publish-btn')!;
+
+      if (currentStatus === 'published') {
+        await setDoc(postRef, { status: 'draft', updatedAt: serverTimestamp() }, { merge: true });
+        publishBtn.textContent = 'Publish';
+        publishBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        publishBtn.classList.add('bg-accent', 'hover:bg-accent/80');
+        saveIndicator.textContent = 'Unpublished';
+      } else {
+        const confirmed = confirm(`This will make the post live at sean-mcconnell.com/blog/${slug}`);
+        if (!confirmed) return;
+        await setDoc(postRef, { status: 'published', publishedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+        publishBtn.textContent = 'Unpublish';
+        publishBtn.classList.remove('bg-accent', 'hover:bg-accent/80');
+        publishBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        saveIndicator.textContent = 'Published';
+      }
+    });
+
+    // Auth gate
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || user.email !== ADMIN_EMAIL) {
+        window.location.href = '/admin';
+        return;
+      }
+      editorLoading.classList.add('hidden');
+      editorUI.classList.remove('hidden');
+      if (editSlug) await loadPost(editSlug);
+    });
+  </script>
+</Layout>
+
+<style is:global>
+  .prose-editor h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; }
+  .prose-editor h2 { font-size: 1.5em; font-weight: 600; margin: 0.83em 0; }
+  .prose-editor h3 { font-size: 1.25em; font-weight: 600; margin: 1em 0; }
+  .prose-editor p { margin: 0.75em 0; }
+  .prose-editor ul { list-style: disc; padding-left: 1.5em; margin: 0.75em 0; }
+  .prose-editor ol { list-style: decimal; padding-left: 1.5em; margin: 0.75em 0; }
+  .prose-editor li { margin: 0.25em 0; }
+  .prose-editor a { color: #818CF8; text-decoration: underline; }
+  .prose-editor img { max-width: 100%; border-radius: 0.5rem; margin: 1em 0; }
+  .prose-editor pre {
+    background: #1e1e2e;
+    border-radius: 0.5rem;
+    padding: 1em;
+    overflow-x: auto;
+    margin: 1em 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+  }
+  .prose-editor code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.875em;
+  }
+  .prose-editor p code {
+    background: rgba(255,255,255,0.1);
+    padding: 0.15em 0.4em;
+    border-radius: 0.25em;
+  }
+  .prose-editor blockquote {
+    border-left: 3px solid #818CF8;
+    padding-left: 1em;
+    margin: 1em 0;
+    color: #94a3b8;
+  }
+  .ProseMirror:focus { outline: none; }
+  .ProseMirror { min-height: 400px; }
+</style>

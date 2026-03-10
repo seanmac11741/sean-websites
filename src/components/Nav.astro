@@ -12,6 +12,8 @@
       <a href="#presentations" class="text-slate-300 hover:text-white text-sm font-medium transition-colors duration-200">Presentations</a>
       <a href="#skills" class="text-slate-300 hover:text-white text-sm font-medium transition-colors duration-200">Skills</a>
       <a href="#contact" class="text-slate-300 hover:text-white text-sm font-medium transition-colors duration-200">Contact</a>
+      <a href="/blog" class="text-slate-300 hover:text-white text-sm font-medium transition-colors duration-200">Blog</a>
+      <a href="/admin" id="admin-nav-link" class="hidden text-accent hover:text-white text-sm font-medium transition-colors duration-200">Admin</a>
 
       <div class="flex items-center gap-4 pl-4 border-l border-white/10">
         <a href="https://github.com/seanmac11741" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="text-slate-400 hover:text-white transition-all duration-200 hover:scale-110">
@@ -58,6 +60,8 @@
       <a href="#presentations" class="mobile-nav-link px-3 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors duration-200">Presentations</a>
       <a href="#skills" class="mobile-nav-link px-3 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors duration-200">Skills</a>
       <a href="#contact" class="mobile-nav-link px-3 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors duration-200">Contact</a>
+      <a href="/blog" class="mobile-nav-link px-3 py-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors duration-200">Blog</a>
+      <a href="/admin" id="admin-nav-link-mobile" class="hidden mobile-nav-link px-3 py-2 text-accent hover:text-white hover:bg-white/5 rounded-lg text-sm font-medium transition-colors duration-200">Admin</a>
       <div class="flex items-center gap-5 px-3 pt-4 mt-2 border-t border-white/10">
         <a href="https://github.com/seanmac11741" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="text-slate-400 hover:text-white transition-colors duration-200">
           <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor">
@@ -145,4 +149,18 @@
       });
     });
   }
+</script>
+
+<script>
+  import { auth, ADMIN_EMAIL } from '../lib/firebase';
+  import { onAuthStateChanged } from 'firebase/auth';
+
+  const adminLink = document.getElementById('admin-nav-link');
+  const adminLinkMobile = document.getElementById('admin-nav-link-mobile');
+
+  onAuthStateChanged(auth, (user) => {
+    const show = user?.email === ADMIN_EMAIL;
+    adminLink?.classList.toggle('hidden', !show);
+    adminLinkMobile?.classList.toggle('hidden', !show);
+  });
 </script>

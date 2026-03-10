@@ -1,0 +1,70 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+---
+
+<Layout title="Blog — Sean McConnell" description="Thoughts on software engineering, cloud, and AI.">
+  <Nav />
+  <main class="min-h-screen bg-dark text-white pt-24 pb-16">
+    <div class="max-w-3xl mx-auto px-6">
+      <h1 class="text-4xl font-bold text-white mb-2">Blog</h1>
+      <p class="text-slate-400 mb-10">Thoughts on software engineering, cloud, and AI.</p>
+
+      <div id="blog-list">
+        <div class="flex justify-center py-16">
+          <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const blogList = document.getElementById('blog-list')!;
+
+    async function loadPosts() {
+      try {
+        const res = await fetch('/api/blog');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const posts: Array<{
+          slug: string;
+          title: string;
+          description: string;
+          tags: string[];
+          publishedAt: string | null;
+        }> = await res.json();
+
+        if (posts.length === 0) {
+          blogList.innerHTML = '<p class="text-slate-500 text-center py-16">No posts yet. Check back soon!</p>';
+          return;
+        }
+
+        blogList.innerHTML = '';
+        posts.forEach((post) => {
+          const date = post.publishedAt
+            ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : '';
+
+          const tags = post.tags
+            .map((t) => `<span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full">${t}</span>`)
+            .join('');
+
+          const card = document.createElement('a');
+          card.href = `/blog/${post.slug}`;
+          card.className = 'block bg-surface border border-white/10 rounded-xl p-6 hover:border-accent/50 transition-all duration-200 mb-4 group';
+          card.innerHTML = `
+            <h2 class="text-xl font-semibold text-white group-hover:text-accent transition-colors duration-200 mb-2">${post.title}</h2>
+            <p class="text-slate-400 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
+            <div class="flex flex-wrap items-center gap-3">
+              <time class="text-xs text-slate-500">${date}</time>
+              ${tags ? `<div class="flex flex-wrap gap-2">${tags}</div>` : ''}
+            </div>`;
+          blogList.appendChild(card);
+        });
+      } catch {
+        blogList.innerHTML = '<p class="text-red-400 text-center py-16">Failed to load posts.</p>';
+      }
+    }
+
+    loadPosts();
+  </script>
+</Layout>
