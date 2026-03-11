@@ -23,49 +23,54 @@ export const api = onRequest({ invoker: "public" }, async (req, res) => {
 
   const path = req.path.replace(/^\/api/, "");
 
-  if (path === "/blog" || path === "/blog/") {
-    const snapshot = await db
-      .collection("posts")
-      .where("status", "==", "published")
-      .orderBy("publishedAt", "desc")
-      .get();
+  try {
+    if (path === "/blog" || path === "/blog/") {
+      const snapshot = await db
+        .collection("posts")
+        .where("status", "==", "published")
+        .orderBy("publishedAt", "desc")
+        .get();
 
-    const posts = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
+      const posts = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          slug: doc.id,
+          title: data.title,
+          description: data.description,
+          tags: data.tags || [],
+          publishedAt: data.publishedAt?.toDate().toISOString() || null,
+        };
+      });
+
+      res.json(posts);
+      return;
+    }
+
+    const postMatch = path.match(/^\/blog\/([a-z0-9-]+)$/);
+    if (postMatch) {
+      const slug = postMatch[1];
+      const doc = await db.collection("posts").doc(slug).get();
+
+      if (!doc.exists || doc.data()?.status !== "published") {
+        res.status(404).json({ error: "Post not found" });
+        return;
+      }
+
+      const data = doc.data()!;
+      res.json({
         slug: doc.id,
         title: data.title,
         description: data.description,
         tags: data.tags || [],
+        content: data.content,
         publishedAt: data.publishedAt?.toDate().toISOString() || null,
-      };
-    });
-
-    res.json(posts);
-    return;
-  }
-
-  const postMatch = path.match(/^\/blog\/([a-z0-9-]+)$/);
-  if (postMatch) {
-    const slug = postMatch[1];
-    const doc = await db.collection("posts").doc(slug).get();
-
-    if (!doc.exists || doc.data()?.status !== "published") {
-      res.status(404).json({ error: "Post not found" });
+      });
       return;
     }
 
-    const data = doc.data()!;
-    res.json({
-      slug: doc.id,
-      title: data.title,
-      description: data.description,
-      tags: data.tags || [],
-      content: data.content,
-      publishedAt: data.publishedAt?.toDate().toISOString() || null,
-    });
-    return;
+    res.status(404).json({ error: "Not found" });
+  } catch (err) {
+    console.error("API error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  res.status(404).json({ error: "Not found" });
 });
