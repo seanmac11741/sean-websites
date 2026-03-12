@@ -31,6 +31,7 @@ import Nav from '../../components/Nav.astro';
           description: string;
           tags: string[];
           publishedAt: string | null;
+          readingTime: number;
         }> = await res.json();
 
         if (posts.length === 0) {
@@ -56,6 +57,8 @@ import Nav from '../../components/Nav.astro';
             <p class="text-slate-400 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
             <div class="flex flex-wrap items-center gap-3">
               <time class="text-xs text-slate-500">${date}</time>
+              ${date && post.readingTime ? '<span class="text-xs text-slate-600">·</span>' : ''}
+              ${post.readingTime ? `<span class="text-xs text-slate-500">${post.readingTime} min read</span>` : ''}
               ${tags ? `<div class="flex flex-wrap gap-2">${tags}</div>` : ''}
             </div>`;
           blogList.appendChild(card);
