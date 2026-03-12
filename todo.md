@@ -11,7 +11,6 @@ i  functions: cleaning up build files...
 	https://console.cloud.google.com/artifacts/docker/sean-mcconnell-site/us-central1/gcf-artifacts
 	https://console.cloud.google.com/gcr/images/sean-mcconnell-site/us/gcf
 
-* *Fixed* Admin Google sign-in fails on production with `auth/unauthorized-domain`. Fix: Firebase Console → Authentication → Settings → Authorized domains → add `sean-mcconnell.com`
 
 ## Other
 * Sean 2. An Ai bot that I train on all my blog posts that I write. It should be something like a RAG system, that has access to my writings and code and acts like me. It will be terrible at first, but should get better as I add more data to it. Just text at first of me writing, but later, it would be cool to add like a vlog-style video thing, where I can make a video of myself, and have the bot interview me to get more of an idea of my full personality so it can act more like me. Could have veo for video generation and audio generation of my voice as well. Backend cloud functions to train a model, and a front end chat interface, where anyone that comes to the site could do a one-shot interaction with me. Ask my bot anything and it will respond (once and only once) in my voice. Would be hard to make this so that I don't get 1 million requests, would have to limit per IP address or something.
@@ -19,6 +18,7 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 * My most recent run from strava api? not sure if possible without strava login. Maybe use Garmin?
 * Accept payments on my website. Have somewhere I can place an invoice for a customer and they get a link to my website at sean-mcconnell.com/invoice123. I think it needs to be behind auth based on email address of my client? Otherwise anyone could access the invoice. 
 * Most recent blog post should also be on the main page 
+* Need to run ads in case this goes viral so I don't have to pay a bunch
 
 ## Blog ideas
 * How I built this site with Claude
@@ -33,6 +33,8 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 A separate page at sean-mcconnell.com/tools
 * Flow state room. A timer that counts down from 90 minutes with cool animations and a big button you can push to start it. it should also embed any number of youtube videos that are "concentration/flow state music" and play it for you. When the timer gets to zero, it should beep super loud and tell the user to take a break.
 * CV resume builder. Just a thing you can enter a bunch of info into and it builds out a one page resume. Should all be done client side with javascript, no file saving on a database or anything. Should be a download button though, if I can just stream the file out like that? Might have to write it to local storage or something.
+* WYSIWG editor from my admin page available at /tools/fileWriter. It should not save anything to my cloud, just do it all in the browser and localstorage. Probably need a blurb at the bottom explaining that with links to source code on Github
+
 
 ## Projects Section
 
