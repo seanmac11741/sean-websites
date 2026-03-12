@@ -82,36 +82,27 @@ Pay-per-token. A typical diff review is ~5K-20K input tokens + ~1K-3K output. Ne
 
 ### Phase 27 — Secrets & Prerequisites
 
-- [ ] 27a. Create an Anthropic API key (or use existing one) for CI usage
-- [ ] 27b. Add `ANTHROPIC_API_KEY` to GitHub repo secrets (Settings > Secrets and variables > Actions)
-- [ ] 27c. Verify `GITHUB_TOKEN` default permissions include `pull-requests: write` in repo settings (Settings > Actions > General > Workflow permissions)
+- [x] 27a. Create an Anthropic API key (or use existing one) for CI usage
+- [x] 27b. Add `ANTHROPIC_API_KEY` to GitHub repo secrets (Settings > Secrets and variables > Actions)
+- [x] 27c. Verify `GITHUB_TOKEN` default permissions include `pull-requests: write` in repo settings (Settings > Actions > General > Workflow permissions)
 
 ### Phase 28 — GitHub Actions Workflow
 
-- [ ] 28a. Create `.github/workflows/code-review.yml` with trigger on `pull_request` events (`opened`, `synchronize`) targeting `main` — separate from `deploy.yml` because deploy triggers on `push` (post-merge) while review must trigger on `pull_request` (pre-merge)
-- [ ] 28b. Add job permissions: `permissions: pull-requests: write, contents: read`
-- [ ] 28c. Checkout step — `actions/checkout@v4` with full history (`fetch-depth: 0`) so Claude can explore the repo
-- [ ] 28d. Install Node.js (Claude Code CLI requires it)
-- [ ] 28e. Install Claude Code CLI — `npm install -g @anthropic-ai/claude-code`
-- [ ] 28f. Build the prompt step — construct the Claude prompt that:
-  1. Reads the `pr_review` SKILL.md for review instructions
-  2. Passes in the PR number from `${{ github.event.pull_request.number }}`
-  3. Tells Claude to run in agent mode: fetch the diff with `gh pr diff`, read modified files for context, then post the review as a PR comment with `gh pr comment`
-- [ ] 28g. Run Claude Code — `claude -p "<prompt>"` with `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` as env vars
-- [ ] 28h. Set a timeout on the job (e.g., 10 minutes) to cap runaway API costs
-- [ ] 28i. Add `workflow_dispatch` trigger so the review can be re-run manually from the Actions tab
+- [x] 28a. Create `.github/workflows/code-review.yml` with trigger on `pull_request` events (`opened`, `synchronize`) targeting `main` — separate from `deploy.yml` because deploy triggers on `push` (post-merge) while review must trigger on `pull_request` (pre-merge)
+- [x] 28b. Add job permissions: `permissions: pull-requests: write, contents: read`
+- [x] 28c. Checkout step — `actions/checkout@v4` with full history (`fetch-depth: 0`) so Claude can explore the repo
+- [x] 28d. Install Claude Code CLI — uses native binary installer (`curl -fsSL https://code.claude.com/install.sh | sh`), no separate Node.js step needed
+- [x] 28e. Build the prompt step — reads SKILL.md content, passes PR number, instructs Claude to fetch diff, read files, and post comment
+- [x] 28f. Run Claude Code — `claude -p` with `ANTHROPIC_API_KEY` and `GH_TOKEN` as env vars, `--allowedTools` restricts to read-only gh commands + file reading
+- [x] 28g. Set a timeout on the job (10 minutes) to cap runaway API costs
+- [x] 28h. Add `workflow_dispatch` trigger so the review can be re-run manually from the Actions tab
 
 ### Phase 29 — Prompt Engineering
 
-- [ ] 29a. Write the CI prompt that loads the SKILL.md instructions and tells Claude to:
-  - Run `gh pr diff $PR_NUMBER` to get the diff
-  - Run `gh pr view $PR_NUMBER` to get the PR title/description
-  - Read heavily modified files for full context (not just the diff)
-  - Format the review per the SKILL.md structure
-  - Post the review via `gh pr comment $PR_NUMBER --body "<review>"`
-- [ ] 29b. Ensure the prompt tells Claude to respect `CLAUDE.md` (which it reads automatically from the repo root)
-- [ ] 29c. Add guard rails — instruct Claude not to push code, merge, or modify files in CI (read-only review)
-- [ ] 29d. Handle edge cases in the prompt: empty diffs, very large diffs (truncate or summarize), draft PRs
+- [x] 29a. Write the CI prompt that cats SKILL.md and tells Claude to: fetch diff, view PR, read modified files, format review per skill structure, post via `gh pr comment`
+- [x] 29b. Claude reads `CLAUDE.md` automatically from repo root — no extra config needed
+- [x] 29c. Guard rails: prompt explicitly says "do NOT push code, merge, or modify files", `--allowedTools` restricts to read-only tools + `gh pr comment`
+- [x] 29d. Edge cases: prompt handles empty diffs (post comment and stop) and large diffs (focus on important files, note skimmed rest)
 
 ### Phase 30 — Documentation & Polish
 

@@ -1,0 +1,68 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: curl -fsSL https://code.claude.com/install.sh | sh
+
+      - name: Determine PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Review PR with Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          REVIEW_PROMPT=$(cat .claude/skills/pr_review/SKILL.md)
+
+          claude -p \
+            --max-turns 10 \
+            --allowedTools "Bash(gh pr diff *)" "Bash(gh pr view *)" "Bash(gh pr comment *)" "Read" "Grep" "Glob" \
+            "You are reviewing PR #${PR_NUMBER} in this repo.
+
+          Follow the instructions in this skill file:
+
+          ${REVIEW_PROMPT}
+
+          Steps:
+          1. Run: gh pr view ${PR_NUMBER}
+          2. Run: gh pr diff ${PR_NUMBER}
+          3. Read any heavily modified files for full context
+          4. Write your review following the review structure in the skill file
+          5. Post the review by running: gh pr comment ${PR_NUMBER} --body '<your review>'
+
+          Rules:
+          - Do NOT push code, merge, or modify any files — this is a read-only review
+          - Do NOT approve or request changes via gh pr review — only comment
+          - If the diff is empty, post a comment saying so and stop
+          - If the diff is very large (>2000 lines), focus on the most important files and note that you skimmed the rest
+          - Keep the review concise and actionable"
