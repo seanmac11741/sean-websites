@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Claude Code
-        run: curl -fsSL https://code.claude.com/install.sh | sh
+        run: curl -fsSL https://code.claude.com/install.sh | bash
 
       - name: Determine PR number
         id: pr
