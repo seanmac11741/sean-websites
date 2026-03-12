@@ -41,116 +41,11 @@ All 19 phases are complete. The site is live at `sean-mcconnell.com`.
 
 ---
 
-## Blog — Tiptap + Firestore (not yet implemented)
+## Blog — Tiptap + Firestore
 
-**Branch:** `issue/blogcreation`
+**Phases 21–25 complete.** Dynamic blog powered by Cloud Functions (Blaze plan), Firestore, Firebase Auth (Google sign-in), and Firebase Storage. Tiptap WYSIWYG editor with auto-save, preview, publish/unpublish workflow. Public blog at `/blog`, admin at `/admin`. Posts served in real time via Cloud Function API.
 
-**Goal:** Admin page behind Firebase Auth with a WYSIWYG editor. Authors write directly in the browser — text, headings, links, code blocks, images. Auto-saves drafts, preview before publish. Must be customer-friendly (no Git, no CLI). Reusable for client sites.
-
-### Architecture
-
-- **Editor:** [Tiptap](https://tiptap.dev/) — headless WYSIWYG built on ProseMirror, highly customizable, supports all required block types (headings, links, code blocks, images) out of the box
-- **Storage:** Posts saved as JSON (or HTML) in Firestore. Images uploaded to Firebase Storage, URLs inserted into the editor content
-- **Auth:** Firebase Auth — both Google sign-in and email/password. Admin page checks auth before loading
-- **Auto-save:** Debounced — save draft to Firestore after 3–5 seconds of inactivity (not on every keystroke). Standard pattern for WYSIWYG editors to avoid slamming Firestore write quotas
-- **Workflow:** Auto-save drafts to Firestore → preview route renders the draft → "Publish" flips a status field → public blog reads only published posts
-
-### Blog rendering — static vs dynamic
-
-Two options for how the public `/blog` pages get their data:
-
-**Static (Astro build-time fetch):** Astro fetches published posts from Firestore during `bun run build`. Posts become static HTML. A webhook or manual trigger kicks off a rebuild when you publish. Fastest page loads, simplest infrastructure, but there's a delay between publishing and the post going live (however long the build takes — currently ~1 min with CI/CD).
-
-**Dynamic (Cloud Function):** A Cloud Function serves blog posts on request, reading from Firestore in real time. Posts go live instantly on publish. Adds a serverless layer.
-
-**Cloud Functions cost:** Firebase free tier (Spark plan) does not include Cloud Functions. You'd need the Blaze (pay-as-you-go) plan. That said, actual cost for a personal blog is near-zero:
-- 2M invocations/month free
-- 400K GB-seconds compute/month free
-- After free tier: ~$0.40 per million invocations + $0.0000025/GB-second
-- A blog getting 1K visits/day wouldn't even dent the free tier
-
-**Decision:** Dynamic via Cloud Functions. The site is a live demo of Sean's skills — Cloud Functions, Firestore, Firebase Auth, Firebase Storage all in production. Requires Blaze plan (pay-as-you-go), but actual cost is near-zero for personal traffic. Blog posts served by a Cloud Function reading from Firestore, live instantly on publish.
-
----
-
-### Phase 21 — Firebase Backend Setup
-
-Upgrade to Blaze plan (manual), initialize Cloud Functions + Firestore + Storage in the project.
-
-- [x] 21a. Upgrade Firebase project to Blaze plan (manual — done in Firebase console)
-- [x] 21b. Enable Firestore in Firebase console (choose `nam5` / us-central region)
-- [x] 21c. Enable Firebase Storage in Firebase console
-- [x] 21d. Enable Firebase Auth in Firebase console — turn on Google sign-in and email/password providers
-- [x] 21e. Initialize Cloud Functions in the repo: `functions/src/index.ts`, `functions/package.json`, `functions/tsconfig.json`
-- [x] 21f. Update `firebase.json` to add `functions` and `firestore` sections alongside existing `hosting`
-- [x] 21g. Add Firestore security rules (`firestore.rules`) — admin write, public read for published posts
-- [x] 21h. Add Storage security rules (`storage.rules`) — admin upload, public read for blog images
-- [x] 21i. Deploy a hello-world Cloud Function to verify the pipeline works end-to-end
-- [x] 21j. Update CI/CD (`deploy.yml`):
-  - Add `issue/blogcreation` to the `branches` trigger so pushes to this branch run tests (currently only `main` triggers the workflow)
-  - Add `bun install` step inside `functions/` (functions have their own `package.json`)
-  - Replace `FirebaseExtended/action-hosting-deploy` with `firebase deploy` CLI (deploys hosting + functions + firestore rules + storage rules in one command)
-  - Only deploy to production on `main` — on `issue/blogcreation`, run tests + build only (no deploy), or deploy to a Firebase preview channel
-- [x] 21k. Write tests to verify firebase.json config, rules files exist, and function entry point exports
-
-### Phase 22 — Auth & Admin Page Shell
-
-Build the admin page at `/admin` with Firebase Auth gate.
-
-- [x] 22a. Install `firebase` JS SDK as a dependency (`bun add firebase`)
-- [x] 22b. Create `src/lib/firebase.ts` — initialize Firebase app, Auth, Firestore, Storage exports
-- [x] 22c. Create `src/pages/admin/index.astro` — admin page shell (client-rendered behind auth)
-- [x] 22d. Build login screen — Google sign-in button (Google-only, no email/password)
-- [x] 22e. Auth state listener — redirect to login if not authenticated, show admin dashboard if authenticated
-- [x] 22f. Allowlist check — only seanmac11741@gmail.com can access admin. Unauthorized users see "Access Denied" screen
-- [x] 22g. Admin dashboard layout — sidebar with "Posts" list, "New Post" button
-- [x] 22h. Add "Admin" link to Nav — hidden by default, shown via client-side auth check when admin is logged in
-- [x] 22i. Write tests for auth config, admin page existence, firebase.ts exports
-
-### Phase 23 — Tiptap Editor & Post Creation
-
-Wire up the WYSIWYG editor for creating and editing blog posts.
-
-- [x] 23a. Install Tiptap dependencies: `@tiptap/core`, `@tiptap/starter-kit`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-code-block-lowlight`
-- [x] 23b. Build editor component — toolbar with buttons for heading (H1-H3), bold, italic, link, code block, image upload, bullet/ordered list
-- [x] 23c. Image upload flow — click image button → file picker → upload to Firebase Storage (`blog/{post-slug}/{filename}`) → insert Storage URL into editor
-- [x] 23d. Post metadata form — title, slug (auto-generated from title, editable), description, tags
-- [x] 23e. Debounced auto-save — save editor JSON + metadata to Firestore `posts/{slug}` after 3 seconds of inactivity. Show "Saving..." / "Saved" indicator
-- [x] 23f. Post status field in Firestore: `draft` | `published`, with `createdAt`, `updatedAt`, `publishedAt` timestamps
-- [x] 23g. Posts list in admin — show all posts with status, last edited date, edit/delete actions
-- [x] 23h. Edit existing post — load from Firestore, populate editor, resume auto-save
-- [x] 23i. Delete post — confirm dialog, remove from Firestore
-- [x] 23j. Write tests for Tiptap config, Firestore document structure, auto-save debounce logic
-
-### Phase 24 — Preview & Publish Workflow
-
-Add preview rendering and the publish flow.
-
-- [x] 24a. Preview route at `/admin/preview?slug={slug}` — renders the draft post exactly as it will appear on the public blog
-- [x] 24b. Preview button in editor — opens preview in new tab
-- [x] 24c. Publish button — sets `status: 'published'` and `publishedAt` timestamp in Firestore
-- [x] 24d. Unpublish button — reverts to draft status (removes from public blog)
-- [x] 24e. Publish confirmation dialog — "This will make the post live at sean-mcconnell.com/blog/{slug}"
-- [x] 24f. Write tests for publish/unpublish status transitions
-
-### Phase 25 — Public Blog Pages (Cloud Functions)
-
-Build the public-facing blog served by Cloud Functions.
-
-- [x] 25a. Cloud Function: `api` — single onRequest handler with `/api/blog/:slug` and `/api/blog` routes, reads from Firestore, returns JSON
-- [x] 25b. Cloud Function: blog list endpoint — reads all published posts sorted by `publishedAt` desc
-- [x] 25c. Create `src/pages/blog/index.astro` — blog listing page, fetches from `/api/blog` on client side
-- [x] 25d. Create `src/pages/blog/post.astro` — individual post page, fetches from `/api/blog/:slug` on client side. Firebase rewrite serves this for `/blog/**` URLs
-- [x] 25e. Blog post renderer — converts Tiptap JSON to HTML using `generateHTML` from `@tiptap/html`, styled with custom `.prose-blog` classes
-- [x] 25f. Blog listing card design — title, description, date, tags, hover effect with accent border
-- [x] 25g. Add "Blog" link to Nav component (desktop and mobile)
-- [x] 25h. SEO — meta description updated dynamically per post, title set dynamically
-- [x] 25i. Firebase Hosting rewrite rules — `/api/**` → Cloud Function, `/blog/**` → `/blog/post/index.html`
-- [x] 25j. Write tests for Cloud Function responses, blog page existence, nav link
-
-### Phase 26 — Polish & Nice-to-haves
-
-Final touches on the blog experience.
+### Phase 26 — Blog Polish & Nice-to-haves
 
 - [ ] 26a. Reading time estimate — calculate from word count, display on post page and listing cards
 - [ ] 26b. Code block syntax highlighting — configure lowlight with common languages (js, ts, python, bash, json)
@@ -160,3 +55,66 @@ Final touches on the blog experience.
 - [ ] 26f. Mobile responsive — admin editor and public blog pages work well on mobile
 - [ ] 26g. Loading states — skeleton/spinner while fetching blog content from Cloud Function
 - [ ] 26h. Write final integration tests
+
+---
+
+## PR Code Review Agent — Claude in GitHub Actions
+
+**Goal:** When a PR is opened or updated against `main`, GitHub Actions runs Claude Code in agent mode with the `pr_review` skill, which reviews the diff and posts comments directly on the PR. Fully automated — no manual trigger needed.
+
+### How it works
+
+1. `pull_request` event (opened/synchronize) triggers `.github/workflows/code-review.yml`
+2. Workflow installs Claude Code CLI, then runs it in agent mode (`claude -p`) with the review prompt from `.claude/skills/pr_review/SKILL.md`
+3. Claude reads the diff, explores relevant files for context, and posts a structured review comment on the PR via `gh`
+4. The `pr_review` skill is self-improving — when Sean gives feedback on reviews locally, the skill updates its own SKILL.md with learned preferences, which get committed and apply to future CI runs
+
+### Secrets needed
+
+- `ANTHROPIC_API_KEY` — Claude API key (add manually in GitHub Settings > Secrets)
+- `GITHUB_TOKEN` — built-in, already has PR write access
+
+### Cost
+
+Pay-per-token. A typical diff review is ~5K-20K input tokens + ~1K-3K output. Near-zero for a personal repo.
+
+---
+
+### Phase 27 — Secrets & Prerequisites
+
+- [ ] 27a. Create an Anthropic API key (or use existing one) for CI usage
+- [ ] 27b. Add `ANTHROPIC_API_KEY` to GitHub repo secrets (Settings > Secrets and variables > Actions)
+- [ ] 27c. Verify `GITHUB_TOKEN` default permissions include `pull-requests: write` in repo settings (Settings > Actions > General > Workflow permissions)
+
+### Phase 28 — GitHub Actions Workflow
+
+- [ ] 28a. Create `.github/workflows/code-review.yml` with trigger on `pull_request` events (`opened`, `synchronize`) targeting `main` — separate from `deploy.yml` because deploy triggers on `push` (post-merge) while review must trigger on `pull_request` (pre-merge)
+- [ ] 28b. Add job permissions: `permissions: pull-requests: write, contents: read`
+- [ ] 28c. Checkout step — `actions/checkout@v4` with full history (`fetch-depth: 0`) so Claude can explore the repo
+- [ ] 28d. Install Node.js (Claude Code CLI requires it)
+- [ ] 28e. Install Claude Code CLI — `npm install -g @anthropic-ai/claude-code`
+- [ ] 28f. Build the prompt step — construct the Claude prompt that:
+  1. Reads the `pr_review` SKILL.md for review instructions
+  2. Passes in the PR number from `${{ github.event.pull_request.number }}`
+  3. Tells Claude to run in agent mode: fetch the diff with `gh pr diff`, read modified files for context, then post the review as a PR comment with `gh pr comment`
+- [ ] 28g. Run Claude Code — `claude -p "<prompt>"` with `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` as env vars
+- [ ] 28h. Set a timeout on the job (e.g., 10 minutes) to cap runaway API costs
+- [ ] 28i. Add `workflow_dispatch` trigger so the review can be re-run manually from the Actions tab
+
+### Phase 29 — Prompt Engineering
+
+- [ ] 29a. Write the CI prompt that loads the SKILL.md instructions and tells Claude to:
+  - Run `gh pr diff $PR_NUMBER` to get the diff
+  - Run `gh pr view $PR_NUMBER` to get the PR title/description
+  - Read heavily modified files for full context (not just the diff)
+  - Format the review per the SKILL.md structure
+  - Post the review via `gh pr comment $PR_NUMBER --body "<review>"`
+- [ ] 29b. Ensure the prompt tells Claude to respect `CLAUDE.md` (which it reads automatically from the repo root)
+- [ ] 29c. Add guard rails — instruct Claude not to push code, merge, or modify files in CI (read-only review)
+- [ ] 29d. Handle edge cases in the prompt: empty diffs, very large diffs (truncate or summarize), draft PRs
+
+### Phase 30 — Documentation & Polish
+
+- [ ] 31a. Add a "CI/CD — Code Review Agent" section to `CLAUDE.md` explaining the workflow and how to update the review prompt
+- [ ] 31b. Update the CI/CD section in `CLAUDE.md` to reflect the new workflow alongside `deploy.yml`
+- [ ] 31c. Update `todo.md` — remove the code review agent item from the CI/CD section
