@@ -8,6 +8,16 @@ const db = getFirestore();
 
 setGlobalOptions({ maxInstances: 10 });
 
+function wordCount(json: any): number {
+  let count = 0;
+  function walk(node: any) {
+    if (node.text) count += node.text.split(/\s+/).filter(Boolean).length;
+    if (node.content) node.content.forEach(walk);
+  }
+  walk(json);
+  return count;
+}
+
 function setCors(res: any) {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -33,12 +43,15 @@ export const api = onRequest({ invoker: "public" }, async (req, res) => {
 
       const posts = snapshot.docs.map((doc) => {
         const data = doc.data();
+        const words = data.content ? wordCount(data.content) : 0;
+        const readingTime = Math.max(1, Math.round(words / 250));
         return {
           slug: doc.id,
           title: data.title,
           description: data.description,
           tags: data.tags || [],
           publishedAt: data.publishedAt?.toDate().toISOString() || null,
+          readingTime,
         };
       });
 

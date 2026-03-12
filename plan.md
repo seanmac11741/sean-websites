@@ -49,8 +49,6 @@ All 19 phases are complete. The site is live at `sean-mcconnell.com`.
 
 - [ ] 26a. Reading time estimate — calculate from word count, display on post page and listing cards
 - [ ] 26b. Code block syntax highlighting — configure lowlight with common languages (js, ts, python, bash, json)
-- [ ] 26c. Blog post styling — typography, spacing, image sizing, responsive layout using Tailwind `prose` or custom styles matching the site's dark theme
-- [ ] 26d. Google Docs `.md` import — admin page button to upload a `.md` file, parse base64 images, upload to Storage, convert to Tiptap JSON, load into editor
 - [ ] 26e. 404 handling — blog post not found or not published shows a styled 404
 - [ ] 26f. Mobile responsive — admin editor and public blog pages work well on mobile
 - [ ] 26g. Loading states — skeleton/spinner while fetching blog content from Cloud Function
