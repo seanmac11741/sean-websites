@@ -17,7 +17,6 @@ i  functions: cleaning up build files...
 Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 * My most recent run from strava api? not sure if possible without strava login. Maybe use Garmin?
 * Accept payments on my website. Have somewhere I can place an invoice for a customer and they get a link to my website at sean-mcconnell.com/invoice123. I think it needs to be behind auth based on email address of my client? Otherwise anyone could access the invoice. 
-* Most recent blog post should also be on the main page 
 * Need to run ads in case this goes viral so I don't have to pay a bunch
 
 ## Blog ideas
@@ -27,7 +26,6 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 
 ## CI/CD
 * Figure out how to add the build passed icons that are on github to my webpage and the github readme?
-* AI Agents with Claude triggered in github actions. One for code review and qa first. It should just review a PR when I want to merge in a new request. 
 
 ## Tools page
 A separate page at sean-mcconnell.com/tools
