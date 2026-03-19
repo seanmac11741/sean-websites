@@ -41,6 +41,14 @@ describe('28 — PR Code Review Agent', () => {
       expect(job['timeout-minutes']).toBeLessThanOrEqual(15);
     });
 
+    it('checks out the repo', () => {
+      const checkoutStep = wf.jobs.review.steps.find(
+        (s: any) => s.uses && s.uses.includes('actions/checkout')
+      );
+      expect(checkoutStep).toBeDefined();
+      expect(checkoutStep.with['fetch-depth']).toBe(0);
+    });
+
     it('uses the official claude-code-action', () => {
       const actionStep = wf.jobs.review.steps.find(
         (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
