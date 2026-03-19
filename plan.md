@@ -19,6 +19,8 @@ Live at `sean-mcconnell.com`. **Deferred work:** `todo.md`
 
 **Phases 27–29:** PR code review agent — Claude Code in GitHub Actions reviews PRs automatically via `code-review.yml`.
 
+**Phase 30:** PR review agent docs — updated `CLAUDE.md` CI/CD section, added code review agent docs, cleaned up `todo.md`.
+
 **Phase 31:** Latest blog post on homepage — `LatestPost.astro` component fetches most recent published post from `/api/blog`, renders as a card between Skills and Footer with GSAP scroll animations, loading spinner, and error handling (303 tests).
 
 ## Open
@@ -31,11 +33,5 @@ Live at `sean-mcconnell.com`. **Deferred work:** `todo.md`
 - [ ] 26f. Mobile responsive admin editor + public blog
 - [ ] 26g. Loading states (skeleton/spinner)
 - [ ] 26h. Integration tests
-
-### Phase 30 — PR Review Agent Docs
-
-- [ ] 30a. Add "Code Review Agent" section to `CLAUDE.md`
-- [ ] 30b. Update CI/CD section in `CLAUDE.md`
-- [ ] 30c. Clean up `todo.md`
 
 ---

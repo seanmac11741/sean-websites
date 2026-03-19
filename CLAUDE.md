@@ -40,18 +40,30 @@ bun run test       # run vitest tests
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — two jobs: `test` (runs on all branches) and `deploy` (runs only on `main`).
+Two workflows in `.github/workflows/`:
+
+### `deploy.yml` — Build, Test & Deploy
 
 ```
 git push origin main
   └─→ GitHub Actions: bun install → functions bun install → test → build → functions tsc → firebase deploy
-git push origin issue/blogcreation
+git push origin issue/<branch>
   └─→ GitHub Actions: test + build only (no deploy)
 ```
 
 - **Secret:** `FIREBASE_SERVICE_ACCOUNT` (service account JSON stored in GitHub repo secrets)
 - **Action:** `w9jds/firebase-action@v13.29.1` runs `firebase deploy` (hosting + functions + firestore rules + storage rules)
 - A failing test blocks the deploy
+
+### `code-review.yml` — AI Code Review
+
+Runs `anthropics/claude-code-action@v1` on every PR targeting `main`. Claude reviews the diff using the skill file at `.claude/skills/pr_review/SKILL.md` and posts a structured comment.
+
+- **Trigger:** `pull_request` (opened, synchronize) to `main`
+- **Secret:** `ANTHROPIC_API_KEY` (Anthropic API key stored in GitHub repo secrets)
+- **Model:** Claude Sonnet (default for the action)
+- **Self-improving:** reply `@claude <feedback>` on the PR to teach it preferences (requires `issue_comment` trigger — not yet enabled)
+- Workflow file must match `main` exactly — changes require merging to `main` first (OIDC validation)
 
 ## Architecture
 
@@ -74,6 +86,7 @@ src/
     About.astro              ← two-column bio + photo, live experience timer, highlights
     Presentations.astro      ← conference talks, data-driven frontmatter array, title slide images
     Skills.astro             ← categorized grid with experience bars, 6 categories, 23 skills
+    LatestPost.astro         ← most recent blog post card, fetched client-side from /api/blog, GSAP scroll animation
     Footer.astro             ← email CTA, social links, "Request a website" + "Buy me a coffee" CTAs, copyright
   styles/global.css          ← Tailwind @import, @theme tokens, base styles
 functions/
@@ -85,10 +98,12 @@ public/
   favicon.ico                ← converted from Gemini logo image
   apple-touch-icon.png       ← 192x192 from same logo
 tests/
-  phase14-25.test.ts         ← vitest tests for each phase (264 tests total)
+  phase14-25.test.ts         ← vitest tests for phases 14–25
+  phase28.test.ts            ← vitest tests for phase 28 (PR review agent)
+  phase31.test.ts            ← vitest tests for phase 31 (latest blog post on homepage)
 ```
 
-**Page flow:** Hero → About → Presentations → Skills → Contact/Footer
+**Page flow:** Hero → About → Presentations → Skills → LatestPost → Contact/Footer
 **Blog flow:** /blog (listing) → /blog/:slug (post detail)
 **Admin flow:** /admin (login/dashboard) → /admin/editor (create/edit) → /admin/preview (preview)
 
