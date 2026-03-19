@@ -23,11 +23,6 @@ describe('28 — PR Code Review Agent', () => {
       expect(wf.on.pull_request.branches).toContain('main');
     });
 
-    it('has workflow_dispatch trigger for manual runs', () => {
-      expect(wf.on.workflow_dispatch).toBeDefined();
-      expect(wf.on.workflow_dispatch.inputs.pr_number).toBeDefined();
-    });
-
     it('has pull-requests write permission', () => {
       expect(wf.permissions['pull-requests']).toBe('write');
     });
@@ -36,78 +31,48 @@ describe('28 — PR Code Review Agent', () => {
       expect(wf.permissions.contents).toBe('read');
     });
 
+    it('has id-token write permission for OIDC', () => {
+      expect(wf.permissions['id-token']).toBe('write');
+    });
+
     it('has a timeout to cap costs', () => {
       const job = wf.jobs.review;
       expect(job['timeout-minutes']).toBeDefined();
       expect(job['timeout-minutes']).toBeLessThanOrEqual(15);
     });
 
-    it('checks out with full history', () => {
-      const checkoutStep = wf.jobs.review.steps.find(
-        (s: any) => s.uses && s.uses.includes('actions/checkout')
+    it('uses the official claude-code-action', () => {
+      const actionStep = wf.jobs.review.steps.find(
+        (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
       );
-      expect(checkoutStep).toBeDefined();
-      expect(checkoutStep.with['fetch-depth']).toBe(0);
-    });
-
-    it('installs Claude Code CLI', () => {
-      const installStep = wf.jobs.review.steps.find(
-        (s: any) => s.run && s.run.includes('claude.com/install')
-      );
-      expect(installStep).toBeDefined();
-    });
-
-    it('runs claude -p with the review prompt', () => {
-      const reviewStep = wf.jobs.review.steps.find(
-        (s: any) => s.run && s.run.includes('claude -p')
-      );
-      expect(reviewStep).toBeDefined();
+      expect(actionStep).toBeDefined();
     });
 
     it('passes ANTHROPIC_API_KEY from secrets', () => {
-      const reviewStep = wf.jobs.review.steps.find(
-        (s: any) => s.env && s.env.ANTHROPIC_API_KEY
+      const actionStep = wf.jobs.review.steps.find(
+        (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
       );
-      expect(reviewStep).toBeDefined();
-      expect(reviewStep.env.ANTHROPIC_API_KEY).toContain('secrets.ANTHROPIC_API_KEY');
+      expect(actionStep.with.anthropic_api_key).toContain('secrets.ANTHROPIC_API_KEY');
     });
 
-    it('passes GITHUB_TOKEN for gh CLI', () => {
-      const reviewStep = wf.jobs.review.steps.find(
-        (s: any) => s.env && s.env.GH_TOKEN
+    it('uses max-turns to limit agent iterations', () => {
+      const actionStep = wf.jobs.review.steps.find(
+        (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
       );
-      expect(reviewStep).toBeDefined();
+      expect(actionStep.with.claude_args).toContain('--max-turns');
     });
 
-    it('uses --max-turns to limit agent iterations', () => {
-      const reviewStep = wf.jobs.review.steps.find(
-        (s: any) => s.run && s.run.includes('--max-turns')
+    it('includes a review prompt', () => {
+      const actionStep = wf.jobs.review.steps.find(
+        (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
       );
-      expect(reviewStep).toBeDefined();
-    });
-
-    it('restricts tools with --allowedTools', () => {
-      const reviewStep = wf.jobs.review.steps.find(
-        (s: any) => s.run && s.run.includes('--allowedTools')
-      );
-      expect(reviewStep).toBeDefined();
+      expect(actionStep.with.prompt).toBeDefined();
+      expect(actionStep.with.prompt.length).toBeGreaterThan(0);
     });
   });
 
   describe('review prompt', () => {
     const raw = readFileSync(workflowPath, 'utf-8');
-
-    it('instructs Claude to fetch the PR diff', () => {
-      expect(raw).toContain('gh pr diff');
-    });
-
-    it('instructs Claude to view the PR', () => {
-      expect(raw).toContain('gh pr view');
-    });
-
-    it('instructs Claude to post a comment', () => {
-      expect(raw).toContain('gh pr comment');
-    });
 
     it('includes read-only guard rail', () => {
       expect(raw).toMatch(/do not.*push|read.only/i);
