@@ -19,20 +19,23 @@ describe('28 — PR Code Review Agent', () => {
       expect(pr.types).toContain('synchronize');
     });
 
-    it('targets main branch', () => {
-      expect(wf.on.pull_request.branches).toContain('main');
+    it('reviews all PRs (no branch filter)', () => {
+      expect(wf.on.pull_request.branches).toBeUndefined();
     });
 
     it('has pull-requests write permission', () => {
-      expect(wf.permissions['pull-requests']).toBe('write');
+      const perms = wf.jobs.review.permissions;
+      expect(perms['pull-requests']).toBe('write');
     });
 
     it('has contents read permission', () => {
-      expect(wf.permissions.contents).toBe('read');
+      const perms = wf.jobs.review.permissions;
+      expect(perms.contents).toBe('read');
     });
 
     it('has id-token write permission for OIDC', () => {
-      expect(wf.permissions['id-token']).toBe('write');
+      const perms = wf.jobs.review.permissions;
+      expect(perms['id-token']).toBe('write');
     });
 
     it('has a timeout to cap costs', () => {
@@ -46,7 +49,7 @@ describe('28 — PR Code Review Agent', () => {
         (s: any) => s.uses && s.uses.includes('actions/checkout')
       );
       expect(checkoutStep).toBeDefined();
-      expect(checkoutStep.with['fetch-depth']).toBe(0);
+      expect(checkoutStep.with['fetch-depth']).toBe(1);
     });
 
     it('uses the official claude-code-action', () => {
@@ -63,11 +66,11 @@ describe('28 — PR Code Review Agent', () => {
       expect(actionStep.with.anthropic_api_key).toContain('secrets.ANTHROPIC_API_KEY');
     });
 
-    it('uses max-turns to limit agent iterations', () => {
+    it('uses allowedTools to restrict agent to review-only tools', () => {
       const actionStep = wf.jobs.review.steps.find(
         (s: any) => s.uses && s.uses.includes('anthropics/claude-code-action')
       );
-      expect(actionStep.with.claude_args).toContain('--max-turns');
+      expect(actionStep.with.claude_args).toContain('--allowedTools');
     });
 
     it('includes a review prompt', () => {
@@ -90,8 +93,8 @@ describe('28 — PR Code Review Agent', () => {
       expect(raw).toMatch(/empty/i);
     });
 
-    it('handles large diffs', () => {
-      expect(raw).toMatch(/large/i);
+    it('tells Claude to use gh pr comment for posting', () => {
+      expect(raw).toMatch(/gh pr comment/);
     });
 
     it('references the SKILL.md file', () => {
