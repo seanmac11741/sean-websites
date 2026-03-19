@@ -35,3 +35,4 @@ jobs:
             - If the diff is very large (>2000 lines), focus on the most important files and note that you skimmed the rest
             - Keep the review concise and actionable
           claude_args: "--max-turns 10"
+          show_full_output: true

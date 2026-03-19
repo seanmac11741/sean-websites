@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Never run any git commands** — Sean handles all git operations manually
 - **Never use npm** — always use Bun (`bun install`, `bun add`, etc.) for all package management, including in subdirectories like `functions/`
+- **Never read, cat, or access credential/secret files** — this includes `~/.claude/.credentials.json`, `.env`, API keys, tokens, or any file that may contain secrets. If credentials are needed, ask Sean to provide or configure them manually.
 - Keep `CLAUDE.md` current — update the tests list, architecture, and key implementation details whenever a phase completes or significant changes are made
 
 ## Project

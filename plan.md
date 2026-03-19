@@ -1,10 +1,6 @@
 # Personal Website Plan — sean-mcconnell.com
 
-All 19 phases are complete. The site is live at `sean-mcconnell.com`.
-
-**Deferred work and future ideas:** `todo.md`
-
----
+Live at `sean-mcconnell.com`. **Deferred work:** `todo.md`
 
 ## Stack
 
@@ -15,95 +11,87 @@ All 19 phases are complete. The site is live at `sean-mcconnell.com`.
 | Animations | GSAP 3 + ScrollTrigger |
 | Styling | Tailwind CSS 4 |
 | Hosting | Firebase Hosting |
+| Backend | Cloud Functions, Firestore, Firebase Auth, Firebase Storage |
 
-## Completed Phases
+## Done
 
-1. **Scaffold & Setup** — Astro + Tailwind + GSAP initialized with Bun
-2. **Firebase Setup** — Hosting configured, public dir = `dist/`
-3. **Global Layout & Theming** — Layout.astro shell, global.css with `@theme` tokens, Inter font
-4. **Navigation** — Sticky nav with scroll-triggered background, mobile hamburger menu
-5. **Hero Section** — Full-viewport with GSAP text reveal, typewriter titles, profile photo
-6. **About Section** — Two-column layout, bio, key highlights, casual photo
-7. **Skills Section** — Rewritten in Phase 17
-8. **Footer / Contact** — Email CTA, social links, copyright
-9. **ScrollTrigger Animations** — All sections animate on scroll entry
-10. **Responsive Polish** — Mobile-first layout, overflow-x fix
-11. **SEO & Metadata** — OG tags, sitemap, favicon, canonical URL
-12. **Content Fill-in** — Real bio, skills from resume, social links, photos
-13. **Deploy** — Built and deployed to Firebase Hosting, custom domain connected with SSL
-14. **Post-Launch Fixes** — New favicon, dynamic years of experience, McConnell text cutoff fix, Strava social links, "Request a website" CTA
-15. **CI/CD with GitHub Actions** — Automated test → build → deploy on push to `main`
-16. **Live Experience Timer** — Real-time ticking counter since April 23, 2015
-17. **Skills Section Rewrite** — Categorized grid with experience bars (6 categories, 23 skills)
-18. **Presentations Section** — Conference talks with title slide images, data-driven frontmatter, nav link
-19. **Highlight Card Hover Interactions** — Weather widget (Wisconsin, Open-Meteo API, 30-min cache) + AWS Certified badge with yellow accent (AI & Cloud), mobile tap-to-toggle
-20. **Buy Me a Coffee** — Footer link to buymeacoffee.com/seanmcconnell
+**Phases 1–25:** Site scaffold, layout, theming, nav, hero, about, skills, footer, animations, responsive polish, SEO, content, Firebase deploy, CI/CD, live experience timer, skills rewrite, presentations, highlight cards, Buy Me a Coffee, blog (Tiptap + Firestore + Cloud Functions + admin).
 
----
+**Phases 27–29:** PR code review agent — Claude Code in GitHub Actions reviews PRs automatically via `code-review.yml`.
 
-## Blog — Tiptap + Firestore
+## Open
 
-**Phases 21–25 complete.** Dynamic blog powered by Cloud Functions (Blaze plan), Firestore, Firebase Auth (Google sign-in), and Firebase Storage. Tiptap WYSIWYG editor with auto-save, preview, publish/unpublish workflow. Public blog at `/blog`, admin at `/admin`. Posts served in real time via Cloud Function API.
+### Phase 26 — Blog Polish
 
-### Phase 26 — Blog Polish & Nice-to-haves
+- [ ] 26a. Reading time on post page and listing cards
+- [ ] 26b. Code block syntax highlighting (lowlight)
+- [ ] 26e. Styled 404 for missing/unpublished posts
+- [ ] 26f. Mobile responsive admin editor + public blog
+- [ ] 26g. Loading states (skeleton/spinner)
+- [ ] 26h. Integration tests
 
-- [ ] 26a. Reading time estimate — calculate from word count, display on post page and listing cards
-- [ ] 26b. Code block syntax highlighting — configure lowlight with common languages (js, ts, python, bash, json)
-- [ ] 26e. 404 handling — blog post not found or not published shows a styled 404
-- [ ] 26f. Mobile responsive — admin editor and public blog pages work well on mobile
-- [ ] 26g. Loading states — skeleton/spinner while fetching blog content from Cloud Function
-- [ ] 26h. Write final integration tests
+### Phase 30 — PR Review Agent Docs
+
+- [ ] 30a. Add "Code Review Agent" section to `CLAUDE.md`
+- [ ] 30b. Update CI/CD section in `CLAUDE.md`
+- [ ] 30c. Clean up `todo.md`
 
 ---
 
-## PR Code Review Agent — Claude in GitHub Actions
+## Phase 31 — Latest Blog Post on Homepage
 
-**Goal:** When a PR is opened or updated against `main`, GitHub Actions runs Claude Code in agent mode with the `pr_review` skill, which reviews the diff and posts comments directly on the PR. Fully automated — no manual trigger needed.
+**Goal:** Show the most recent published blog post on the main landing page so visitors see fresh content without navigating to `/blog`.
 
-### How it works
+### 31a. Create `LatestPost.astro` component skeleton
 
-1. `pull_request` event (opened/synchronize) triggers `.github/workflows/code-review.yml`
-2. Workflow installs Claude Code CLI, then runs it in agent mode (`claude -p`) with the review prompt from `.claude/skills/pr_review/SKILL.md`
-3. Claude reads the diff, explores relevant files for context, and posts a structured review comment on the PR via `gh`
-4. The `pr_review` skill is self-improving — when Sean gives feedback on reviews locally, the skill updates its own SKILL.md with learned preferences, which get committed and apply to future CI runs
+- [x] Create `src/components/LatestPost.astro`
+- [x] Add a `<section id="latest-post">` with the same container pattern as other sections (`py-24 lg:py-32`, `max-w-6xl mx-auto px-6`)
+- [x] Section heading: "Latest from the Blog" (`text-4xl sm:text-5xl font-black text-white`, wrapped in `overflow-hidden` div like Presentations/Skills)
+- [x] Empty inner `<div id="latest-post-content">` that JS will populate
 
-### Secrets needed
+### 31b. Client-side fetch and render
 
-- `ANTHROPIC_API_KEY` — Claude API key (add manually in GitHub Settings > Secrets)
-- `GITHUB_TOKEN` — built-in, already has PR write access
+- [x] `<script>` block fetches `/api/blog`, grabs `posts[0]` (already sorted by `publishedAt desc` from the API)
+- [x] If no posts or fetch fails → hide the entire `#latest-post` section (`display: none`) — no error message on the portfolio page
+- [x] Build a single card as an `<a>` linking to `/blog/:slug`, matching the blog listing card style:
+  - Title (`text-xl font-semibold`, accent on hover)
+  - Description (`text-slate-400 text-sm`, `line-clamp-2`)
+  - Published date (formatted like blog listing: `Month Day, Year`)
+  - Reading time (`X min read`)
+  - Tags as pills (`text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full`)
+  - "Read more →" link in accent color
+- [x] Card styling: `rounded-xl border border-white/10 bg-surface/40 p-6`, hover states matching Presentations cards (`hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all`)
 
-### Cost
+### 31c. Loading spinner
 
-Pay-per-token. A typical diff review is ~5K-20K input tokens + ~1K-3K output. Near-zero for a personal repo.
+- [x] Show an accent-colored spinner (`w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin`) inside `#latest-post-content` as default HTML (same pattern as `/blog` listing page)
+- [x] Spinner is replaced by the card on successful fetch, or section is hidden if no posts
 
----
+### 31d. GSAP scroll animation
 
-### Phase 27 — Secrets & Prerequisites
+- [x] Register ScrollTrigger in `<script>`
+- [x] Heading reveal: `gsap.from('#latest-post-heading', { scrollTrigger: { trigger: '#latest-post', start: 'top 78%', once: true }, immediateRender: false, yPercent: 110, duration: 0.8, ease: 'power3.out' })`
+- [x] Card fade-in: `gsap.from('#latest-post-card', { ... opacity: 0, y: 28, duration: 0.5, ease: 'power2.out' })` — triggered after fetch completes so the card is in the DOM
 
-- [x] 27a. Create an Anthropic API key (or use existing one) for CI usage
-- [x] 27b. Add `ANTHROPIC_API_KEY` to GitHub repo secrets (Settings > Secrets and variables > Actions)
-- [x] 27c. Verify `GITHUB_TOKEN` default permissions include `pull-requests: write` in repo settings (Settings > Actions > General > Workflow permissions)
+### 31e. Add to homepage
 
-### Phase 28 — GitHub Actions Workflow
+- [x] Import `LatestPost` in `src/pages/index.astro`
+- [x] Place `<LatestPost />` between `<Skills />` and `<Footer />` (after skills, before contact — fresh content as a final hook before the CTA)
 
-- [x] 28a. Create `.github/workflows/code-review.yml` with trigger on `pull_request` events (`opened`, `synchronize`) targeting `main` — separate from `deploy.yml` because deploy triggers on `push` (post-merge) while review must trigger on `pull_request` (pre-merge)
-- [x] 28b. Add job permissions: `permissions: pull-requests: write, contents: read`
-- [x] 28c. Checkout step — `actions/checkout@v4` with full history (`fetch-depth: 0`) so Claude can explore the repo
-- [x] 28d. Install Claude Code CLI — uses native binary installer (`curl -fsSL https://code.claude.com/install.sh | sh`), no separate Node.js step needed
-- [x] 28e. Build the prompt step — reads SKILL.md content, passes PR number, instructs Claude to fetch diff, read files, and post comment
-- [x] 28f. Run Claude Code — `claude -p` with `ANTHROPIC_API_KEY` and `GH_TOKEN` as env vars, `--allowedTools` restricts to read-only gh commands + file reading
-- [x] 28g. Set a timeout on the job (10 minutes) to cap runaway API costs
-- [x] 28h. Add `workflow_dispatch` trigger so the review can be re-run manually from the Actions tab
+### 31f. Responsive and style polish
 
-### Phase 29 — Prompt Engineering
+- [x] Card is full-width on mobile, constrained within `max-w-6xl` on desktop
+- [x] Verify section spacing is consistent with Presentations → Skills → LatestPost → Footer flow
 
-- [x] 29a. Write the CI prompt that cats SKILL.md and tells Claude to: fetch diff, view PR, read modified files, format review per skill structure, post via `gh pr comment`
-- [x] 29b. Claude reads `CLAUDE.md` automatically from repo root — no extra config needed
-- [x] 29c. Guard rails: prompt explicitly says "do NOT push code, merge, or modify files", `--allowedTools` restricts to read-only tools + `gh pr comment`
-- [x] 29d. Edge cases: prompt handles empty diffs (post comment and stop) and large diffs (focus on important files, note skimmed rest)
+### 31g. Tests
 
-### Phase 30 — Documentation & Polish
-
-- [ ] 31a. Add a "CI/CD — Code Review Agent" section to `CLAUDE.md` explaining the workflow and how to update the review prompt
-- [ ] 31b. Update the CI/CD section in `CLAUDE.md` to reflect the new workflow alongside `deploy.yml`
-- [ ] 31c. Update `todo.md` — remove the code review agent item from the CI/CD section
+- [x] Create `tests/phase31.test.ts` following the existing test file pattern
+- [x] Test: `LatestPost.astro` file exists
+- [x] Test: component has `id="latest-post"` section
+- [x] Test: component contains a fetch to `/api/blog`
+- [x] Test: component has a loading spinner element
+- [x] Test: component has GSAP ScrollTrigger animation
+- [x] Test: component handles empty/error state (hides section)
+- [x] Test: `index.astro` imports and renders `<LatestPost />`
+- [x] Run `bun run test` — all 303 tests pass (19 new)
+- [x] Run `bun run build` — no build errors

@@ -8,6 +8,11 @@ export default defineConfig({
   output: 'static',
   integrations: [sitemap()],
   vite: {
-    plugins: [tailwindcss()]
-  }
+    plugins: [tailwindcss()],
+    server: {
+      proxy: {
+        '/api': 'https://sean-mcconnell.com',
+      },
+    },
+  },
 });
