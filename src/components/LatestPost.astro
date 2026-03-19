@@ -1,0 +1,93 @@
+<section id="latest-post" class="py-24 lg:py-32">
+  <div class="max-w-6xl mx-auto px-6">
+
+    <div class="overflow-hidden mb-16">
+      <h2 id="latest-post-heading" class="text-4xl sm:text-5xl font-black text-white">Latest from the Blog</h2>
+    </div>
+
+    <div id="latest-post-content">
+      <div class="flex justify-center py-16">
+        <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+
+  const section = document.getElementById('latest-post')!;
+  const container = document.getElementById('latest-post-content')!;
+
+  gsap.from('#latest-post-heading', {
+    scrollTrigger: { trigger: '#latest-post', start: 'top 78%', once: true },
+    immediateRender: false,
+    yPercent: 110,
+    duration: 0.8,
+    ease: 'power3.out',
+  });
+
+  async function loadLatestPost() {
+    try {
+      const res = await fetch('/api/blog');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const posts: Array<{
+        slug: string;
+        title: string;
+        description: string;
+        tags: string[];
+        publishedAt: string | null;
+        readingTime: number;
+      }> = await res.json();
+
+      if (posts.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      const post = posts[0];
+      const date = post.publishedAt
+        ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : '';
+
+      const tags = post.tags
+        .map((t) => `<span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full">${t}</span>`)
+        .join('');
+
+      const card = document.createElement('a');
+      card.id = 'latest-post-card';
+      const isDev = window.location.hostname === 'localhost';
+      card.href = isDev ? `/blog/post?slug=${post.slug}` : `/blog/${post.slug}`;
+      card.className = 'block rounded-xl border border-white/10 bg-surface/40 p-6 hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200 group';
+      card.innerHTML = `
+        <h3 class="text-xl font-semibold text-white group-hover:text-accent transition-colors duration-200 mb-2">${post.title}</h3>
+        <p class="text-slate-400 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <time class="text-xs text-slate-500">${date}</time>
+          ${date && post.readingTime ? '<span class="text-xs text-slate-600">·</span>' : ''}
+          ${post.readingTime ? `<span class="text-xs text-slate-500">${post.readingTime} min read</span>` : ''}
+          ${tags ? `<div class="flex flex-wrap gap-2">${tags}</div>` : ''}
+        </div>
+        <span class="text-accent text-sm font-medium mt-3 inline-block">Read more &rarr;</span>`;
+
+      container.innerHTML = '';
+      container.appendChild(card);
+
+      gsap.from('#latest-post-card', {
+        scrollTrigger: { trigger: '#latest-post', start: 'top 78%', once: true },
+        immediateRender: false,
+        opacity: 0,
+        y: 28,
+        duration: 0.5,
+        ease: 'power2.out',
+      });
+    } catch {
+      section.style.display = 'none';
+    }
+  }
+
+  loadLatestPost();
+</script>
