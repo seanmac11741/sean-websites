@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  id-token: write
 
 jobs:
   review:
@@ -30,5 +31,4 @@ jobs:
             - If the diff is empty, say so and stop
             - If the diff is very large (>2000 lines), focus on the most important files and note that you skimmed the rest
             - Keep the review concise and actionable
-          allowed_tools: "Read,Grep,Glob"
-          max_turns: "10"
+          claude_args: "--max-turns 10"
