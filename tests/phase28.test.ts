@@ -131,5 +131,9 @@ describe('28 — PR Code Review Agent', () => {
       expect(skill).toContain('Bun');
       expect(skill).toContain('Firebase');
     });
+
+    it('tells Claude to post via gh pr comment', () => {
+      expect(skill).toContain('gh pr comment');
+    });
   });
 });
