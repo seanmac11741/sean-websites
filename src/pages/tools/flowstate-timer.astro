@@ -1,0 +1,565 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+
+const title = 'Flowstate Timer — Sean McConnell';
+const description = 'A focus and break timer to help you lock in. 90 minutes on, 30 minutes off.';
+---
+
+<Layout {title} {description}>
+  <Nav />
+  <main class="pt-24 pb-16 px-6 min-h-screen flex items-center justify-center">
+    <div id="timer-container" class="w-full max-w-lg mx-auto flex flex-col items-center">
+
+      <!-- Resume prompt (hidden unless saved state exists) -->
+      <div id="resume-prompt" class="hidden flex flex-col items-center gap-6">
+        <h2 class="text-2xl font-bold text-white">Welcome back</h2>
+        <p id="resume-message" class="text-slate-400 text-center"></p>
+        <div class="flex gap-4">
+          <button id="resume-yes" class="px-8 py-3 rounded-full bg-accent text-white font-medium hover:bg-accent/80 transition-all duration-200">Resume</button>
+          <button id="resume-no" class="px-8 py-3 rounded-full border border-white/20 text-slate-300 hover:border-white/40 hover:text-white transition-all duration-200">Start Fresh</button>
+        </div>
+      </div>
+
+      <!-- Preset selection screen -->
+      <div id="presets-container" class="flex flex-col items-center gap-8">
+        <h2 id="mode-label" class="text-2xl sm:text-3xl font-bold text-white">Focus Time</h2>
+
+        <div id="preset-buttons" class="flex flex-wrap justify-center gap-3">
+          <button data-minutes="25" class="preset-btn px-5 py-2.5 rounded-full border border-white/20 text-slate-300 hover:border-accent/50 hover:text-white transition-all duration-200 text-sm font-medium">25 min</button>
+          <button data-minutes="60" class="preset-btn px-5 py-2.5 rounded-full border border-white/20 text-slate-300 hover:border-accent/50 hover:text-white transition-all duration-200 text-sm font-medium">60 min</button>
+          <button data-minutes="90" data-default class="preset-btn px-5 py-2.5 rounded-full border border-accent text-accent transition-all duration-200 text-sm font-medium">90 min</button>
+          <button data-minutes="120" class="preset-btn px-5 py-2.5 rounded-full border border-white/20 text-slate-300 hover:border-accent/50 hover:text-white transition-all duration-200 text-sm font-medium">120 min</button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <label for="custom-minutes" class="text-slate-400 text-sm">Custom:</label>
+          <input
+            id="custom-minutes"
+            type="number"
+            min="1"
+            max="300"
+            placeholder="min"
+            class="w-20 px-3 py-2 rounded-lg bg-surface border border-white/10 text-white text-sm text-center focus:border-accent focus:outline-none transition-colors duration-200"
+          />
+        </div>
+
+        <button
+          id="start-btn"
+          class="mt-4 px-12 py-4 rounded-full bg-accent text-white text-xl font-bold hover:bg-accent/80 transition-all duration-200 hover:scale-105 shadow-lg shadow-accent/25"
+        >
+          Start
+        </button>
+      </div>
+
+      <!-- Timer display (hidden until started) -->
+      <div id="timer-display-container" class="hidden flex flex-col items-center gap-8">
+        <div class="relative">
+          <svg id="timer-ring" width="280" height="280" viewBox="0 0 280 280" class="w-full max-w-[280px] transform -rotate-90">
+            <circle
+              id="ring-track"
+              cx="140"
+              cy="140"
+              r="126"
+              fill="none"
+              stroke="rgba(255,255,255,0.1)"
+              stroke-width="8"
+            />
+            <circle
+              id="ring-progress"
+              cx="140"
+              cy="140"
+              r="126"
+              fill="none"
+              stroke="#818CF8"
+              stroke-width="8"
+              stroke-linecap="round"
+              stroke-dasharray="791.68"
+              stroke-dashoffset="0"
+            />
+          </svg>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span id="timer-display" class="timer-digit text-5xl sm:text-6xl font-bold text-white">90:00</span>
+          </div>
+        </div>
+
+        <div class="flex gap-4">
+          <button
+            id="pause-btn"
+            class="px-8 py-3 rounded-full border border-white/20 text-slate-300 hover:border-white/40 hover:text-white transition-all duration-200 text-sm font-medium"
+          >
+            Pause
+          </button>
+          <button
+            id="reset-btn"
+            class="px-8 py-3 rounded-full border border-white/20 text-slate-300 hover:border-white/40 hover:text-white transition-all duration-200 text-sm font-medium"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Transition screen: fun phrase + next mode button (hidden until alarm dismissed) -->
+      <div id="transition-container" class="hidden flex flex-col items-center gap-8">
+        <h2 id="phrase-display" class="text-2xl sm:text-3xl font-bold text-white text-center"></h2>
+
+        <div id="break-presets" class="hidden flex flex-wrap justify-center gap-3">
+          <button data-break-minutes="5" class="break-preset-btn px-5 py-2.5 rounded-full border border-white/20 text-slate-300 hover:border-accent/50 hover:text-white transition-all duration-200 text-sm font-medium">5 min</button>
+          <button data-break-minutes="15" class="break-preset-btn px-5 py-2.5 rounded-full border border-white/20 text-slate-300 hover:border-accent/50 hover:text-white transition-all duration-200 text-sm font-medium">15 min</button>
+          <button data-break-minutes="30" data-default class="break-preset-btn px-5 py-2.5 rounded-full border border-accent text-accent transition-all duration-200 text-sm font-medium">30 min</button>
+        </div>
+
+        <button
+          id="break-btn"
+          class="px-10 py-4 rounded-full bg-accent text-white text-lg font-bold hover:bg-accent/80 transition-all duration-200 hover:scale-105 shadow-lg shadow-accent/25"
+        >
+          Take a Break
+        </button>
+      </div>
+
+      <!-- Alarm dismiss (hidden until alarm fires) -->
+      <div id="alarm-container" class="hidden flex flex-col items-center gap-6">
+        <button
+          id="dismiss-btn"
+          class="px-10 py-4 rounded-full bg-red-500 text-white text-lg font-bold hover:bg-red-400 transition-all duration-200 animate-pulse"
+        >
+          Dismiss
+        </button>
+      </div>
+
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { gsap } from 'gsap';
+
+  // === State ===
+  const STORAGE_KEY = 'flowstate-timer-state';
+  let totalSeconds = 90 * 60;
+  let remainingSeconds = totalSeconds;
+  let isRunning = false;
+  let isPaused = false;
+  let animationId: number | null = null;
+  let lastTimestamp: number | null = null;
+  let mode: 'focus' | 'break' = 'focus';
+
+  // === Persistence ===
+  function saveState() {
+    const state = {
+      remainingSeconds,
+      totalSeconds,
+      mode,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function clearSavedState() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  // === DOM refs ===
+  const presetsContainer = document.getElementById('presets-container')!;
+  const timerDisplayContainer = document.getElementById('timer-display-container')!;
+  const timerDisplay = document.getElementById('timer-display')!;
+  const ringProgress = document.getElementById('ring-progress') as SVGCircleElement | null;
+  const startBtn = document.getElementById('start-btn')!;
+  const customInput = document.getElementById('custom-minutes') as HTMLInputElement;
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  const modeLabel = document.getElementById('mode-label')!;
+  const pauseBtn = document.getElementById('pause-btn')!;
+  const resetBtn = document.getElementById('reset-btn')!;
+  const alarmContainer = document.getElementById('alarm-container')!;
+  const dismissBtn = document.getElementById('dismiss-btn')!;
+  const transitionContainer = document.getElementById('transition-container')!;
+  const phraseDisplay = document.getElementById('phrase-display')!;
+  const breakBtn = document.getElementById('break-btn')!;
+
+  const breakPresetsContainer = document.getElementById('break-presets')!;
+  const breakPresetBtns = document.querySelectorAll('.break-preset-btn');
+
+  const CIRCUMFERENCE = 2 * Math.PI * 126; // ~791.68
+  const FOCUS_COLOR = '#818CF8';
+  const BREAK_COLOR = '#2dd4bf';
+
+  // === Preset selection ===
+  let selectedMinutes = 90;
+
+  presetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const minutes = parseInt((btn as HTMLElement).dataset.minutes || '90');
+      selectedMinutes = minutes;
+      customInput.value = '';
+
+      // Update active style
+      presetBtns.forEach((b) => {
+        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
+        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
+      });
+      (btn as HTMLElement).classList.remove('border-white/20', 'text-slate-300');
+      (btn as HTMLElement).classList.add('border-accent', 'text-accent');
+    });
+  });
+
+  customInput.addEventListener('input', () => {
+    const val = parseInt(customInput.value);
+    if (val > 0) {
+      selectedMinutes = Math.min(val, 300);
+      presetBtns.forEach((b) => {
+        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
+        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
+      });
+    }
+  });
+
+  // === Format time ===
+  function formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  // === Update ring ===
+  function updateRing() {
+    if (!ringProgress) return;
+    const fraction = remainingSeconds / totalSeconds;
+    const offset = CIRCUMFERENCE * (1 - fraction);
+    ringProgress.style.strokeDashoffset = String(offset);
+  }
+
+  // === Timer loop ===
+  function tick(timestamp: number) {
+    if (!lastTimestamp) lastTimestamp = timestamp;
+    const elapsed = (timestamp - lastTimestamp) / 1000;
+
+    if (elapsed >= 1) {
+      const secondsToSubtract = Math.floor(elapsed);
+      remainingSeconds = Math.max(0, remainingSeconds - secondsToSubtract);
+      lastTimestamp = timestamp;
+
+      timerDisplay.textContent = formatTime(remainingSeconds);
+      updateRing();
+      saveState();
+
+      if (remainingSeconds <= 0) {
+        isRunning = false;
+        clearSavedState();
+        onTimerComplete();
+        return;
+      }
+    }
+
+    animationId = requestAnimationFrame(tick);
+  }
+
+  // === Start timer ===
+  function startTimer() {
+    totalSeconds = selectedMinutes * 60;
+    remainingSeconds = totalSeconds;
+    isRunning = true;
+    isPaused = false;
+    lastTimestamp = null;
+
+    timerDisplay.textContent = formatTime(remainingSeconds);
+
+    // Set initial ring to full (dashoffset = full circumference, so ring is invisible)
+    if (ringProgress) {
+      ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE);
+    }
+
+    // Theatrical entrance animation
+    gsap.to(presetsContainer, {
+      opacity: 0,
+      scale: 0.95,
+      duration: 0.3,
+      ease: 'power2.in',
+      onComplete: () => {
+        presetsContainer.classList.add('hidden');
+        timerDisplayContainer.classList.remove('hidden');
+
+        // Set initial states for entrance
+        gsap.set(timerDisplayContainer, { opacity: 0 });
+        gsap.set(timerDisplay, { scale: 0.5, opacity: 0 });
+
+        const tl = gsap.timeline({
+          onComplete: () => {
+            animationId = requestAnimationFrame(tick);
+          }
+        });
+
+        // Fade in container
+        tl.to(timerDisplayContainer, {
+          opacity: 1,
+          duration: 0.3,
+          ease: 'power2.out',
+        });
+
+        // Ring draws itself on
+        tl.to(ringProgress, {
+          strokeDashoffset: 0,
+          duration: 1,
+          ease: 'power3.out',
+        }, '-=0.1');
+
+        // Digits scale up and fade in
+        tl.to(timerDisplay, {
+          scale: 1,
+          opacity: 1,
+          duration: 0.5,
+          ease: 'back.out(1.7)',
+        }, '-=0.6');
+      }
+    });
+  }
+
+  startBtn.addEventListener('click', startTimer);
+
+  // === Pause / Resume ===
+  pauseBtn.addEventListener('click', () => {
+    if (isPaused) {
+      // Resume
+      isPaused = false;
+      isRunning = true;
+      lastTimestamp = null;
+      pauseBtn.textContent = 'Pause';
+      animationId = requestAnimationFrame(tick);
+    } else {
+      // Pause
+      isPaused = true;
+      isRunning = false;
+      pauseBtn.textContent = 'Resume';
+      if (animationId) cancelAnimationFrame(animationId);
+    }
+  });
+
+  // === Reset ===
+  resetBtn.addEventListener('click', () => {
+    isRunning = false;
+    isPaused = false;
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
+    lastTimestamp = null;
+    remainingSeconds = totalSeconds;
+    clearSavedState();
+
+    timerDisplayContainer.classList.add('hidden');
+    presetsContainer.classList.remove('hidden');
+    pauseBtn.textContent = 'Pause';
+
+    if (ringProgress) {
+      ringProgress.style.strokeDashoffset = '0';
+    }
+  });
+
+  // === Web Audio API Alarm ===
+  let audioCtx: AudioContext | null = null;
+  let alarmInterval: ReturnType<typeof setInterval> | null = null;
+
+  function playBeep() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(660, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.4);
+  }
+
+  function startAlarm() {
+    playBeep();
+    alarmInterval = setInterval(playBeep, 1500);
+  }
+
+  function stopAlarm() {
+    if (alarmInterval) {
+      clearInterval(alarmInterval);
+      alarmInterval = null;
+    }
+  }
+
+  // === Ring pulse animation ===
+  let pulseTimeline: gsap.core.Timeline | null = null;
+
+  function pulseRing() {
+    if (!ringProgress) return;
+    pulseTimeline = gsap.timeline({ repeat: -1 });
+    pulseTimeline.to(ringProgress, {
+      attr: { stroke: '#ef4444' },
+      duration: 0.3,
+      ease: 'power2.in',
+    });
+    pulseTimeline.to(ringProgress, {
+      attr: { stroke: '#818CF8' },
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  }
+
+  function stopPulse() {
+    if (pulseTimeline) {
+      pulseTimeline.kill();
+      pulseTimeline = null;
+    }
+    if (ringProgress) {
+      ringProgress.setAttribute('stroke', '#818CF8');
+    }
+  }
+
+  // === Timer complete ===
+  function onTimerComplete() {
+    startAlarm();
+    pulseRing();
+    timerDisplayContainer.classList.add('hidden');
+    alarmContainer.classList.remove('hidden');
+  }
+
+  // === Dismiss alarm ===
+  dismissBtn.addEventListener('click', () => {
+    stopAlarm();
+    stopPulse();
+    alarmContainer.classList.add('hidden');
+    onAlarmDismissed();
+  });
+
+  // === Fun phrases ===
+  const focusPhrases: string[] = [
+    'Go take a nap, you earned it.',
+    'Look up a YouTube video on cats.',
+    'Stretch it out. Touch your toes.',
+    'Go for a walk around the block.',
+    'Grab a snack. Hydrate. Breathe.',
+    'Stare out a window for a bit.',
+    'Text someone you haven\'t talked to in a while.',
+    'Do 20 push-ups. Or 5. Or 1.',
+    'Put on your favorite song and just listen.',
+    'Close your eyes for 2 minutes. Seriously.',
+  ];
+  const breakPhrases: string[] = [
+    'Time to lock in. Let\'s go.',
+    'You\'re refreshed. Now crush it.',
+    'Back to the grind. Build something great.',
+    'Flow state awaits. Focus up.',
+    'Break\'s over. Ship something.',
+    'Channel that energy. Go deep.',
+    'The code isn\'t gonna write itself.',
+    'Ready? Set? Lock in.',
+    'Fresh eyes, fresh mind. Let\'s build.',
+    'One more session. You got this.',
+  ];
+
+  function getRandomPhrase(phrases: string[]): string {
+    if (phrases.length === 0) return 'Nice work!';
+    return phrases[Math.floor(Math.random() * phrases.length)];
+  }
+
+  // === Break preset selection ===
+  let selectedBreakMinutes = 30;
+
+  breakPresetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const minutes = parseInt((btn as HTMLElement).dataset.breakMinutes || '30');
+      selectedBreakMinutes = minutes;
+
+      breakPresetBtns.forEach((b) => {
+        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
+        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
+      });
+      (btn as HTMLElement).classList.remove('border-white/20', 'text-slate-300');
+      (btn as HTMLElement).classList.add('border-accent', 'text-accent');
+    });
+  });
+
+  function onAlarmDismissed() {
+    if (mode === 'focus') {
+      // Show post-focus transition
+      phraseDisplay.textContent = getRandomPhrase(focusPhrases);
+      breakBtn.textContent = 'Take a Break';
+      breakPresetsContainer.classList.remove('hidden');
+    } else {
+      // Show post-break transition
+      phraseDisplay.textContent = getRandomPhrase(breakPhrases);
+      breakBtn.textContent = 'Start Focus';
+      breakPresetsContainer.classList.add('hidden');
+    }
+    transitionContainer.classList.remove('hidden');
+  }
+
+  // === Break/Focus button click — switch mode and start ===
+  breakBtn.addEventListener('click', () => {
+    transitionContainer.classList.add('hidden');
+    breakPresetsContainer.classList.add('hidden');
+
+    if (mode === 'focus') {
+      // Switch to break mode
+      mode = 'break';
+      selectedMinutes = selectedBreakMinutes;
+      modeLabel.textContent = 'Break Time';
+      if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
+    } else {
+      // Switch to focus mode
+      mode = 'focus';
+      selectedMinutes = 90;
+      modeLabel.textContent = 'Focus Time';
+      if (ringProgress) ringProgress.setAttribute('stroke', FOCUS_COLOR);
+    }
+
+    startTimer();
+  });
+
+  // === Check for saved state on page load ===
+  const resumePrompt = document.getElementById('resume-prompt')!;
+  const resumeMessage = document.getElementById('resume-message')!;
+  const resumeYes = document.getElementById('resume-yes')!;
+  const resumeNo = document.getElementById('resume-no')!;
+
+  (function checkSavedState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+      const state = JSON.parse(saved);
+      const minutesLeft = Math.ceil(state.remainingSeconds / 60);
+      const modeText = state.mode === 'focus' ? 'focus' : 'break';
+      resumeMessage.textContent = `You had ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left on your ${modeText} timer. Resume?`;
+
+      presetsContainer.classList.add('hidden');
+      resumePrompt.classList.remove('hidden');
+
+      resumeYes.addEventListener('click', () => {
+        totalSeconds = state.totalSeconds;
+        remainingSeconds = state.remainingSeconds;
+        mode = state.mode;
+        selectedMinutes = Math.ceil(state.totalSeconds / 60);
+
+        if (mode === 'break') {
+          modeLabel.textContent = 'Break Time';
+          if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
+        }
+
+        resumePrompt.classList.add('hidden');
+        timerDisplayContainer.classList.remove('hidden');
+        timerDisplay.textContent = formatTime(remainingSeconds);
+        updateRing();
+        lastTimestamp = null;
+        isRunning = true;
+        animationId = requestAnimationFrame(tick);
+      });
+
+      resumeNo.addEventListener('click', () => {
+        clearSavedState();
+        resumePrompt.classList.add('hidden');
+        presetsContainer.classList.remove('hidden');
+      });
+    } catch {
+      clearSavedState();
+    }
+  })();
+</script>

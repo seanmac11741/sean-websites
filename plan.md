@@ -72,34 +72,37 @@ Live at `sean-mcconnell.com`. **Deferred work:** `todo.md`
 ### Implementation Todo
 
 Page scaffolding (1-3):
-1. [] Create /tools index page with card grid layout
-2. [] Add "Tools" link to Nav.astro (desktop + mobile)
-3. [] Create /tools/flowstate-timer page with Layout and Nav
+1. [x] Create /tools index page with card grid layout
+2. [x] Add "Tools" link to Nav.astro (desktop + mobile)
+3. [x] Create /tools/flowstate-timer page with Layout and Nav
 
 Timer core (4-9):
-4. [] Build preset duration buttons (focus: 25/60/90/120, break: 5/15/30) + custom input
-5. [] Build the big Start button for focus mode
-6. [] Build SVG circular progress ring with large centered digits (MM:SS)
-7. [] Implement countdown timer logic (requestAnimationFrame-based)
-8. [] Add Pause/Resume and Reset pill-shaped buttons after starting
-9. [] GSAP theatrical entrance animation: ring draws itself on, digits scale up, controls fade
+4. [x] Build preset duration buttons (focus: 25/60/90/120, break: 5/15/30) + custom input
+5. [x] Build the big Start button for focus mode
+6. [x] Build SVG circular progress ring with large centered digits (MM:SS)
+7. [x] Implement countdown timer logic (requestAnimationFrame-based)
+8. [x] Add Pause/Resume and Reset pill-shaped buttons after starting
+9. [x] GSAP theatrical entrance animation: ring draws itself on, digits scale up, controls fade
 
 Alarm (10-12):
-10. [] Implement Web Audio API repeating alarm tone at zero
-11. [] Add dismiss button to stop the alarm
-12. [] Ring pulses red and syncs with alarm beep at zero (GSAP)
+10. [x] Implement Web Audio API repeating alarm tone at zero
+11. [x] Add dismiss button to stop the alarm
+12. [x] Ring pulses red and syncs with alarm beep at zero (GSAP)
 
 Focus/Break cycle (13-17):
-13. [] Post-focus flow: dismiss alarm → fun phrase + "Take a Break" button
-14. [] Build break timer: same ring/digits, different accent color, break presets default 30 min
-15. [] Post-break flow: dismiss alarm → fun phrase + "Start Focus" → loops back
-16. [] Write 8-12 post-focus fun phrases (relaxation)
-17. [] Write 8-12 post-break fun phrases (motivation)
+13. [x] Post-focus flow: dismiss alarm → fun phrase + "Take a Break" button
+14. [x] Build break timer: same ring/digits, different accent color, break presets default 30 min
+15. [x] Post-break flow: dismiss alarm → fun phrase + "Start Focus" → loops back
+16. [x] Write 8-12 post-focus fun phrases (relaxation)
+17. [x] Write 8-12 post-break fun phrases (motivation)
 
 Persistence & responsive (18-20):
-18. [] Save timer state to localStorage
-19. [] On page load with saved state: "You had X minutes left, resume?" prompt
-20. [] Responsive layout for mobile
+18. [x] Save timer state to localStorage
+19. [x] On page load with saved state: "You had X minutes left, resume?" prompt
+20. [x] Responsive layout for mobile
+
+Errors to resolve before going forward
+* Hitting reset button just makes the whole thing disappear. 
 
 Star field — last (21-26):
 21. [] Build canvas star field with full northern hemisphere constellations + lines
