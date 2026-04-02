@@ -81,13 +81,16 @@ src/
     blog/index.astro         ← public blog listing (fetches from /api/blog)
     blog/post.astro          ← public blog post (fetches from /api/blog/:slug, served via rewrite for /blog/**)
   components/
-    Nav.astro                ← sticky nav, scroll-triggered bg, mobile hamburger, Blog link, hidden Admin link (auth-toggled)
+    Nav.astro                ← sticky nav, scroll-triggered bg, mobile hamburger, Blog/Tools links, hidden Admin link (auth-toggled)
     Hero.astro               ← full-viewport, GSAP text reveal, typewriter titles
     About.astro              ← two-column bio + photo, live experience timer, highlights
     Presentations.astro      ← conference talks, data-driven frontmatter array, title slide images
     Skills.astro             ← categorized grid with experience bars, 6 categories, 23 skills
     LatestPost.astro         ← most recent blog post card, fetched client-side from /api/blog, GSAP scroll animation
     Footer.astro             ← email CTA, social links, "Request a website" + "Buy me a coffee" CTAs, copyright
+  pages/
+    tools/index.astro        ← tools landing page, card grid linking to individual tools
+    tools/flowstate-timer.astro ← focus/break timer with star field (see Tools section below)
   styles/global.css          ← Tailwind @import, @theme tokens, base styles
 functions/
   src/index.ts               ← Cloud Function: `api` — /api/blog (list) and /api/blog/:slug (detail)
@@ -101,11 +104,13 @@ tests/
   phase14-25.test.ts         ← vitest tests for phases 14–25
   phase28.test.ts            ← vitest tests for phase 28 (PR review agent)
   phase31.test.ts            ← vitest tests for phase 31 (latest blog post on homepage)
+  phase32.test.ts            ← vitest tests for phase 32 (tools page + flowstate timer)
 ```
 
 **Page flow:** Hero → About → Presentations → Skills → LatestPost → Contact/Footer
 **Blog flow:** /blog (listing) → /blog/:slug (post detail)
 **Admin flow:** /admin (login/dashboard) → /admin/editor (create/edit) → /admin/preview (preview)
+**Tools flow:** /tools (card grid index) → /tools/flowstate-timer
 
 ## Design Tokens
 
@@ -132,3 +137,23 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout
 - Social links (GitHub, GitLab, LinkedIn, Strava) appear in Nav, Hero, and Footer
 - Footer "Request a website" CTA links to Google Form: `https://forms.gle/fFCFyQH7dG6xXtkVA`
+
+## Tools Page
+
+`/tools` — card grid index listing available tools. "Tools" link in Nav between Blog and Admin.
+
+### Flowstate Timer (`/tools/flowstate-timer`)
+
+Focus/break pomodoro timer with ambient star field.
+
+- **Core loop:** Focus → alarm → fun phrase + "Take a Break" → Break → alarm → fun phrase + "Start Focus" → repeat
+- **Timer:** SVG circular progress ring (`stroke-dasharray`/`stroke-dashoffset`) with large MM:SS digits. GSAP theatrical entrance animation on start. Ring pulses red at zero (synced with alarm).
+- **Controls:** Preset duration buttons (focus: 25/60/90/120 min, break: 5/15/30 min) + custom input. Focus/Break toggle on preset screen. Pause/Resume and Reset appear after starting.
+- **Alarm:** Web Audio API generated tone (`OscillatorNode`, square wave 880→660Hz). Repeats via `setInterval` until dismissed.
+- **Fun phrases:** 10 post-focus (relaxation) + 10 post-break (motivation), displayed as headline after alarm dismiss.
+- **Star field:** Full-viewport `<canvas>` behind timer (`z-0`). 13 real northern hemisphere constellations (Ursa Major, Ursa Minor, Orion, Cassiopeia, Cygnus, Leo, Lyra, Gemini, Bootes, Draco, Auriga, Perseus, Corona Borealis) with connecting lines + 400 random background stars. Stereographic projection centered on Polaris (`POLARIS_DEC ≈ 1.558 rad`). Star positions use RA/Dec in radians. Fixed `SCALE = 600` — canvas is a viewport into the sky, not sky squeezed into the window.
+- **Focus mode:** Slow auto-rotation (`ROTATION_SPEED = 0.00003`), no user interaction with stars.
+- **Break mode:** Auto-rotation stops. Dawn ambiance (background lightens via `dawnAmount` gsap tween). Click-and-drag to rotate star field (mouse + touch). `main` gets `pointer-events: none` so canvas receives clicks; `timer-container` has `pointer-events-auto` to keep controls clickable.
+- **Constellation labels:** `window` mousemove listener computes each constellation's screen center, shows name via `ctx.fillText` when mouse within `HOVER_RADIUS = 50px`.
+- **Persistence:** Timer state saved to `localStorage` (`flowstate-timer-state`). On page return with active session: "You had X minutes left, resume?" prompt.
+- **Responsive:** SVG ring uses `viewBox` + `max-w-[280px]`. Touch-drag for mobile star rotation during break.

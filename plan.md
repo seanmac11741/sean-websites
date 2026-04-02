@@ -101,16 +101,50 @@ Persistence & responsive (18-20):
 19. [x] On page load with saved state: "You had X minutes left, resume?" prompt
 20. [x] Responsive layout for mobile
 
-Errors to resolve before going forward
-* Hitting reset button just makes the whole thing disappear. 
+Errors resolved
+* [x] Hitting reset button just makes the whole thing disappear — fixed: gsap.set restores opacity/scale on presets container
+* [x] Need a button to switch between work and break mode — fixed: added Focus/Break toggle on preset screen
 
 Star field — last (21-26):
-21. [] Build canvas star field with full northern hemisphere constellations + lines
-22. [] Star field fades in on first timer start, persists through session
-23. [] Focus mode: slow auto-rotation, no interaction
-24. [] Break mode: dawn ambiance transition (lighter, warmer palette)
-25. [] Break mode: click-and-drag to rotate star field (mouse)
-26. [] Mobile touch-drag support for star field
+21. [x] Build canvas star field with full northern hemisphere constellations + lines
+22. [x] Star field fades in on first timer start, persists through session
+23. [x] Focus mode: slow auto-rotation, no interaction
+24. [x] Break mode: dawn ambiance transition (lighter, warmer palette)
+25. [x] Break mode: click-and-drag to rotate star field (mouse)
+26. [x] Mobile touch-drag support for star field
 
-Wrap-up (27):
-27. [] Update CLAUDE.md with tools page architecture
+## Star Field Bugs
+
+Bug A — Rotate around Polaris, not canvas center
+* Current rotation pivots around the center of the canvas. Should pivot around Polaris (the North Star) so the sky rotates realistically.
+
+Bug B — Flat rectangular projection looks wrong on rotation
+* Stars are mapped to a flat rectangle and rotated in 2D, so edges clip and the field looks like a spinning sheet of paper instead of a sky. Need a polar/stereographic projection from a sphere so the field is circular and natural.
+
+Bug C — Window resize skews and stretches stars
+* Currently the full sky is squeezed into the window dimensions. Resizing stretches everything. Instead, the canvas should be a viewport into a much larger virtual sky — resizing reveals more or less sky, not stretches it. Tightly coupled with Bug B's projection rewrite.
+
+Bug D — Spins too fast
+* Current ROTATION_SPEED = 0.00008 is noticeably fast. Slow it down to ~0.00003.
+
+Bug E — Constellation names should show on mouse hover
+* No hover labels exist. Add a mousemove listener that checks proximity to each constellation's center and draws the name on the canvas when the mouse is nearby.
+
+Bug F — Can't click-and-drag the star field during break mode
+* The drag handlers exist but don't work in practice. The canvas is behind the main content (z-0 vs z-10), so pointer events never reach it. Need to enable pointer-events on the canvas during break mode and disable during focus.
+
+### Bug Fix Todo
+
+Projection rewrite (fixes A, B, C together):
+28. [x] Replace flat 2D projection with stereographic projection centered on Polaris
+29. [x] Convert constellation RA/Dec data to proper spherical coordinates (radians)
+30. [x] Make canvas a viewport into a larger virtual sky (uniform pixel scale, no stretching on resize)
+31. [x] Rotation pivots around Polaris — auto-rotate and drag both rotate the view around the pole
+
+Individual fixes:
+32. [x] Slow down auto-rotation speed (Bug D)
+33. [x] Draw constellation names on canvas near their center when mouse hovers close (Bug E)
+34. [x] Fix pointer-events: enable on canvas during break mode, disable during focus so timer controls stay clickable (Bug F)
+
+Wrap-up (35):
+35. [x] Update CLAUDE.md with tools page architecture

@@ -17,13 +17,13 @@ description: Test-driven development with red-green-refactor loop. Use when user
   * Run the test(s) again and see them pass. This confirms that the code you wrote satisfies the requirements of the test(s).
   * Now you can refactor the code if needed, but be careful not to break the tests. The tests serve as a safety net that allows you to refactor with confidence.
   * After refactoring, run the test(s) again to ensure they still pass. If they do, you have successfully implemented the functionality for that todo item.
-  * Mark the todo item as complete in the plan.md file by changing [ ] to [x].
+  * IMMEDIATELY mark this single todo item as [x] in plan.md. This is a BLOCKING step -- do NOT proceed to the next todo item until the [x] is written to the file. Do NOT batch multiple [x] updates together. Each [x] must be its own separate file edit, performed right now, before moving on.
 * Repeat this process for each item in the todo list until all items are implemented and all tests are passing.
 
 
 # Important Notes
 * NEVER write all the tests first and then all the code. Always do one small test, then the code to pass it, then the next test, etc. This is the essence of TDD and is crucial for its benefits.
-* NEVER skip updating the todo list in the plan.md file after a todo item is complete.
-* NEVER wait until the end to write the [x] in the plan.md file.
+* plan.md updates MUST happen one at a time, immediately after each todo is done. This overrides any general instruction to batch file edits for efficiency. Each [x] is a checkpoint, not a bulk operation.
+* The [x] update to plan.md is NOT a documentation step -- it is a CHECKPOINT that proves you are following the TDD loop. If you find yourself with multiple unchecked items that are actually done, you have already broken the process. Stop and fix it.
 * The tests you write should be clear and descriptive, so that anyone reading them can understand what functionality is being tested and what the expected behavior is.
 * If you find that a todo item is too large or complex to implement in one go, break it down into smaller pieces and write tests for each piece. This will make it easier to manage and ensure that you are following the TDD process effectively.
