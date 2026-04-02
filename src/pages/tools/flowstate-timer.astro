@@ -457,7 +457,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       pulseTimeline = null;
     }
     if (ringProgress) {
-      ringProgress.setAttribute('stroke', '#818CF8');
+      ringProgress.setAttribute('stroke', mode === 'break' ? BREAK_COLOR : FOCUS_COLOR);
     }
   }
 
@@ -605,6 +605,13 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
         }
 
         showStarfield();
+        if (mode === 'break') {
+          dawnAmount = 1;
+          stopAutoRotation();
+          mainContent.style.pointerEvents = 'none';
+          starfieldCanvas.style.pointerEvents = 'auto';
+          starfieldCanvas.style.cursor = 'grab';
+        }
         resumePrompt.classList.add('hidden');
         timerDisplayContainer.classList.remove('hidden');
         timerDisplay.textContent = formatTime(remainingSeconds);
