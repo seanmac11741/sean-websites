@@ -405,6 +405,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   let alarmInterval: ReturnType<typeof setInterval> | null = null;
 
   function playBeep() {
+    if (!audioCtx) return; // guard: context must be created in startTimer
     if (!audioCtx) audioCtx = new AudioContext();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
