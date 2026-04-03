@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+
+const title = 'Tools — Sean McConnell';
+const description = 'Interactive web tools built by Sean McConnell.';
+
+const tools = [
+  {
+    name: 'Flowstate Timer',
+    description: 'A focus and break timer with ambient star field animations. Lock in, then rest — on repeat.',
+    href: '/tools/flowstate-timer',
+  },
+];
+---
+
+<Layout {title} {description}>
+  <Nav />
+  <main class="pt-24 pb-16 px-6">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl sm:text-5xl font-bold text-white mb-4">Tools</h1>
+      <p class="text-slate-400 text-lg mb-12">Things I built that you can use.</p>
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <a
+            href={tool.href}
+            class="group block p-6 rounded-2xl bg-surface border border-white/10 hover:border-accent/50 transition-all duration-300 hover:-translate-y-1"
+          >
+            <h2 class="text-xl font-semibold text-white mb-2 group-hover:text-accent transition-colors duration-200">
+              {tool.name}
+            </h2>
+            <p class="text-slate-400 text-sm leading-relaxed">{tool.description}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </main>
+</Layout>

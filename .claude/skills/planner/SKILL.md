@@ -3,7 +3,7 @@ name: planner
 description: Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to stress-test a plan, get grilled on their design, or mentions "grill me"
 ---
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. Ask ONE question at a time (with sub-parts if tightly coupled). For each question, provide your recommended answer.
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
@@ -13,4 +13,11 @@ Write only the final answers to each question in the plan.md file, not the quest
 
 Ask the user if they approve the plan and only proceed if they tell you they approve the plan.
 
-Once the user has reviewed the plan.md file and has approved it, create a verbose todo list. The list should include every single step to implement the plan, with a [] checkbox for each step. Each todo should be testable with a clear expected outcome.  
+Once the user has reviewed the plan.md file and has approved it, append a verbose implementation todo list to the plan in plan.md. Format as numbered items grouped by category, each with a [] checkbox:
+
+```
+Category name (N-M):
+N. [] Task description
+```
+
+Each todo should be testable with a clear expected outcome. Order tasks by dependency (build foundations first, hardest/riskiest work last).

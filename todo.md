@@ -1,6 +1,7 @@
 # TODO
 
 ## Bugs 
+* Blogs should have a footer like the main website with buy me a coffee and build me a website links. 
 * Error on build in github actions: 
 Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, oven-sh/setup-bun@v2. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 * Error on function deploy 
@@ -29,9 +30,10 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 
 ## Tools page
 A separate page at sean-mcconnell.com/tools
-* Flow state room. A timer that counts down from 90 minutes with cool animations and a big button you can push to start it. it should also embed any number of youtube videos that are "concentration/flow state music" and play it for you. When the timer gets to zero, it should beep super loud and tell the user to take a break.
+
 * CV resume builder. Just a thing you can enter a bunch of info into and it builds out a one page resume. Should all be done client side with javascript, no file saving on a database or anything. Should be a download button though, if I can just stream the file out like that? Might have to write it to local storage or something.
 * WYSIWG editor from my admin page available at /tools/fileWriter. It should not save anything to my cloud, just do it all in the browser and localstorage. Probably need a blurb at the bottom explaining that with links to source code on Github
+* AI Skill.md files displayed that I use in this repo. They should be on the website and easily copy/pastable with an index page with an explanation of what Skills are and how to use/install them with agentic coding
 
 
 ## Projects Section
