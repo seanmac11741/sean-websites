@@ -445,7 +445,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       ease: 'power2.in',
     });
     pulseTimeline.to(ringProgress, {
-      attr: { stroke: '#818CF8' },
+      attr: { stroke: mode === 'break' ? BREAK_COLOR : FOCUS_COLOR },
       duration: 0.3,
       ease: 'power2.out',
     });
@@ -552,7 +552,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       modeLabel.textContent = 'Break Time';
       if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
       // Dawn ambiance transition
-      gsap.to({ v: dawnAmount }, { v: 1, duration: 2, ease: 'power2.inOut', onUpdate: function() { dawnAmount = this.targets()[0].v; } });
+      gsap.to({ v: dawnAmount }, { v: 1, duration: 2, ease: 'power2.inOut', onUpdate: function() { dawnAmount = this.targets()[0].v; renderField(); } });
       stopAutoRotation();
       mainContent.style.pointerEvents = 'none';
       starfieldCanvas.style.pointerEvents = 'auto';
