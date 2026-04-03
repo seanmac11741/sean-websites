@@ -273,6 +273,32 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     ringProgress.style.strokeDashoffset = String(offset);
   }
 
+  // === Backup timeout (fires even when tab is hidden, unlike rAF) ===
+  let backupTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function setBackupTimeout() {
+    clearBackupTimeout();
+    if (remainingSeconds > 0) {
+      backupTimeout = setTimeout(() => {
+        if (!isRunning || isPaused) return;
+        remainingSeconds = 0;
+        isRunning = false;
+        timerDisplay.textContent = formatTime(0);
+        updateRing();
+        clearSavedState();
+        if (animationId) cancelAnimationFrame(animationId);
+        onTimerComplete();
+      }, remainingSeconds * 1000);
+    }
+  }
+
+  function clearBackupTimeout() {
+    if (backupTimeout) {
+      clearTimeout(backupTimeout);
+      backupTimeout = null;
+    }
+  }
+
   // === Timer loop ===
   function tick(timestamp: number) {
     if (!lastTimestamp) lastTimestamp = timestamp;
@@ -289,6 +315,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
       if (remainingSeconds <= 0) {
         isRunning = false;
+        clearBackupTimeout();
         clearSavedState();
         onTimerComplete();
         return;
@@ -306,6 +333,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     isPaused = false;
     lastTimestamp = null;
 
+    if (!audioCtx) audioCtx = new AudioContext();
     showStarfield();
     timerDisplay.textContent = formatTime(remainingSeconds);
 
@@ -331,6 +359,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
         const tl = gsap.timeline({
           onComplete: () => {
+            setBackupTimeout();
             animationId = requestAnimationFrame(tick);
           }
         });
@@ -370,12 +399,14 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       isRunning = true;
       lastTimestamp = null;
       pauseBtn.textContent = 'Pause';
+      setBackupTimeout();
       animationId = requestAnimationFrame(tick);
     } else {
       // Pause
       isPaused = true;
       isRunning = false;
       pauseBtn.textContent = 'Resume';
+      clearBackupTimeout();
       if (animationId) cancelAnimationFrame(animationId);
     }
   });
@@ -384,6 +415,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   resetBtn.addEventListener('click', () => {
     isRunning = false;
     isPaused = false;
+    clearBackupTimeout();
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
     lastTimestamp = null;
@@ -405,8 +437,8 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   let alarmInterval: ReturnType<typeof setInterval> | null = null;
 
   function playBeep() {
-    if (!audioCtx) return; // guard: context must be created in startTimer
-    if (!audioCtx) audioCtx = new AudioContext();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
@@ -431,6 +463,10 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     if (alarmInterval) {
       clearInterval(alarmInterval);
       alarmInterval = null;
+    }
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
     }
   }
 
@@ -595,6 +631,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       resumePrompt.classList.remove('hidden');
 
       resumeYes.addEventListener('click', () => {
+        if (!audioCtx) audioCtx = new AudioContext();
         totalSeconds = state.totalSeconds;
         remainingSeconds = state.remainingSeconds;
         mode = state.mode;
@@ -619,6 +656,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
         updateRing();
         lastTimestamp = null;
         isRunning = true;
+        setBackupTimeout();
         animationId = requestAnimationFrame(tick);
       });
 
