@@ -1,4 +1,7 @@
 ---
+import { Image } from 'astro:assets';
+import mountainsPhoto from '../assets/images/CasualMountainsSean.jpg';
+
 const startDate = new Date(2015, 3, 23);
 const now = new Date();
 
@@ -39,9 +42,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
 
       <div id="about-photo" class="flex justify-center md:justify-end">
-        <img
-          src="/images/CasualMountainsSean.jpg"
+        <Image
+          src={mountainsPhoto}
           alt="Sean McConnell hiking in the mountains"
+          width={576}
+          height={640}
           class="w-72 h-80 rounded-2xl object-cover object-center border border-white/10"
         />
       </div>
