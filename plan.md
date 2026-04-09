@@ -53,20 +53,20 @@ Firebase Hosting bandwidth spiked to ~70GB/day. Root cause: unoptimized images (
 ### Implementation Todo
 
 Image optimization (1-5):
-1. [] Create `src/assets/images/` directory
-2. [] Move `CasualMountainsSean.jpg` and `ProfilePictureSeanWhiteSweater.png` from `public/images/` to `src/assets/images/`
-3. [] Update `About.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=576 height=640, format WebP
-4. [] Update `Hero.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=640 height=640, format WebP
-5. [] Create optimized OG image (1200x630) from `ProfilePictureSeanWhiteSweater.png`, save to `public/images/og-profile.jpg`, update `Layout.astro` meta tags to reference it
+1. [x] Create `src/assets/images/` directory
+2. [x] Move `CasualMountainsSean.jpg` and `ProfilePictureSeanWhiteSweater.png` from `public/images/` to `src/assets/images/`
+3. [x] Update `About.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=576 height=640, format WebP
+4. [x] Update `Hero.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=640 height=640, format WebP
+5. [x] Create optimized OG image (1200x630) from `ProfilePictureSeanWhiteSweater.png`, save to `public/images/og-profile.jpg`, update `Layout.astro` meta tags to reference it
 
 Cache headers (6):
-6. [] Add `headers` block to `firebase.json`: `/_astro/**` → 1 year immutable, `/images/**` + `/favicon.ico` + `/apple-touch-icon.png` → 7 days
+6. [x] Add `headers` block to `firebase.json`: `/_astro/**` → 1 year immutable, `/images/**` + `/favicon.ico` + `/apple-touch-icon.png` → 7 days
 
 Analytics (7-8):
-7. [] Add `getAnalytics` import and initialization to `src/lib/firebase.ts`
-8. [] Verify analytics initializes only in browser (not during SSG build) — guard with `typeof window !== 'undefined'` or equivalent
+7. [x] Add `getAnalytics` import and initialization to `src/lib/firebase.ts`
+8. [x] Verify analytics initializes only in browser (not during SSG build) — guard with `typeof window !== 'undefined'` or equivalent
 
 Validation (9-11):
-9. [] Run `bun run build` and verify dist output — check that About and Hero images are WebP and dramatically smaller than originals
-10. [] Run `bun run preview` and confirm images render correctly on homepage (About photo, Hero photo, OG meta tag)
-11. [] Run `bun run test` and verify all existing tests still pass
+9. [x] Run `bun run build` and verify dist output — check that About and Hero images are WebP and dramatically smaller than originals
+10. [x] Run `bun run preview` and confirm images render correctly on homepage (About photo, Hero photo, OG meta tag)
+11. [x] Run `bun run test` and verify all existing tests still pass
