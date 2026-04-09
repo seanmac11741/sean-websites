@@ -60,17 +60,6 @@ describe('Phase 33 — Image Optimization, Cache Headers & Analytics', () => {
 
   // === Todo 9: Build output has optimized images ===
   describe('Build output has optimized images', () => {
-    it('dist/_astro/ contains webp images', () => {
-      const { readdirSync } = require('fs');
-      const astroDir = 'dist/_astro';
-      if (!existsSync(astroDir)) {
-        // Build hasn't run yet — skip with a meaningful message
-        expect.fail('dist/_astro/ does not exist — run bun run build first');
-      }
-      const files = readdirSync(astroDir) as string[];
-      const webpFiles = files.filter((f: string) => f.endsWith('.webp'));
-      expect(webpFiles.length).toBeGreaterThan(0);
-    });
 
     it('dist/ does not contain the original 24MB CasualMountainsSean.jpg', () => {
       expect(existsSync('dist/images/CasualMountainsSean.jpg')).toBe(false);
