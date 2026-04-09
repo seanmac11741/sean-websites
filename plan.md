@@ -13,138 +13,60 @@ Live at `sean-mcconnell.com`. **Deferred work:** `todo.md`
 | Hosting | Firebase Hosting |
 | Backend | Cloud Functions, Firestore, Firebase Auth, Firebase Storage |
 
-## Done
+## Completed
 
 **Phases 1–25:** Site scaffold, layout, theming, nav, hero, about, skills, footer, animations, responsive polish, SEO, content, Firebase deploy, CI/CD, live experience timer, skills rewrite, presentations, highlight cards, Buy Me a Coffee, blog (Tiptap + Firestore + Cloud Functions + admin).
 
-**Phases 27–29:** PR code review agent — Claude Code in GitHub Actions reviews PRs automatically via `code-review.yml`.
+**Phases 27–30:** PR code review agent (Claude Code in GitHub Actions via `code-review.yml`), agent docs.
 
-**Phase 30:** PR review agent docs — updated `CLAUDE.md` CI/CD section, added code review agent docs, cleaned up `todo.md`.
+**Phase 31:** Latest blog post on homepage — `LatestPost.astro` component with GSAP scroll animations.
 
-**Phase 31:** Latest blog post on homepage — `LatestPost.astro` component fetches most recent published post from `/api/blog`, renders as a card between Skills and Footer with GSAP scroll animations, loading spinner, and error handling (303 tests).
+**Phase 32:** Tools page (`/tools` card grid index) + Flowstate Timer (`/tools/flowstate-timer`) — focus/break pomodoro timer with circular SVG progress ring, Web Audio API alarm, fun phrases, localStorage persistence, and canvas star field (real northern hemisphere constellations, stereographic projection, auto-rotation during focus, interactive drag during break with dawn ambiance).
 
-## Phase 32 — Tools Page & Flowstate Timer
+## Phase 33 — Image Optimization, Cache Headers & Analytics
 
-### Tools index (`/tools`)
+### Problem
 
-- Card grid layout listing available tools, each with title, description, and link
-- Establishes the pattern for future tools (CV builder, file writer from `todo.md`)
-- "Tools" link added to main nav (desktop + mobile) between Blog and Admin
+Firebase Hosting bandwidth spiked to ~70GB/day. Root cause: unoptimized images (24MB hero photo at 9248x6936) served with no cache headers (Firebase default is 1 hour). Every page load re-downloads ~26MB of images.
 
-### Flowstate Timer (`/tools/flowstate-timer`)
+### Image Optimization
 
-**Core loop:** Focus → alarm → fun phrase + "Take a Break" button → Break → alarm → fun phrase + "Start Focus" button → repeat
+- Use Astro's built-in `<Image>` component for About and Hero photos — auto-resizes and converts to WebP at build time
+- Move `CasualMountainsSean.jpg` (24MB) and `ProfilePictureSeanWhiteSweater.png` (1.2MB) from `public/images/` to `src/assets/images/` (required for Astro image processing)
+- About photo: 576x640 (2x retina for its 288x320 rendered size)
+- Hero photo: 640x640 (2x retina for its max 320x320 rendered size)
+- OG image: pre-resize `ProfilePictureSeanWhiteSweater.png` to 1200x630 manually, save as a separate optimized file in `public/images/` for `<meta>` tags
+- Leave presentation image (331KB) and other `public/images/` assets as-is
 
-**Timer display:**
-- Circular SVG progress ring with large digits centered inside (Google Timer inspired but unique)
-- Ring draws itself on with a theatrical GSAP entrance when timer starts (controls fade, ring animates in, digits scale up)
-- At zero: ring pulses and shifts to red, synchronized with the alarm
+### Cache Headers
 
-**Controls:**
-- Preset duration buttons + custom input. Focus presets: 25, 60, 90 (default), 120 min. Break presets: 5, 15, 30 (default) min
-- Start button (big, prominent), Pause/Resume and Reset appear as secondary pill-shaped buttons after starting
+- Add `headers` block to `firebase.json`
+- `/_astro/**` → `Cache-Control: public, max-age=31536000, immutable` (content-hashed filenames, safe to cache forever)
+- `/images/**`, `/favicon.ico`, `/apple-touch-icon.png` → `Cache-Control: public, max-age=604800` (7 days)
 
-**Alarm:**
-- Web Audio API generated tone — no audio files
-- Repeats until user clicks dismiss
+### Analytics
 
-**Fun phrases:**
-- 8–12 per set, two sets: post-focus (relaxation) and post-break (motivation)
-- Displayed as a large headline after alarm dismissal, above the next mode's start button
-
-**Star field background (canvas):**
-- Full northern hemisphere night sky with real constellation positions and connecting lines
-- Fades in on first timer start, persists through entire session (focus, transitions, break)
-- **Focus mode:** slow auto-rotation, no user interaction
-- **Break mode:** dawn ambiance — background lightens, warmer tint. Stars become click-and-drag interactive (touch-drag on mobile)
-
-**Break mode visual distinction:**
-- SVG ring color shifts (accent indigo → break color)
-- Canvas background transitions to dawn-like warmer/lighter palette
-
-**State persistence:**
-- Timer state saved to localStorage
-- On page return with an active session: prompt "You had X minutes left, resume?" with yes/no
-
-**Mobile:**
-- Full support — responsive ring/digit sizing, touch-drag for star rotation during break, canvas star field renders on mobile
+- Initialize Firebase Analytics via `getAnalytics(app)` in `firebase.ts` — the GA4 property (`G-9X4ZCDT7KD`) already exists in the config, just never activated
+- Provides page views, traffic sources, and device breakdowns — enough to detect bot traffic
+- No per-file download tracking needed
 
 ### Implementation Todo
 
-Page scaffolding (1-3):
-1. [x] Create /tools index page with card grid layout
-2. [x] Add "Tools" link to Nav.astro (desktop + mobile)
-3. [x] Create /tools/flowstate-timer page with Layout and Nav
+Image optimization (1-5):
+1. [] Create `src/assets/images/` directory
+2. [] Move `CasualMountainsSean.jpg` and `ProfilePictureSeanWhiteSweater.png` from `public/images/` to `src/assets/images/`
+3. [] Update `About.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=576 height=640, format WebP
+4. [] Update `Hero.astro` to use Astro `<Image>` component — import from `src/assets/images/`, set width=640 height=640, format WebP
+5. [] Create optimized OG image (1200x630) from `ProfilePictureSeanWhiteSweater.png`, save to `public/images/og-profile.jpg`, update `Layout.astro` meta tags to reference it
 
-Timer core (4-9):
-4. [x] Build preset duration buttons (focus: 25/60/90/120, break: 5/15/30) + custom input
-5. [x] Build the big Start button for focus mode
-6. [x] Build SVG circular progress ring with large centered digits (MM:SS)
-7. [x] Implement countdown timer logic (requestAnimationFrame-based)
-8. [x] Add Pause/Resume and Reset pill-shaped buttons after starting
-9. [x] GSAP theatrical entrance animation: ring draws itself on, digits scale up, controls fade
+Cache headers (6):
+6. [] Add `headers` block to `firebase.json`: `/_astro/**` → 1 year immutable, `/images/**` + `/favicon.ico` + `/apple-touch-icon.png` → 7 days
 
-Alarm (10-12):
-10. [x] Implement Web Audio API repeating alarm tone at zero
-11. [x] Add dismiss button to stop the alarm
-12. [x] Ring pulses red and syncs with alarm beep at zero (GSAP)
+Analytics (7-8):
+7. [] Add `getAnalytics` import and initialization to `src/lib/firebase.ts`
+8. [] Verify analytics initializes only in browser (not during SSG build) — guard with `typeof window !== 'undefined'` or equivalent
 
-Focus/Break cycle (13-17):
-13. [x] Post-focus flow: dismiss alarm → fun phrase + "Take a Break" button
-14. [x] Build break timer: same ring/digits, different accent color, break presets default 30 min
-15. [x] Post-break flow: dismiss alarm → fun phrase + "Start Focus" → loops back
-16. [x] Write 8-12 post-focus fun phrases (relaxation)
-17. [x] Write 8-12 post-break fun phrases (motivation)
-
-Persistence & responsive (18-20):
-18. [x] Save timer state to localStorage
-19. [x] On page load with saved state: "You had X minutes left, resume?" prompt
-20. [x] Responsive layout for mobile
-
-Errors resolved
-* [x] Hitting reset button just makes the whole thing disappear — fixed: gsap.set restores opacity/scale on presets container
-* [x] Need a button to switch between work and break mode — fixed: added Focus/Break toggle on preset screen
-
-Star field — last (21-26):
-21. [x] Build canvas star field with full northern hemisphere constellations + lines
-22. [x] Star field fades in on first timer start, persists through session
-23. [x] Focus mode: slow auto-rotation, no interaction
-24. [x] Break mode: dawn ambiance transition (lighter, warmer palette)
-25. [x] Break mode: click-and-drag to rotate star field (mouse)
-26. [x] Mobile touch-drag support for star field
-
-## Star Field Bugs
-
-Bug A — Rotate around Polaris, not canvas center
-* Current rotation pivots around the center of the canvas. Should pivot around Polaris (the North Star) so the sky rotates realistically.
-
-Bug B — Flat rectangular projection looks wrong on rotation
-* Stars are mapped to a flat rectangle and rotated in 2D, so edges clip and the field looks like a spinning sheet of paper instead of a sky. Need a polar/stereographic projection from a sphere so the field is circular and natural.
-
-Bug C — Window resize skews and stretches stars
-* Currently the full sky is squeezed into the window dimensions. Resizing stretches everything. Instead, the canvas should be a viewport into a much larger virtual sky — resizing reveals more or less sky, not stretches it. Tightly coupled with Bug B's projection rewrite.
-
-Bug D — Spins too fast
-* Current ROTATION_SPEED = 0.00008 is noticeably fast. Slow it down to ~0.00003.
-
-Bug E — Constellation names should show on mouse hover
-* No hover labels exist. Add a mousemove listener that checks proximity to each constellation's center and draws the name on the canvas when the mouse is nearby.
-
-Bug F — Can't click-and-drag the star field during break mode
-* The drag handlers exist but don't work in practice. The canvas is behind the main content (z-0 vs z-10), so pointer events never reach it. Need to enable pointer-events on the canvas during break mode and disable during focus.
-
-### Bug Fix Todo
-
-Projection rewrite (fixes A, B, C together):
-28. [x] Replace flat 2D projection with stereographic projection centered on Polaris
-29. [x] Convert constellation RA/Dec data to proper spherical coordinates (radians)
-30. [x] Make canvas a viewport into a larger virtual sky (uniform pixel scale, no stretching on resize)
-31. [x] Rotation pivots around Polaris — auto-rotate and drag both rotate the view around the pole
-
-Individual fixes:
-32. [x] Slow down auto-rotation speed (Bug D)
-33. [x] Draw constellation names on canvas near their center when mouse hovers close (Bug E)
-34. [x] Fix pointer-events: enable on canvas during break mode, disable during focus so timer controls stay clickable (Bug F)
-
-Wrap-up (35):
-35. [x] Update CLAUDE.md with tools page architecture
+Validation (9-11):
+9. [] Run `bun run build` and verify dist output — check that About and Hero images are WebP and dramatically smaller than originals
+10. [] Run `bun run preview` and confirm images render correctly on homepage (About photo, Hero photo, OG meta tag)
+11. [] Run `bun run test` and verify all existing tests still pass
