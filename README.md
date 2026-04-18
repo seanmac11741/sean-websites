@@ -53,6 +53,22 @@ firebase hosting:channel:deploy blog-preview
 
 This gives you a temporary URL like `sean-mcconnell-site--blog-preview-xxxxx.web.app` to test on. Preview channels auto-expire after 7 days.
 
+### AI Agent Setup (Claude Code + Codex)
+
+This repo is configured so both Claude Code and OpenAI Codex read the same instructions and skills via symlinks:
+
+```
+AGENTS.md              # canonical instructions file — edit this one
+CLAUDE.md -> AGENTS.md # symlink (Claude Code reads this)
+.agents/skills/        # canonical skills directory
+.claude/skills -> ../.agents/skills  # symlink (Claude Code reads this)
+```
+
+- **Instructions:** `AGENTS.md` is the single source of truth. Claude Code follows `CLAUDE.md`, Codex follows `AGENTS.md` — the symlink keeps them in sync.
+- **Skills:** Custom skills (pr_review, planner, tdd) live in `.agents/skills/`. Claude Code resolves them through the `.claude/skills` symlink.
+
+To add a new skill, create `.agents/skills/<skill-name>/SKILL.md`. Both agents will pick it up.
+
 ### Helpful Claude commands
 * Resume last conversation where I left off: 
 ```
