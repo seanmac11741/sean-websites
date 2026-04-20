@@ -28,6 +28,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "firebase-admin": "^13.8.0",
     "vitest": "^4.0.18"
   }
 }

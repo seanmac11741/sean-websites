@@ -19,6 +19,7 @@ Clone my own voice like this: https://github.com/QwenLM/Qwen3-TTS
 * My most recent run from strava api? not sure if possible without strava login. Maybe use Garmin?
 * Accept payments on my website. Have somewhere I can place an invoice for a customer and they get a link to my website at sean-mcconnell.com/invoice123. I think it needs to be behind auth based on email address of my client? Otherwise anyone could access the invoice. 
 * Need to run ads in case this goes viral so I don't have to pay a bunch
+* Portable AI harness — make my Claude Code setup (plugins, skills, settings, memory) propagate across every machine I work on. Probably a dedicated git repo (e.g. `~/.claude` or a dotfiles repo) that version-controls `settings.json`, `enabledPlugins`, skills, keybindings, and marketplace configs, so cloning on a new machine gets me a working Claude Code environment with no manual reinstall. Investigate what can/can't be synced (plugin cache at `~/.claude/plugins` is machine-local; `CLAUDE_CODE_PLUGIN_CACHE_DIR` env var can redirect it to a synced dir). Deferred — revisit when not mid-migration.
 
 ## Blog ideas
 * How I built this site with Claude

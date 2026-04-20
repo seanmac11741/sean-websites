@@ -71,25 +71,26 @@ Ordered by dependency: account setup first, then code wired against the new acco
 
 ### Vercel account setup (1–5) — [MANUAL, do first]
 
-1. [] **[MANUAL]** Create a Vercel account (Hobby tier) at vercel.com using the `seanmac11741@gmail.com` Google login. Confirm it's the Hobby plan (non-commercial is fine for this personal site).
-2. [] **[MANUAL]** Install the Vercel GitHub app on the repo. Grant it access to the `sean-websites` repo only.
+1. [x] **[MANUAL]** Create a Vercel account (Hobby tier) at vercel.com using the `seanmac11741@gmail.com` Google login. Confirm it's the Hobby plan (non-commercial is fine for this personal site).
+2. [x] **[MANUAL]** Install the Vercel GitHub app on the repo. Grant it access to the `sean-websites` repo only.
 3. [] **[MANUAL]** Import the `sean-websites` repo into Vercel as a new project. Set build command `bun run build`, output directory `dist/`, install command `bun install`, framework preset "Astro". Do **not** trigger a production deploy yet — let it build a preview only.
-4. [] **[MANUAL]** Confirm the first Vercel preview build succeeds and the preview URL (`<project>-<hash>.vercel.app`) loads the homepage. Blog pages will 404 and `/api/blog` will fail — expected at this stage.
-5. [] **[MANUAL]** In Vercel project settings, disable "Comments" and "Password Protection" if enabled by default; set production branch to `main`.
+3a. [x] npx plugins add vercel/vercel-plugin - add vercel plugin for claude
+4. [x] **[MANUAL]** Confirm the first Vercel preview build succeeds and the preview URL (`<project>-<hash>.vercel.app`) loads the homepage. Blog pages will 404 and `/api/blog` will fail — expected at this stage.
+5. [x] **[MANUAL]** In Vercel project settings, disable "Comments" and "Password Protection" if enabled by default; set production branch to `main`.
 
 ### Firebase service account for Vercel (6–8) — [MANUAL]
 
-6. [] **[MANUAL]** In Google Cloud Console for the `sean-mcconnell-site` project, create a new service account named `vercel-blog-api`. Grant **Cloud Datastore User** role only (no Storage, no Auth admin, no Functions).
-7. [] **[MANUAL]** Generate a JSON key for that service account and download it locally. Do **not** commit it or share it with Claude.
-8. [] **[MANUAL]** In the Vercel project's Environment Variables settings, add `FIREBASE_SERVICE_ACCOUNT_JSON` (paste the full JSON as the value). Scope: Production, Preview, Development. Then delete the local JSON file.
+6. [x] **[MANUAL]** In Google Cloud Console for the `sean-mcconnell-site` project, create a new service account named `vercel-blog-api`. Grant **Cloud Datastore User** role only (no Storage, no Auth admin, no Functions).
+7. [x] **[MANUAL]** Generate a JSON key for that service account and download it locally. Do **not** commit it or share it with Claude.
+8. [x] **[MANUAL]** In the Vercel project's Environment Variables settings, add `FIREBASE_SERVICE_ACCOUNT_JSON` (paste the full JSON as the value). Scope: Production, Preview, Development. Then delete the local JSON file.
 
 ### Vercel API implementation (9–13)
 
-9. [] Add `firebase-admin` as a dev dependency at the repo root (for the Vercel API routes). Keep the existing `functions/` workspace untouched for now.
-10. [] Create a Vercel API route at `api/blog/index.ts` that lists published posts (ports the `/blog` branch from `functions/src/index.ts`).
-11. [] Create a Vercel API route at `api/blog/[slug].ts` that fetches a single published post by slug (ports the `/blog/:slug` branch).
-12. [] Both routes: initialize `firebase-admin` from `FIREBASE_SERVICE_ACCOUNT_JSON` env var; set CORS headers to allow `https://sean-mcconnell.com` and `http://localhost:4321` only; preserve the existing response shape (`slug`, `title`, `description`, `tags`, `publishedAt`, `readingTime`, `content`) so the frontend needs no changes.
-13. [] Add `vercel.json` with: (a) rewrite `{ "source": "/blog/:path", "destination": "/blog/post/index.html" }`, (b) cache headers matching current `firebase.json` (`_astro/**` 1yr immutable, `/images/**` + favicons 7 days).
+9. [x] Add `firebase-admin` as a dev dependency at the repo root (for the Vercel API routes). Keep the existing `functions/` workspace untouched for now.
+10. [x] Create a Vercel API route at `api/blog/index.ts` that lists published posts (ports the `/blog` branch from `functions/src/index.ts`).
+11. [x] Create a Vercel API route at `api/blog/[slug].ts` that fetches a single published post by slug (ports the `/blog/:slug` branch).
+12. [x] Both routes: initialize `firebase-admin` from `FIREBASE_SERVICE_ACCOUNT_JSON` env var; set CORS headers to allow `https://sean-mcconnell.com` and `http://localhost:4321` only; preserve the existing response shape (`slug`, `title`, `description`, `tags`, `publishedAt`, `readingTime`, `content`) so the frontend needs no changes.
+13. [x] Add `vercel.json` with: (a) rewrite `{ "source": "/blog/:path", "destination": "/blog/post/index.html" }`, (b) cache headers matching current `firebase.json` (`_astro/**` 1yr immutable, `/images/**` + favicons 7 days).
 
 ### Preview verification (14–21) — on `*.vercel.app` URL
 
