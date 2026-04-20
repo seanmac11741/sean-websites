@@ -69,25 +69,48 @@ CLAUDE.md -> AGENTS.md # symlink (Claude Code reads this)
 
 To add a new skill, create `.agents/skills/<skill-name>/SKILL.md`. Both agents will pick it up.
 
-### Helpful Claude commands
-* Resume last conversation where I left off: 
-```
-claude --continue
-```
 
-* Planning phase
-```
-Create a plan for x in plan.md
-```
-* Todo list
-```
-Add a detailed todo list to the plan, with all the phases and individual tasks necessary to complete the plan - don't implement yet. 
-```
-* Implementation
-```
-Implement phase x in plan.md. Stop to ask me questions if you need to. Mark each task as complete in the @plan.md when you are done with the todo. Do not wait to update @plan.md until the end. do not add unecessary comments or jsdocs. Write tests as you go with vitest to verify that what you made so far is working. Assume new code does not work until it has been tested
-```
+### Setting up Cloudflare (bot protection + CDN)
 
-```
-implement it all. When you're done with a task or phase, mark it as completed in the plan document. Do not stop until all tasks and phases are completed. Do not add unecessary comments or jsdocs, do not use any or unknown types. continuously run typecheck to make sure you're not introducing new issues
-```
+The site gets heavy bot traffic from AWS data centers (Boardman, WA). Cloudflare's free tier sits in front of Firebase Hosting to block bots, cache static assets, and provide request-level analytics.
+
+**Step 1: Create Cloudflare account**
+1. Go to https://dash.cloudflare.com/sign-up
+2. Create a free account
+
+**Step 2: Add your site**
+1. Click "Add a site" in the Cloudflare dashboard
+2. Enter `sean-mcconnell.com`
+3. Select the **Free** plan
+4. Cloudflare will scan your existing DNS records — verify they match what Squarespace has
+
+**Step 3: Update DNS records in Cloudflare**
+Cloudflare will import your existing records. Make sure these are present and **proxied** (orange cloud icon):
+- `A` record for `sean-mcconnell.com` → Firebase Hosting IP (find current value in Squarespace DNS settings)
+- `CNAME` record for `www` → `sean-mcconnell.com`
+
+If Firebase uses custom domain verification TXT records, keep those as DNS-only (grey cloud).
+
+**Step 4: Change nameservers on Squarespace**
+1. Cloudflare will give you two nameservers (e.g., `alice.ns.cloudflare.com`, `bob.ns.cloudflare.com`)
+2. Go to Squarespace → Domains → `sean-mcconnell.com` → DNS Settings → Nameservers
+3. Switch from Squarespace default nameservers to the two Cloudflare nameservers
+4. Save. Propagation takes minutes to 48 hours (usually under 1 hour)
+
+**Step 5: Configure Cloudflare settings**
+Once nameservers propagate and Cloudflare shows the site as "Active":
+
+1. **SSL/TLS** → Set to "Full" (not "Full (Strict)" since Firebase uses its own cert)
+2. **Caching** → Cache Level: Standard. Browser Cache TTL: Respect Existing Headers (your `firebase.json` already has cache headers)
+3. **Security → WAF** → Create a rule to block bot traffic:
+   - Rule name: "Block AWS scrapers"
+   - Field: `AS Num` → Operator: `equals` → Value: `16509` (Amazon/AWS AS number)
+   - Action: **Block**
+4. **Security → Bot Fight Mode** → Toggle **On** (blocks known bot traffic automatically)
+
+**Step 6: Verify**
+1. Visit `sean-mcconnell.com` — should load normally
+2. Check Cloudflare Analytics → see request breakdown, blocked threats, cached vs uncached
+3. Monitor Firebase Analytics — active users should drop significantly
+
+**Rollback:** If something breaks, change Squarespace nameservers back to the defaults. DNS will revert within minutes to hours.
