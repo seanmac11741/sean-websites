@@ -1,5 +1,5 @@
 import { getDb, setCors } from "../_lib/firebase.js";
-
+export default async function handler(req: import('@vercel/node').VercelRequest, res: import('@vercel/node').VercelResponse) {
 export default async function handler(req: any, res: any) {
   setCors(req, res);
 
