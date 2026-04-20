@@ -5,13 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Critical Rules
 
 - **Never run any git commands** — Sean handles all git operations manually
-- **Never use npm** — always use Bun (`bun install`, `bun add`, etc.) for all package management, including in subdirectories like `functions/`
+- **Never use npm** — always use Bun (`bun install`, `bun add`, etc.) for all package management
 - **Never read, cat, or access credential/secret files** — this includes `~/.claude/.credentials.json`, `.env`, API keys, tokens, or any file that may contain secrets. If credentials are needed, ask Sean to provide or configure them manually.
 - Keep `CLAUDE.md` current — update the tests list, architecture, and key implementation details whenever a phase completes or significant changes are made
 
 ## Project
 
-Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted on Firebase Hosting.
+Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted on Vercel.
 
 **Completed build plan:** `plan.md`
 **Deferred work (blog, projects, bugs):** `todo.md`
@@ -23,11 +23,11 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 - **Animations:** GSAP 3 + ScrollTrigger
 - **Runtime / PM:** Bun
 - **Testing:** Vitest
-- **Hosting:** Firebase Hosting (`dist/` → Firebase)
-- **Backend:** Firebase Cloud Functions (TypeScript, Node 22), Firestore, Firebase Storage
+- **Hosting:** Vercel (`dist/` auto-deployed from GitHub on push to `main`)
+- **Backend:** Vercel Serverless Functions (TypeScript, in `api/` at repo root), Firestore, Firebase Storage
 - **Auth:** Firebase Auth (Google sign-in only)
 - **Editor:** Tiptap (WYSIWYG, ProseMirror-based)
-- **Domain:** `sean-mcconnell.com` (registered on Squarespace, DNS pointing to Firebase)
+- **Domain:** `sean-mcconnell.com` (registered on Squarespace, DNS on Cloudflare → Vercel)
 
 ## Commands
 
@@ -40,20 +40,29 @@ bun run test       # run vitest tests
 
 ## CI/CD
 
+Deploys are owned by Vercel's GitHub integration: push to `main` triggers a production deploy at `sean-mcconnell.com`; push to any other branch triggers a preview deploy at `<project>-<hash>.vercel.app`. The `FIREBASE_SERVICE_ACCOUNT_JSON` env var is set in Vercel project settings (not GitHub secrets) and used by the `api/` routes at runtime.
+
 Two workflows in `.github/workflows/`:
 
-### `deploy.yml` — Build, Test & Deploy
+### `deploy.yml` — Build Validity (tests-only)
 
 ```
-git push origin main
-  └─→ GitHub Actions: bun install → functions bun install → test → build → functions tsc → firebase deploy
-git push origin issue/<branch>
-  └─→ GitHub Actions: test + build only (no deploy)
+PR / push to main
+  └─→ GitHub Actions: bun install → bun run test → bun run build
 ```
 
-- **Secret:** `FIREBASE_SERVICE_ACCOUNT` (service account JSON stored in GitHub repo secrets)
-- **Action:** `w9jds/firebase-action@v13.29.1` runs `firebase deploy` (hosting + functions + firestore rules + storage rules)
-- A failing test blocks the deploy
+- No Firebase/Vercel deploy step — Vercel handles deploys directly via its GitHub app
+- A failing test blocks the PR check (not the deploy — Vercel deploys independently)
+
+### Rules deploy (manual)
+
+Firestore and Storage security rules are not touched by the Vercel deploy or by `deploy.yml`. When `firestore.rules` or `storage.rules` changes, deploy them manually:
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+This is rare and intentional — the automated Firebase deploy path is gone with the Vercel migration.
 
 ### `code-review.yml` — AI Code Review
 
@@ -67,7 +76,7 @@ Runs `anthropics/claude-code-action@v1` on every PR targeting `main`. Claude rev
 
 ## Architecture
 
-Static site + dynamic blog. `bun run build` outputs HTML/CSS/JS to `dist/`, Firebase Hosting serves static pages, Cloud Functions serve blog API.
+Static site + dynamic blog. `bun run build` outputs HTML/CSS/JS to `dist/`, Vercel serves static pages, Vercel Serverless Functions in `api/` serve the blog API.
 
 ```
 src/
@@ -92,10 +101,11 @@ src/
     tools/index.astro        ← tools landing page, card grid linking to individual tools
     tools/flowstate-timer.astro ← focus/break timer with star field (see Tools section below)
   styles/global.css          ← Tailwind @import, @theme tokens, base styles
-functions/
-  src/index.ts               ← Cloud Function: `api` — /api/blog (list) and /api/blog/:slug (detail)
-  tsconfig.json              ← TypeScript config for functions
-  package.json               ← Functions deps (firebase-admin, firebase-functions, typescript)
+api/
+  blog/index.ts              ← Vercel Serverless Function — GET /api/blog (list published posts)
+  blog/[slug].ts             ← Vercel Serverless Function — GET /api/blog/:slug (single post)
+  _lib/firebase.ts           ← shared firebase-admin init, CORS helper, readingTime calc
+  tsconfig.json              ← TypeScript config for the api/ project
 public/
   images/                    ← profile photos, logo, QR code
   favicon.ico                ← converted from Gemini logo image
@@ -126,12 +136,12 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - GSAP ScrollTrigger animations use `immediateRender: false` + `once: true` — safe when page loads already scrolled to a section
 - Skills section uses a frontmatter array of categories (each with a title and array of `{ name, years }` skills) — no external icon package
 - `@astrojs/sitemap` generates sitemap on build
-- `firebase.json` deploys hosting + functions + firestore rules + storage rules. Rewrites: `/api/**` → Cloud Function `api`, `/blog/**` → `/blog/post/index.html`
+- `vercel.json` handles static hosting config: rewrite `/blog/:path` → `/blog/post/index.html`, cache headers for `/_astro/**` (1yr immutable), `/images/**` + favicons (7 days). `/api/**` is native Vercel Functions — no rewrite needed. `firebase.json` retains only Firestore + Storage rules blocks.
 - `site: 'https://sean-mcconnell.com'` set in `astro.config.mjs`
 - Blog admin: Google sign-in only, allowlisted to `seanmac11741@gmail.com`. Auth state toggles Admin nav link visibility
 - Blog editor: Tiptap with StarterKit, Image, Link, CodeBlockLowlight extensions. Debounced auto-save (3s) to Firestore `posts/{slug}`
 - Blog posts in Firestore: `{ title, slug, description, tags, content (Tiptap JSON), status (draft|published), createdAt, updatedAt, publishedAt }`
-- Public blog: static Astro pages fetch from Cloud Function API client-side. Tiptap JSON → HTML via `generateHTML`
+- Public blog: static Astro pages fetch from the `/api/blog` Vercel Serverless Functions client-side. Tiptap JSON → HTML via `generateHTML`. The `api/` routes read Firestore via `firebase-admin` with the service account JSON in `FIREBASE_SERVICE_ACCOUNT_JSON` (Vercel env var). CORS is an origin-allowlist (`https://sean-mcconnell.com`, `http://localhost:4321`) — not wildcard.
 - Firestore rules: public read for published posts, write restricted to admin email. Storage: public read for `/blog/**`, write restricted to admin
 - About section has a live experience timer (YRS/MO/DAYS/HRS/MIN/SEC) counting from April 23, 2015 — server-rendered initial values + client-side `setInterval` for live ticking. Uses `tabular-nums` to prevent digit width shifting.
 - Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout

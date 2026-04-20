@@ -1,56 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 
-describe('25 — Public Blog Pages (Cloud Functions)', () => {
-  describe('Cloud Function API', () => {
-    const fn = readFileSync('functions/src/index.ts', 'utf-8');
-
-    it('has functions/src/index.ts', () => {
-      expect(existsSync('functions/src/index.ts')).toBe(true);
-    });
-
-    it('exports an api function', () => {
-      expect(fn).toContain('export const api');
-    });
-
-    it('initializes Firebase Admin', () => {
-      expect(fn).toContain('initializeApp()');
-    });
-
-    it('initializes Firestore', () => {
-      expect(fn).toContain('getFirestore()');
-    });
-
-    it('handles /api/blog route for listing', () => {
-      expect(fn).toContain('path === "/blog"');
-    });
-
-    it('queries published posts ordered by publishedAt desc', () => {
-      expect(fn).toContain('"status", "==", "published"');
-      expect(fn).toContain('"publishedAt", "desc"');
-    });
-
-    it('handles /api/blog/:slug route for individual post', () => {
-      expect(fn).toContain('postMatch');
-      expect(fn).toContain('[a-z0-9-]+');
-    });
-
-    it('returns 404 for non-published posts', () => {
-      expect(fn).toContain("status !== \"published\"");
-    });
-
-    it('returns post content as JSON', () => {
-      expect(fn).toContain('content: data.content');
-    });
-
-    it('sets CORS headers', () => {
-      expect(fn).toContain('Access-Control-Allow-Origin');
-    });
-
-    it('handles OPTIONS for CORS preflight', () => {
-      expect(fn).toContain("req.method === \"OPTIONS\"");
-    });
-  });
+describe('25 — Public Blog Pages', () => {
+  // Cloud Function API block removed — blog API migrated from `functions/src/index.ts`
+  // to Vercel Serverless Functions in `api/` (plan.md todo 45). New API assertions live
+  // in tests/vercel-migration.test.ts (todos 10-12).
 
   describe('blog listing page', () => {
     it('exists at src/pages/blog/index.astro', () => {
@@ -167,20 +121,8 @@ describe('25 — Public Blog Pages (Cloud Functions)', () => {
     });
   });
 
-  describe('Firebase Hosting rewrites', () => {
-    const firebaseJson = JSON.parse(readFileSync('firebase.json', 'utf-8'));
-    const rewrites = firebaseJson.hosting.rewrites;
-
-    it('has /api/** rewrite to cloud function', () => {
-      const apiRewrite = rewrites.find((r: any) => r.source === '/api/**');
-      expect(apiRewrite).toBeDefined();
-      expect(apiRewrite.function).toBe('api');
-    });
-
-    it('has /blog/** rewrite to post page', () => {
-      const blogRewrite = rewrites.find((r: any) => r.source === '/blog/**');
-      expect(blogRewrite).toBeDefined();
-      expect(blogRewrite.destination).toBe('/blog/post/index.html');
-    });
-  });
+  // Firebase Hosting rewrites block removed — hosting moved to Vercel (plan.md todo 45).
+  // The `/blog/:path` rewrite now lives in `vercel.json` and is asserted in
+  // tests/vercel-migration.test.ts (todo 13). `/api/**` is native Vercel Functions,
+  // no rewrite required.
 });

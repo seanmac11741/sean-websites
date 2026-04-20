@@ -1,17 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 
-describe('21 — Firebase Backend Setup', () => {
+describe('21 — Firebase Backend Setup (post Vercel migration)', () => {
   const firebaseJson = JSON.parse(readFileSync('firebase.json', 'utf-8'));
 
   describe('firebase.json', () => {
-    it('has hosting config with dist public dir', () => {
-      expect(firebaseJson.hosting.public).toBe('dist');
-    });
-
-    it('has functions config pointing to functions/ source', () => {
-      expect(firebaseJson.functions.source).toBe('functions');
-    });
+    // Hosting + functions blocks removed as part of Vercel migration (plan.md todos 45-46).
+    // Vercel-specific config is asserted in tests/vercel-migration.test.ts.
 
     it('has firestore config referencing rules file', () => {
       expect(firebaseJson.firestore.rules).toBe('firestore.rules');
@@ -19,14 +14,6 @@ describe('21 — Firebase Backend Setup', () => {
 
     it('has storage config referencing rules file', () => {
       expect(firebaseJson.storage.rules).toBe('storage.rules');
-    });
-
-    it('has hosting rewrite for /api/** to cloud function', () => {
-      const rewrite = firebaseJson.hosting.rewrites.find(
-        (r: { source: string }) => r.source === '/api/**'
-      );
-      expect(rewrite).toBeDefined();
-      expect(rewrite.function).toBe('api');
     });
   });
 
@@ -72,26 +59,7 @@ describe('21 — Firebase Backend Setup', () => {
     });
   });
 
-  describe('Cloud Functions', () => {
-    it('has functions/src/index.ts entry point', () => {
-      expect(existsSync('functions/src/index.ts')).toBe(true);
-    });
-
-    it('has functions/tsconfig.json', () => {
-      expect(existsSync('functions/tsconfig.json')).toBe(true);
-    });
-
-    it('has functions/package.json with correct main', () => {
-      const pkg = JSON.parse(readFileSync('functions/package.json', 'utf-8'));
-      expect(pkg.main).toBe('lib/index.js');
-    });
-
-    it('exports an api function', () => {
-      const src = readFileSync('functions/src/index.ts', 'utf-8');
-      expect(src).toContain('export const api');
-    });
-  });
-
-  // CI/CD workflow block removed — assertions about Firebase deploy, functions build,
-  // and branch triggers are covered by tests/vercel-migration.test.ts (todo 22).
+  // Cloud Functions block removed — `functions/` source directory was deleted as part of
+  // plan.md todo 45. Blog API now lives in `api/` at repo root and is covered by
+  // tests/vercel-migration.test.ts (todos 9-13).
 });

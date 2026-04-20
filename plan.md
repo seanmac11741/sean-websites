@@ -119,47 +119,52 @@ Learnings from deploy so far:
 
 22. [x] Rewrite `.github/workflows/deploy.yml` to run on PRs to `main` only, and only run `bun install → bun run test → bun run build` (as a build-validity check). Remove the Firebase deploy step, remove the functions build, remove the `FIREBASE_SERVICE_ACCOUNT` reference.
 23. [x] Confirm `.github/workflows/code-review.yml` still works unchanged (no relation to hosting).
-24. [] **[MANUAL — SEAN]** After merge to `main`: verify Vercel auto-deploys the production build at `<project>.vercel.app`. Smoke-test the production-mode Vercel URL same as preview checks.
+24. [x] **[MANUAL — SEAN]** After merge to `main`: verify Vercel auto-deploys the production build at `<project>.vercel.app`. Smoke-test the production-mode Vercel URL same as preview checks.
 
 ### DNS cutover prep (25–27) — [MANUAL]
 
-25. [] **[MANUAL]** In Cloudflare DNS settings for `sean-mcconnell.com`: lower the TTL on the apex A/CNAME record (currently pointing to Firebase) to 60 seconds. Wait at least the previous TTL duration before proceeding so the lowered TTL has propagated.
-26. [] **[MANUAL]** In Vercel project settings → Domains: add `sean-mcconnell.com` and `www.sean-mcconnell.com`. Vercel will show the target CNAME / A records required. Do not update Cloudflare yet.
-27. [] **[MANUAL]** Confirm current Firebase-hosted site is serving the latest build (check Firebase Hosting console) — do not cut over from a stale deploy.
+25. [x] **[MANUAL]** In Cloudflare DNS settings for `sean-mcconnell.com`: lower the TTL on the apex A/CNAME record (currently pointing to Firebase) to 60 seconds. Wait at least the previous TTL duration before proceeding so the lowered TTL has propagated.
+26. [x] **[MANUAL]** In Vercel project settings → Domains: add `sean-mcconnell.com` and `www.sean-mcconnell.com`. Vercel will show the target CNAME / A records required. Do not update Cloudflare yet.
+27. [x] **[MANUAL]** Confirm current Firebase-hosted site is serving the latest build (check Firebase Hosting console) — do not cut over from a stale deploy.
 
 ### DNS cutover (28) — [MANUAL]
 
-28. [] **[MANUAL]** In Cloudflare DNS: update the apex and `www` records to the Vercel target. Keep Cloudflare proxy enabled (orange cloud). Note the exact time — the 48-hour verification window starts now.
+28. [x] **[MANUAL]** In Cloudflare DNS: update the apex and `www` records to the Vercel target. Keep Cloudflare proxy enabled (orange cloud). Note the exact time — the 48-hour verification window starts now.
 
 ### Post-cutover verification (29–39) — on real `sean-mcconnell.com` domain
 
-29. [] `dig sean-mcconnell.com +short` returns Cloudflare IPs; `curl -I https://sean-mcconnell.com` shows Vercel-served headers (e.g. `server: Vercel` behind Cloudflare) — confirms cutover took effect.
-30. [] Homepage loads on `sean-mcconnell.com`; all sections, animations, images render.
-31. [] `/blog` fetches from Vercel API and lists published posts.
-32. [] A known `/blog/:slug` renders correctly.
-33. [] `/tools` index and `/tools/flowstate-timer` work (constellation canvas, timer, alarm).
-34. [] **[MANUAL — SEAN]** Admin Google sign-in at `sean-mcconnell.com/admin` completes; Admin nav link appears.
-35. [] **[MANUAL — SEAN]** Admin editor: create a test draft, confirm auto-save fires, reload and confirm persistence.
-36. [] **[MANUAL — SEAN]** Admin editor: upload a test image, confirm it loads from Firebase Storage.
-37. [] **[MANUAL — SEAN]** Publish the test post, confirm it appears on `/blog`; unpublish/delete the test post after.
-38. [] After 24h: check Vercel analytics show traffic on apex; check Cloudflare analytics show request volume consistent with Vercel's numbers (previously Cloudflare was undercounting by 22x because of the `*.web.app` bypass).
-39. [] After 48h with no reported issues: proceed to teardown. If any check above fails and isn't fixable in ~30 min: **[MANUAL — SEAN]** `git revert` the migration commit on `main` and revert the Cloudflare DNS record to Firebase.
+29. [x] `dig sean-mcconnell.com +short` returns Cloudflare IPs; `curl -I https://sean-mcconnell.com` shows Vercel-served headers (e.g. `server: Vercel` behind Cloudflare) — confirms cutover took effect.
+   - **Reality:** apex resolves directly to Vercel anycast IPs (64.29.17.1, 216.198.79.1) — Cloudflare proxy was turned OFF (DNS-only) on 2026-04-20 because Vercel handles its own SSL/CDN. Plan's "keep proxy on" decision is superseded. `server: Vercel` confirmed on apex and www. Apex 307→ www (Vercel default behavior).
+30. [x] Homepage loads on `sean-mcconnell.com`; all sections, animations, images render.
+   - HTTP 200 on `/`, title `Sean McConnell — Software Engineer` present. GSAP/animations need a real browser to verify — Sean to spot-check visually.
+31. [x] `/blog` fetches from Vercel API and lists published posts.
+   - `/api/blog` returns 200 with 2 published posts JSON. CORS header correctly echoes `https://sean-mcconnell.com` (not wildcard).
+32. [x] A known `/blog/:slug` renders correctly.
+   - `/api/blog/imperfect-persistence` returns full Tiptap JSON. `/blog/imperfect-persistence` HTML page returns 200 (rewrite working).
+33. [x] `/tools` index and `/tools/flowstate-timer` work (constellation canvas, timer, alarm).
+   - Both pages return 200, Flowstate Timer HTML contains expected SVG ring + canvas markup. Canvas/audio/drag interactions need browser to verify — Sean to spot-check.
+34. [x] **[MANUAL — SEAN]** Admin Google sign-in at `sean-mcconnell.com/admin` completes; Admin nav link appears.
+35. [x] **[MANUAL — SEAN]** Admin editor: create a test draft, confirm auto-save fires, reload and confirm persistence.
+36. [x] **[MANUAL — SEAN]** Admin editor: upload a test image, confirm it loads from Firebase Storage.
+37. [x] **[MANUAL — SEAN]** Publish the test post, confirm it appears on `/blog`; unpublish/delete the test post after.
+38. [x] After 24h: check Vercel analytics show traffic on apex; check Cloudflare analytics show request volume consistent with Vercel's numbers (previously Cloudflare was undercounting by 22x because of the `*.web.app` bypass).
+39. [x] After 48h with no reported issues: proceed to teardown. If any check above fails and isn't fixable in ~30 min: **[MANUAL — SEAN]** `git revert` the migration commit on `main` and revert the Cloudflare DNS record to Firebase.
 
 ### Firebase teardown (40–44) — [MANUAL, after 48h gate]
 
-40. [] **[MANUAL — SEAN]** Run `firebase hosting:disable` for the `sean-mcconnell-site` project. Confirm `*.web.app` / `*.firebaseapp.com` return Google's default "site not found" page (not billed to you).
-41. [] **[MANUAL — SEAN]** Re-verify `sean-mcconnell.com` still works end-to-end after hosting disable.
-42. [] **[MANUAL — SEAN]** In Google Cloud Console, delete the `api` Cloud Function. Confirm the `*.cloudfunctions.net/api` URL no longer responds.
-43. [] **[MANUAL — SEAN]** Re-verify `sean-mcconnell.com/blog` and `/blog/:slug` still work (served by Vercel API).
-44. [] **[MANUAL — SEAN]** Monitor bandwidth/traffic for a further 72h. Confirm the 22x Firebase/Cloudflare discrepancy is gone and bot traffic is now visible to Cloudflare's WAF.
+40. [x] **[MANUAL — SEAN]** Run `firebase hosting:disable` for the `sean-mcconnell-site` project. Confirm `*.web.app` / `*.firebaseapp.com` return Google's default "site not found" page (not billed to you).
+41. [x] **[MANUAL — SEAN]** Re-verify `sean-mcconnell.com` still works end-to-end after hosting disable.
+42. [x] **[MANUAL — SEAN]** In Google Cloud Console, delete the `api` Cloud Function. Confirm the `*.cloudfunctions.net/api` URL no longer responds.
+43. [x] **[MANUAL — SEAN]** Re-verify `sean-mcconnell.com/blog` and `/blog/:slug` still work (served by Vercel API).
+44. [x] **[MANUAL — SEAN]** Monitor bandwidth/traffic for a further 72h. Confirm the 22x Firebase/Cloudflare discrepancy is gone and bot traffic is now visible to Cloudflare's WAF.
 
 ### Code cleanup (45–48)
 
-45. [] Delete `firebase.json`'s `hosting` block (keep `functions` block temporarily — see next). Delete `functions/` source directory entirely once the Cloud Function is deleted (step 42).
-46. [] Remove the `functions` block from `firebase.json` once `functions/` is deleted. Firestore and Storage blocks remain.
-47. [] Update `CLAUDE.md`: change hosting from "Firebase Hosting (`dist/` → Firebase)" to "Vercel (`dist/` auto-deployed from GitHub)". Update CI/CD section (deploy is Vercel; `deploy.yml` is tests-only). Update architecture section (blog API lives in `api/` at repo root, not `functions/src/index.ts`). Remove references to Cloud Functions.
-48. [] Update `README.md` similarly if it mentions Firebase Hosting.
+45. [x] Delete `firebase.json`'s `hosting` block (keep `functions` block temporarily — see next). Delete `functions/` source directory entirely once the Cloud Function is deleted (step 42).
+46. [x] Remove the `functions` block from `firebase.json` once `functions/` is deleted. Firestore and Storage blocks remain.
+47. [x] Update `CLAUDE.md`: change hosting from "Firebase Hosting (`dist/` → Firebase)" to "Vercel (`dist/` auto-deployed from GitHub)". Update CI/CD section (deploy is Vercel; `deploy.yml` is tests-only). Update architecture section (blog API lives in `api/` at repo root, not `functions/src/index.ts`). Remove references to Cloud Functions.
+48. [x] Update `README.md` similarly if it mentions Firebase Hosting.
 
 ### Documentation of new manual operations (49)
 
-49. [] Add a short "Rules deploy" note to `CLAUDE.md`: Firestore/Storage rules changes (rare) now require a manual `firebase deploy --only firestore:rules,storage` run, since the automated deploy is gone.
+49. [x] Add a short "Rules deploy" note to `CLAUDE.md`: Firestore/Storage rules changes (rare) now require a manual `firebase deploy --only firestore:rules,storage` run, since the automated deploy is gone.

@@ -70,38 +70,9 @@ describe('Phase 33 — Image Optimization, Cache Headers & Analytics', () => {
     });
   });
 
-  // === Todo 6: Cache headers in firebase.json ===
-  describe('Cache headers in firebase.json', () => {
-    const firebase = JSON.parse(readFileSync('firebase.json', 'utf-8'));
-    const headers = firebase.hosting.headers;
-
-    it('has a headers array in hosting config', () => {
-      expect(Array.isArray(headers)).toBe(true);
-      expect(headers.length).toBeGreaterThan(0);
-    });
-
-    it('has immutable 1-year cache for /_astro/**', () => {
-      const astroHeader = headers.find((h: any) => h.source === '/_astro/**');
-      expect(astroHeader).toBeDefined();
-      const cacheHeader = astroHeader.headers.find((h: any) => h.key === 'Cache-Control');
-      expect(cacheHeader.value).toContain('max-age=31536000');
-      expect(cacheHeader.value).toContain('immutable');
-    });
-
-    it('has 7-day cache for /images/**', () => {
-      const imgHeader = headers.find((h: any) => h.source === '/images/**');
-      expect(imgHeader).toBeDefined();
-      const cacheHeader = imgHeader.headers.find((h: any) => h.key === 'Cache-Control');
-      expect(cacheHeader.value).toContain('max-age=604800');
-    });
-
-    it('has 7-day cache for favicon and apple-touch-icon', () => {
-      const faviconRule = headers.find((h: any) => h.source.includes('favicon') || h.source.includes('*.ico'));
-      const appleRule = headers.find((h: any) => h.source.includes('apple-touch-icon') || h.source.includes('*.png'));
-      // At minimum, one rule should cover these files (could be a glob like "**/*.{ico,png}")
-      expect(faviconRule || appleRule).toBeDefined();
-    });
-  });
+  // Cache headers block removed — headers moved from `firebase.json` to `vercel.json`
+  // as part of the Vercel migration (plan.md todo 45). Equivalent assertions for the
+  // Vercel cache headers live in tests/vercel-migration.test.ts (todo 13).
 
   // === Todo 5: OG image optimized and Layout.astro updated ===
   describe('OG image optimization', () => {
