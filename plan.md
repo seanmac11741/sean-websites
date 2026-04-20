@@ -94,14 +94,15 @@ Ordered by dependency: account setup first, then code wired against the new acco
 
 ### Preview verification (14–21) — on `*.vercel.app` URL
 
-14. [] Push the migration branch. Confirm Vercel builds a preview deploy successfully and the preview URL loads.
-15. [] On the preview URL: homepage renders with all sections, GSAP animations, images load.
-16. [] On the preview URL: `/blog` lists published posts from the new Vercel API (check browser devtools Network tab — request goes to `/api/blog` served by Vercel, not Firebase).
-17. [] On the preview URL: a known `/blog/:slug` renders content correctly.
-18. [] On the preview URL: `/tools` and `/tools/flowstate-timer` work.
-19. [] On the preview URL: admin login. Expected: Firebase Auth may reject the `*.vercel.app` domain — if so, skip admin verification on preview and verify after DNS cutover (confirmed-production domain will be `sean-mcconnell.com` which is already allowed).
-20. [] Confirm no CORS errors in console; confirm response shapes match what `/blog/index.astro` and `/blog/post.astro` expect.
-21. [] Merge the migration branch once all preview checks pass. **[MANUAL — SEAN]** handles the actual git merge.
+14. [x] Push the migration branch. Confirm Vercel builds a preview deploy successfully and the preview URL loads.
+15. [x] On the preview URL: homepage renders with all sections, GSAP animations, images load.
+16. [x] On the preview URL: `/blog` lists published posts from the new Vercel API (check browser devtools Network tab — request goes to `/api/blog` served by Vercel, not Firebase).
+17. [x] On the preview URL: a known `/blog/:slug` renders content correctly.
+18. [x] On the preview URL: `/tools` and `/tools/flowstate-timer` work.
+19. [x] On the preview URL: admin login. Expected: Firebase Auth may reject the `*.vercel.app` domain — if so, skip admin verification on preview and verify after DNS cutover (confirmed-production domain will be `sean-mcconnell.com` which is already allowed).
+admin sign-on instant rejected by google (good I guess) 
+20. [x] Confirm no CORS errors in console; confirm response shapes match what `/blog/index.astro` and `/blog/post.astro` expect.
+21. [x] Merge the migration branch once all preview checks pass. **[MANUAL — SEAN]** handles the actual git merge.
 
 ### CI/CD rewiring (22–24)
 
