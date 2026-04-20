@@ -105,9 +105,20 @@ admin sign-on instant rejected by google (good I guess)
 21. [x] Merge the migration branch once all preview checks pass. **[MANUAL — SEAN]** handles the actual git merge.
 
 ### CI/CD rewiring (22–24)
+Learnings from deploy so far:
 
-22. [] Rewrite `.github/workflows/deploy.yml` to run on PRs to `main` only, and only run `bun install → bun run test → bun run build` (as a build-validity check). Remove the Firebase deploy step, remove the functions build, remove the `FIREBASE_SERVICE_ACCOUNT` reference.
-23. [] Confirm `.github/workflows/code-review.yml` still works unchanged (no relation to hosting).
+- **`api/` is its own TS project.** `api/tsconfig.json` was added to stop a TS 6 migration warning triggered when TS files appeared outside `src/`. Same pattern as `functions/tsconfig.json`. Do not delete it, and do not add files to `api/` that should be compiled by the root Astro tsconfig.
+- **Shared helpers live in `api/_lib/firebase.ts`** — both `api/blog/index.ts` and `api/blog/[slug].ts` import `getDb`, `setCors`, `wordCount` from there. CORS is origin-allowlist (reads `req.headers.origin`, echoes it only if it matches `https://sean-mcconnell.com` or `http://localhost:4321`) — NOT wildcard. firebase-admin is lazy-initialized on first `getDb()` call from `FIREBASE_SERVICE_ACCOUNT_JSON` env var.
+- **ESM import extensions matter.** Route files import `../_lib/firebase.js` (not `.ts`) — required for Vercel's Node ESM resolution. Preserve this when adding new routes.
+- **`firebase-admin` is a devDependency**, not a regular dep — matches the plan's explicit wording in todo 9. Vercel build pulls dev deps during build; runtime uses the bundled code.
+- **Response shapes are load-bearing.** They must match `src/pages/blog/index.astro` (slug/title/description/tags/publishedAt/readingTime) and `src/pages/blog/post.astro` (slug/title/description/tags/content/publishedAt) verbatim. The frontend does no transformation beyond parsing dates.
+- **Tests are static-analysis style.** `tests/vercel-migration.test.ts` uses `readFileSync` + `toContain` — matches the project's existing convention (see `tests/phase32.test.ts`). No firebase-admin mocking, no integration tests. If adding behavioral tests later, note the existing style before diverging.
+- **`vercel.json` rewrite uses `/blog/:path`** (single-segment), matching the plan spec literally. If a nested blog path is ever needed, switch to `/blog/:path*`.
+- **Old Firebase infra is still live.** `functions/src/index.ts`, `firebase.json` hosting block, and the `api` Cloud Function are untouched on purpose — rollback stays trivial until the todo 33–37 verification gate passes. Do not clean these up early.
+- **Full test suite passes (491 tests across 17 files)** after these changes. If a future todo breaks existing tests, investigate rather than delete.
+
+22. [x] Rewrite `.github/workflows/deploy.yml` to run on PRs to `main` only, and only run `bun install → bun run test → bun run build` (as a build-validity check). Remove the Firebase deploy step, remove the functions build, remove the `FIREBASE_SERVICE_ACCOUNT` reference.
+23. [x] Confirm `.github/workflows/code-review.yml` still works unchanged (no relation to hosting).
 24. [] **[MANUAL — SEAN]** After merge to `main`: verify Vercel auto-deploys the production build at `<project>.vercel.app`. Smoke-test the production-mode Vercel URL same as preview checks.
 
 ### DNS cutover prep (25–27) — [MANUAL]

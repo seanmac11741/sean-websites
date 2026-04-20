@@ -12,8 +12,8 @@ describe('15a — GitHub Actions workflow file', () => {
   const raw = readFileSync(workflowPath, 'utf-8');
   const workflow = parse(raw);
 
-  it('triggers on push to main', () => {
-    expect(workflow.on.push.branches).toContain('main');
+  it('triggers on pull_request to main (migrated to Vercel; Firebase deploy removed)', () => {
+    expect(workflow.on.pull_request.branches).toContain('main');
   });
 
   it('has a test job on ubuntu-latest', () => {
@@ -48,21 +48,7 @@ describe('15a — GitHub Actions workflow file', () => {
     expect(buildIdx).toBeGreaterThan(testIdx);
   });
 
-  it('deploy job depends on test job', () => {
-    expect(workflow.jobs.deploy.needs).toBe('test');
-  });
-
-  it('deploy job only runs on main branch', () => {
-    expect(workflow.jobs.deploy.if).toContain("refs/heads/main");
-  });
-
-  it('deploys to Firebase using service account secret', () => {
-    const steps = workflow.jobs.deploy.steps;
-    const deploy = steps.find((s: any) =>
-      s.uses?.startsWith('w9jds/firebase-action')
-    );
-    expect(deploy).toBeDefined();
-    expect(deploy.env.GCP_SA_KEY).toBe('${{ secrets.FIREBASE_SERVICE_ACCOUNT }}');
-    expect(deploy.env.PROJECT_ID).toBe('sean-mcconnell-site');
+  it('has no deploy job (migrated to Vercel; deploy.yml is tests-only)', () => {
+    expect(workflow.jobs.deploy).toBeUndefined();
   });
 });

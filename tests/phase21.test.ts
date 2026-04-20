@@ -92,23 +92,6 @@ describe('21 — Firebase Backend Setup', () => {
     });
   });
 
-  describe('CI/CD workflow', () => {
-    const workflow = readFileSync('.github/workflows/deploy.yml', 'utf-8');
-
-    it('triggers on issue/blogcreation branch', () => {
-      expect(workflow).toContain('issue/blogcreation');
-    });
-
-    it('installs functions dependencies', () => {
-      expect(workflow).toContain('cd functions && bun install');
-    });
-
-    it('builds functions TypeScript', () => {
-      expect(workflow).toContain('cd functions && npx tsc');
-    });
-
-    it('only deploys on main branch', () => {
-      expect(workflow).toContain("github.ref == 'refs/heads/main'");
-    });
-  });
+  // CI/CD workflow block removed — assertions about Firebase deploy, functions build,
+  // and branch triggers are covered by tests/vercel-migration.test.ts (todo 22).
 });

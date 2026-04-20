@@ -102,6 +102,65 @@ describe('Vercel Migration — plan.md todos 9-13', () => {
     });
   });
 
+  // === Todo 22: deploy.yml rewritten for PR build validity ===
+  describe('Todo 22: deploy.yml — PR-only build validity', () => {
+    const yml = readFileSync('.github/workflows/deploy.yml', 'utf-8');
+
+    it('triggers on pull_request to main, not push', () => {
+      expect(yml).toMatch(/pull_request:/);
+      expect(yml).toContain('main');
+      expect(yml).not.toMatch(/^on:\s*\n\s*push:/m);
+    });
+
+    it('removes the firebase deploy action', () => {
+      expect(yml).not.toContain('w9jds/firebase-action');
+      expect(yml).not.toContain('firebase deploy');
+    });
+
+    it('removes the FIREBASE_SERVICE_ACCOUNT secret reference', () => {
+      expect(yml).not.toContain('FIREBASE_SERVICE_ACCOUNT');
+      expect(yml).not.toContain('GCP_SA_KEY');
+    });
+
+    it('removes the functions build steps', () => {
+      expect(yml).not.toMatch(/cd\s+functions\s*&&/);
+      expect(yml).not.toContain('functions && npx tsc');
+      expect(yml).not.toContain('functions && bun install');
+    });
+
+    it('runs bun install, bun run test, bun run build', () => {
+      expect(yml).toMatch(/bun install/);
+      expect(yml).toMatch(/bun run test/);
+      expect(yml).toMatch(/bun run build/);
+    });
+
+    it('has no deploy job (tests-only)', () => {
+      expect(yml).not.toMatch(/^\s*deploy:/m);
+    });
+  });
+
+  // === Todo 23: code-review.yml still works unchanged ===
+  describe('Todo 23: code-review.yml intact', () => {
+    const yml = readFileSync('.github/workflows/code-review.yml', 'utf-8');
+
+    it('still triggers on PR opened/synchronize', () => {
+      expect(yml).toMatch(/pull_request:/);
+      expect(yml).toMatch(/opened/);
+      expect(yml).toMatch(/synchronize/);
+    });
+
+    it('still uses anthropics/claude-code-action and ANTHROPIC_API_KEY', () => {
+      expect(yml).toContain('anthropics/claude-code-action');
+      expect(yml).toContain('ANTHROPIC_API_KEY');
+    });
+
+    it('has no Firebase or hosting references', () => {
+      expect(yml).not.toContain('firebase');
+      expect(yml).not.toContain('FIREBASE');
+      expect(yml).not.toContain('vercel');
+    });
+  });
+
   // === Todo 13: vercel.json ===
   describe('Todo 13: vercel.json rewrite + cache headers', () => {
     it('exists at repo root', () => {
