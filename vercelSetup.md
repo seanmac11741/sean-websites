@@ -93,6 +93,9 @@ If the future goal is "everything off Firebase," that needs a separate migration
 ## Phase 3: Improve observability
 
 1. Add `@vercel/analytics`.
+
+import SpeedInsights from "@vercel/speed-insights/astro"
+
 2. Add Vercel Speed Insights if useful.
 3. Configure Vercel usage alerts at a meaningful threshold.
 4. Define a simple weekly review process for:
