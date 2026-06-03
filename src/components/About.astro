@@ -34,10 +34,25 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
       <div id="about-text">
         <p class="text-slate-300 text-lg leading-relaxed mb-6">
-          Software Engineer at UW-Madison with {years} years of experience building technical solutions in Higher Education.
+          Research Systems Engineer on UW–Madison’s Research Cyberinfrastructure team, with {years} years of experience building technical solutions for higher education and research.
         </p>
+        <div id="about-contact-row" class="mb-6 flex flex-col sm:flex-row gap-3">
+          <button id="uw-email-copy" type="button" class="group inline-flex items-center gap-3 rounded-xl border border-[#C5050C]/60 bg-gradient-to-br from-[#C5050C]/25 via-accent/10 to-white/5 px-4 py-3 text-left shadow-lg shadow-[#C5050C]/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C5050C] hover:shadow-[#C5050C]/20 active:translate-y-0">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white p-1.5 shadow-inner shadow-black/10">
+              <img src="/images/uw-motion-w.png" alt="UW-Madison" class="h-full w-full object-contain" loading="lazy" />
+            </span>
+            <span class="flex flex-col leading-tight">
+              <span id="uw-email-copy-label" class="text-sm font-black text-white">Contact me</span>
+              <span class="text-xs font-semibold text-slate-300 transition-colors duration-200 group-hover:text-white">UW-Madison email</span>
+            </span>
+          </button>
+          <a href="mailto:seanmac11741@gmail.com" class="inline-flex items-center rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:bg-white/5 active:translate-y-0">
+            Personal projects
+          </a>
+        </div>
+        <p id="uw-email-status" class="sr-only" aria-live="polite"></p>
         <p class="text-slate-400 leading-relaxed">
-          Right now I'm building secure, AI-powered integration solutions for student data at UW-Madison on AWS. I love learning in public, tackling hard problems, and helping other engineers level up.
+          Right now I'm building secure storage and compute pipelines, working with researchers at UW-Madison, and learning a ton of new things. I love learning in public, tackling hard problems, and helping other engineers level up.
         </p>
       </div>
 
@@ -266,6 +281,24 @@ const pad = (n: number) => String(n).padStart(2, '0');
   }
 
   loadWeather();
+
+  const uwEmailButton = document.getElementById('uw-email-copy')!;
+  const uwEmailLabel = document.getElementById('uw-email-copy-label')!;
+  const uwEmailStatus = document.getElementById('uw-email-status')!;
+  const uwEmailDefaultLabel = uwEmailLabel.textContent;
+  uwEmailButton.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(['sean.mcconnell', 'wisc.edu'].join('@'));
+      uwEmailLabel.textContent = 'Copied!';
+      uwEmailStatus.textContent = 'UW-Madison email copied.';
+      setTimeout(() => {
+        uwEmailLabel.textContent = uwEmailDefaultLabel;
+      }, 2500);
+    } catch {
+      uwEmailStatus.textContent = 'Please email Sean at sean dot mcconnell at wisc dot edu.';
+      uwEmailStatus.classList.remove('sr-only');
+    }
+  });
 
   function setupHoverCard(cardId: string, defaultId: string, hoverId: string) {
     const card = document.getElementById(cardId)!;

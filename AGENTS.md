@@ -92,7 +92,7 @@ src/
   components/
     Nav.astro                ← sticky nav, scroll-triggered bg, mobile hamburger, Blog/Tools links, hidden Admin link (auth-toggled)
     Hero.astro               ← full-viewport, GSAP text reveal, typewriter titles
-    About.astro              ← two-column bio + photo, live experience timer, highlights
+    About.astro              ← two-column bio + photo, compact UW/personal contact row, live experience timer, highlights
     Presentations.astro      ← conference talks sorted by date, newest featured card, older talks in disclosure, title slide images
     Skills.astro             ← categorized grid with experience bars, 6 categories, 23 skills
     LatestPost.astro         ← most recent blog post card, fetched client-side from /api/blog, GSAP scroll animation
@@ -115,6 +115,7 @@ tests/
   phase28.test.ts            ← vitest tests for phase 28 (PR review agent)
   phase31.test.ts            ← vitest tests for phase 31 (latest blog post on homepage)
   phase32.test.ts            ← vitest tests for phase 32 (tools page + flowstate timer)
+  about-contact.test.ts      ← vitest tests for About contact row and UW-Madison copy protection
   presentation-update.test.ts ← vitest tests for 2026 IT Professionals Conference talk + presentations disclosure
 ```
 
@@ -144,6 +145,7 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 - Blog posts in Firestore: `{ title, slug, description, tags, content (Tiptap JSON), status (draft|published), createdAt, updatedAt, publishedAt }`
 - Public blog: static Astro pages fetch from the `/api/blog` Vercel Serverless Functions client-side. Tiptap JSON → HTML via `generateHTML`. The `api/` routes read Firestore via `firebase-admin` with the service account JSON in `FIREBASE_SERVICE_ACCOUNT_JSON` (Vercel env var). CORS is an origin-allowlist (`https://sean-mcconnell.com`, `http://localhost:4321`) — not wildcard.
 - Firestore rules: public read for published posts, write restricted to admin email. Storage: public read for `/blog/**`, write restricted to admin
+- About section has a compact contact row after the opening summary: UW-Madison email is copied via client-side JavaScript assembled from address parts (no static mailto/full address), with copied/fallback feedback; personal projects uses the existing Gmail mailto path.
 - About section has a live experience timer (YRS/MO/DAYS/HRS/MIN/SEC) counting from April 23, 2015 — server-rendered initial values + client-side `setInterval` for live ticking. Uses `tabular-nums` to prevent digit width shifting.
 - Hero heading uses graduated responsive sizing (`text-5xl sm:text-6xl lg:text-7xl xl:text-8xl`) to prevent "McConnell" from clipping in the two-column layout
 - Social links (GitHub, GitLab, LinkedIn, Strava) appear in Nav, Hero, and Footer
