@@ -5,6 +5,7 @@ type Presentation = {
   date: string;
   description: string;
   link: string;
+  videoLink?: string;
   image: string;
 };
 
@@ -15,6 +16,7 @@ const presentations: Presentation[] = [
     date: '2026-05-29',
     description: 'A repeatable, model-agnostic approach to using AI tools effectively.',
     link: 'https://docs.google.com/presentation/d/1wJ2-CoKFZ-7xTK5UpJ3VC8nd03pE_bhu1Pps9IyScvc/edit?usp=sharing',
+    videoLink: 'https://www.youtube.com/watch?v=Jz_nzVF0PRY',
     image: '/images/presentations/2026-IT-Professionals-Conference-Title-Slide.jpg',
   },
   {
@@ -50,25 +52,46 @@ const formatDate = (dateStr: string) =>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
       {featuredPresentation && (
-        <a
-          href={featuredPresentation.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="presentation-card group block rounded-xl border border-white/10 bg-surface/40 overflow-hidden hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200"
-        >
-          <img
-            src={featuredPresentation.image}
-            alt={`${featuredPresentation.title} title slide for ${featuredPresentation.event}`}
-            class="w-full aspect-video object-cover"
-            loading="lazy"
-          />
+        <article class="presentation-card group rounded-xl border border-white/10 bg-surface/40 overflow-hidden hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80 transition-all duration-200">
+          <a
+            href={featuredPresentation.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`View slides for ${featuredPresentation.title}`}
+          >
+            <img
+              src={featuredPresentation.image}
+              alt={`${featuredPresentation.title} title slide for ${featuredPresentation.event}`}
+              class="w-full aspect-video object-cover"
+              loading="lazy"
+            />
+          </a>
           <div class="p-5 flex flex-col gap-2">
             <h3 class="text-lg font-semibold text-white group-hover:text-accent transition-colors duration-200">{featuredPresentation.title}</h3>
             <p class="text-sm text-slate-400">{featuredPresentation.event} &middot; {formatDate(featuredPresentation.date)}</p>
             <p class="text-sm text-slate-500">{featuredPresentation.description}</p>
-            <span class="text-accent text-sm font-medium mt-2">View Slides &rarr;</span>
+            <div class="mt-2 flex flex-wrap gap-4 text-sm font-medium">
+              <a
+                href={featuredPresentation.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-accent hover:text-white transition-colors duration-200"
+              >
+                View Slides &rarr;
+              </a>
+              {featuredPresentation.videoLink && (
+                <a
+                  href={featuredPresentation.videoLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent hover:text-white transition-colors duration-200"
+                >
+                  Watch Video &rarr;
+                </a>
+              )}
+            </div>
           </div>
-        </a>
+        </article>
       )}
     </div>
 
@@ -87,14 +110,26 @@ const formatDate = (dateStr: string) =>
                   <p class="mt-1 text-sm text-slate-400">{p.event} &middot; {formatDate(p.date)}</p>
                   <p class="mt-2 text-sm text-slate-500">{p.description}</p>
                 </div>
-                <a
-                  href={p.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="shrink-0 text-sm font-medium text-accent hover:text-white transition-colors duration-200"
-                >
-                  View Slides &rarr;
-                </a>
+                <div class="flex shrink-0 flex-wrap gap-4 text-sm font-medium sm:justify-end">
+                  <a
+                    href={p.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-accent hover:text-white transition-colors duration-200"
+                  >
+                    View Slides &rarr;
+                  </a>
+                  {p.videoLink && (
+                    <a
+                      href={p.videoLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-accent hover:text-white transition-colors duration-200"
+                    >
+                      Watch Video &rarr;
+                    </a>
+                  )}
+                </div>
               </div>
             </article>
           ))}

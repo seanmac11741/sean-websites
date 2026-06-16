@@ -6,6 +6,7 @@ const root = process.cwd();
 const componentPath = join(root, 'src/components/Presentations.astro');
 const newSlidePath = join(root, 'public/images/presentations/2026-IT-Professionals-Conference-Title-Slide.jpg');
 const newSlidesLink = 'https://docs.google.com/presentation/d/1wJ2-CoKFZ-7xTK5UpJ3VC8nd03pE_bhu1Pps9IyScvc/edit?usp=sharing';
+const newVideoLink = 'https://www.youtube.com/watch?v=Jz_nzVF0PRY';
 const allianceSlidesLink = 'https://docs.google.com/presentation/d/1L3efRCwZOOlnf-U4ySECNgPCVpKw4jQ6TgGtBLooF0g/edit?usp=sharing';
 
 function readPresentationsComponent() {
@@ -75,6 +76,7 @@ describe('presentation data', () => {
     expect(component).toContain("date: '2026-05-29'");
     expect(component).toContain("description: 'A repeatable, model-agnostic approach to using AI tools effectively.'");
     expect(component).toContain(`link: '${newSlidesLink}'`);
+    expect(component).toContain(`videoLink: '${newVideoLink}'`);
     expect(component).toContain("image: '/images/presentations/2026-IT-Professionals-Conference-Title-Slide.jpg'");
   });
 
@@ -112,6 +114,7 @@ describe('featured presentation UI', () => {
     expect(component).toContain('hover:border-accent/50 hover:-translate-y-1 hover:bg-surface/80');
     expect(component).toContain('aspect-video object-cover');
     expect(component).toContain('View Slides &rarr;');
+    expect(component).toContain('Watch Video &rarr;');
   });
 
   it('opens the approved featured Google Slides deck safely in a new tab', () => {
@@ -119,6 +122,16 @@ describe('featured presentation UI', () => {
 
     expect(component).toContain(`link: '${newSlidesLink}'`);
     expect(component).toContain('href={featuredPresentation.link}');
+    expect(component).toContain('target="_blank"');
+    expect(component).toContain('rel="noopener noreferrer"');
+  });
+
+  it('links the featured presentation recording safely in a new tab', () => {
+    const component = readPresentationsComponent();
+
+    expect(component).toContain(`videoLink: '${newVideoLink}'`);
+    expect(component).toContain('href={featuredPresentation.videoLink}');
+    expect(component).toContain('Watch Video &rarr;');
     expect(component).toContain('target="_blank"');
     expect(component).toContain('rel="noopener noreferrer"');
   });
