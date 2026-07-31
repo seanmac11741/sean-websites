@@ -124,12 +124,20 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
           <button data-break-minutes="30" data-default class="break-preset-btn px-5 py-2.5 rounded-full border border-accent text-accent transition-all duration-200 text-sm font-medium">30 min</button>
         </div>
 
-        <button
-          id="break-btn"
-          class="px-10 py-4 rounded-full bg-accent text-white text-lg font-bold hover:bg-accent/80 transition-all duration-200 hover:scale-105 shadow-lg shadow-accent/25"
-        >
-          Take a Break
-        </button>
+        <div class="flex flex-col items-center gap-4">
+          <button
+            id="repeat-focus-btn"
+            class="hidden px-10 py-4 rounded-full bg-accent text-white text-lg font-bold hover:bg-accent/80 transition-all duration-200 hover:scale-105 shadow-lg shadow-accent/25"
+          >
+            Repeat Focus
+          </button>
+          <button
+            id="break-btn"
+            class="px-8 py-3 rounded-full border border-white/20 text-slate-300 text-base font-medium hover:border-white/40 hover:text-white transition-all duration-200"
+          >
+            Take a Break
+          </button>
+        </div>
       </div>
 
       <!-- Alarm dismiss (hidden until alarm fires) -->
@@ -158,6 +166,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   let animationId: number | null = null;
   let lastTimestamp: number | null = null;
   let mode: 'focus' | 'break' = 'focus';
+  let completedFocusSeconds = totalSeconds;
 
   // === Persistence ===
   function saveState() {
@@ -190,6 +199,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   const dismissBtn = document.getElementById('dismiss-btn')!;
   const transitionContainer = document.getElementById('transition-container')!;
   const phraseDisplay = document.getElementById('phrase-display')!;
+  const repeatFocusBtn = document.getElementById('repeat-focus-btn')!;
   const breakBtn = document.getElementById('break-btn')!;
 
   const breakPresetsContainer = document.getElementById('break-presets')!;
@@ -326,12 +336,13 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   }
 
   // === Start timer ===
-  function startTimer() {
-    totalSeconds = selectedMinutes * 60;
+  function startTimer(durationSeconds?: number) {
+    totalSeconds = durationSeconds ?? selectedMinutes * 60;
     remainingSeconds = totalSeconds;
     isRunning = true;
     isPaused = false;
     lastTimestamp = null;
+    saveState();
 
     if (!audioCtx) audioCtx = new AudioContext();
     showStarfield();
@@ -389,7 +400,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     });
   }
 
-  startBtn.addEventListener('click', startTimer);
+  startBtn.addEventListener('click', () => startTimer());
 
   // === Pause / Resume ===
   pauseBtn.addEventListener('click', () => {
@@ -500,6 +511,8 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
   // === Timer complete ===
   function onTimerComplete() {
+    if (mode === 'focus') completedFocusSeconds = totalSeconds;
+    clearSavedState();
     startAlarm();
     pulseRing();
     timerDisplayContainer.classList.add('hidden');
@@ -567,15 +580,26 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       // Show post-focus transition
       phraseDisplay.textContent = getRandomPhrase(focusPhrases);
       breakBtn.textContent = 'Take a Break';
+      repeatFocusBtn.classList.remove('hidden');
       breakPresetsContainer.classList.remove('hidden');
     } else {
       // Show post-break transition
       phraseDisplay.textContent = getRandomPhrase(breakPhrases);
       breakBtn.textContent = 'Start Focus';
+      repeatFocusBtn.classList.add('hidden');
       breakPresetsContainer.classList.add('hidden');
     }
     transitionContainer.classList.remove('hidden');
   }
+
+  // === Repeat focus with the completed session's exact duration ===
+  repeatFocusBtn.addEventListener('click', () => {
+    mode = 'focus';
+    setFocusAmbiance();
+    transitionContainer.classList.add('hidden');
+    repeatFocusBtn.classList.add('hidden');
+    startTimer(completedFocusSeconds);
+  });
 
   // === Break/Focus button click — switch mode and start ===
   breakBtn.addEventListener('click', () => {
@@ -986,6 +1010,22 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
   let dawnAmount = 0; // 0 = night (focus), 1 = dawn (break)
 
+  function setFocusAmbiance() {
+    dawnAmount = 0;
+    isDragging = false;
+    mainContent.style.pointerEvents = '';
+    starfieldCanvas.style.pointerEvents = '';
+    starfieldCanvas.style.cursor = 'default';
+    renderField();
+    startAutoRotation();
+  }
+
+  function setBreakAmbiance() {
+    dawnAmount = 1;
+    renderField();
+    stopAutoRotation();
+  }
+
   function renderField() {
     const w = starfieldCanvas.width;
     const h = starfieldCanvas.height;
@@ -1011,6 +1051,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   });
 
   function startAutoRotation() {
+    if (autoRotateId !== null) return;
     const ROTATION_SPEED = 0.00003; // radians per frame (very slow)
     let lastRotateTime: number | null = null;
 

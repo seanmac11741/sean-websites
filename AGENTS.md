@@ -115,6 +115,7 @@ tests/
   phase28.test.ts            ← vitest tests for phase 28 (PR review agent)
   phase31.test.ts            ← vitest tests for phase 31 (latest blog post on homepage)
   phase32.test.ts            ← vitest tests for phase 32 (tools page + flowstate timer)
+  repeat-focus-timer.test.ts ← vitest tests for repeat-focus flow, duration reuse, ambiance, and persistence
   about-contact.test.ts      ← vitest tests for About contact row and UW-Madison copy protection
   presentation-update.test.ts ← vitest tests for 2026 IT Professionals Conference talk + presentations disclosure
 ```
@@ -160,7 +161,7 @@ All defined in `src/styles/global.css` via Tailwind 4 `@theme`:
 
 Focus/break pomodoro timer with ambient star field.
 
-- **Core loop:** Focus → alarm → fun phrase + "Take a Break" → Break → alarm → fun phrase + "Start Focus" → repeat
+- **Core loop:** Focus → alarm → fun phrase → primary "Repeat Focus" (same completed duration) or secondary "Take a Break" → Break → alarm → fun phrase + "Start Focus". Repeat focus supports custom durations without adding a 15-minute preset.
 - **Timer:** SVG circular progress ring (`stroke-dasharray`/`stroke-dashoffset`) with large MM:SS digits. GSAP theatrical entrance animation on start. Ring pulses red at zero (synced with alarm).
 - **Controls:** Preset duration buttons (focus: 25/60/90/120 min, break: 5/15/30 min) + custom input. Focus/Break toggle on preset screen. Pause/Resume and Reset appear after starting.
 - **Alarm:** Web Audio API generated tone (`OscillatorNode`, square wave 880→660Hz). Repeats via `setInterval` until dismissed.
@@ -169,5 +170,5 @@ Focus/break pomodoro timer with ambient star field.
 - **Focus mode:** Slow auto-rotation (`ROTATION_SPEED = 0.00003`), no user interaction with stars.
 - **Break mode:** Auto-rotation stops. Dawn ambiance (background lightens via `dawnAmount` gsap tween). Click-and-drag to rotate star field (mouse + touch). `main` gets `pointer-events: none` so canvas receives clicks; `timer-container` has `pointer-events-auto` to keep controls clickable.
 - **Constellation labels:** `window` mousemove listener computes each constellation's screen center, shows name via `ctx.fillText` when mouse within `HOVER_RADIUS = 50px`.
-- **Persistence:** Timer state saved to `localStorage` (`flowstate-timer-state`). On page return with active session: "You had X minutes left, resume?" prompt.
+- **Persistence:** Timer state saved to `localStorage` (`flowstate-timer-state`) immediately on start and during countdown. On page return with active session: "You had X minutes left, resume?" prompt. Completed state is cleared centrally before alarm/transition flow.
 - **Responsive:** SVG ring uses `viewBox` + `max-w-[280px]`. Touch-drag for mobile star rotation during break.
