@@ -998,11 +998,12 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   // Both mode switches run through this one controller, so focus and break are
   // mirror images: each repaints the sky on every frame of its transition.
   const AMBIANCE_DURATION = 2;
+  let ambianceTween: gsap.core.Tween | null = null;
 
   const ambiance = createAmbiance({
-    render: () => renderField(),
-    startRotation: () => startAutoRotation(),
-    stopRotation: () => stopAutoRotation(),
+    render: renderField,
+    startRotation: startAutoRotation,
+    stopRotation: stopAutoRotation,
     setSkyInteractive: (interactive) => {
       if (interactive) {
         mainContent.style.pointerEvents = 'none';
@@ -1016,7 +1017,8 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       }
     },
     animate: (from, to, onUpdate) => {
-      gsap.to({ v: from }, {
+      ambianceTween?.kill();
+      ambianceTween = gsap.to({ v: from }, {
         v: to,
         duration: AMBIANCE_DURATION,
         ease: 'power2.inOut',
@@ -1029,10 +1031,10 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     const w = starfieldCanvas.width;
     const h = starfieldCanvas.height;
 
-    ctx.fillStyle = skyColor(ambiance.amount);
+    ctx.fillStyle = skyColor(ambiance.dawnAmount);
     ctx.fillRect(0, 0, w, h);
 
-    const alpha = starAlpha(ambiance.amount);
+    const alpha = starAlpha(ambiance.dawnAmount);
     drawStars(alpha);
     drawLines(alpha);
     drawLabels();

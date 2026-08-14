@@ -25,3 +25,16 @@ homepage.
 
 **Preview** — the admin's rendering of an unpublished Post at `/admin/preview`. It must agree with
 the published page, so it takes its Reading Time and date format from the Post module.
+
+## Flowstate Timer
+
+**Ambiance** — how the star field looks and behaves in a given mode. **Night** during focus,
+**Dawn** during a break. Owned by the **Ambiance module** (`src/lib/flowstate/ambiance.ts`) —
+nothing else states what night or dawn look like.
+
+**Dawn Amount** — how lit the sky is, `0` at Night and `1` at Dawn. Everything the transition
+changes (sky colour, star opacity) is a function of it.
+
+**Ambiance module** — `src/lib/flowstate/ambiance.ts`. Pure: canvas painting, auto-rotation, the
+gsap tween and the pointer-events handoff are injected as effects, so the two transitions are one
+shared path. `toFocus` and `toBreak` are mirror images; each repaints on every frame.

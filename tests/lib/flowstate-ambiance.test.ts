@@ -14,7 +14,6 @@ import {
  */
 function spyEffects() {
   const calls: string[] = [];
-  const amounts: number[] = [];
   let pending: ((v: number) => void) | null = null;
 
   const effects: AmbianceEffects = {
@@ -31,7 +30,6 @@ function spyEffects() {
   return {
     effects,
     calls,
-    amounts,
     /** Play the in-flight animation through the given intermediate values. */
     play(...values: number[]) {
       if (!pending) throw new Error('no animation in flight');
@@ -70,7 +68,7 @@ describe('starAlpha', () => {
 describe('createAmbiance', () => {
   it('starts at night', () => {
     const spy = spyEffects();
-    expect(createAmbiance(spy.effects).amount).toBe(NIGHT);
+    expect(createAmbiance(spy.effects).dawnAmount).toBe(NIGHT);
   });
 
   it('repaints on every frame of the transition into break', () => {
@@ -83,7 +81,7 @@ describe('createAmbiance', () => {
 
     spy.play(0.25, 0.5, 1);
     expect(spy.calls.filter((c) => c === 'render')).toHaveLength(3);
-    expect(ambiance.amount).toBe(DAWN);
+    expect(ambiance.dawnAmount).toBe(DAWN);
   });
 
   it('repaints on every frame of the transition back to focus', () => {
@@ -97,7 +95,7 @@ describe('createAmbiance', () => {
 
     spy.play(0.75, 0.5, 0);
     expect(spy.calls.filter((c) => c === 'render')).toHaveLength(3);
-    expect(ambiance.amount).toBe(NIGHT);
+    expect(ambiance.dawnAmount).toBe(NIGHT);
   });
 
   it('stops auto-rotation on entering break and restarts it on returning to focus', () => {
@@ -132,13 +130,13 @@ describe('createAmbiance', () => {
 
     ambiance.toBreak({ animated: false });
     expect(spy.animating).toBe(false);
-    expect(ambiance.amount).toBe(DAWN);
+    expect(ambiance.dawnAmount).toBe(DAWN);
     expect(spy.calls).toContain('render');
 
     spy.calls.length = 0;
     ambiance.toFocus({ animated: false });
     expect(spy.animating).toBe(false);
-    expect(ambiance.amount).toBe(NIGHT);
+    expect(ambiance.dawnAmount).toBe(NIGHT);
     expect(spy.calls).toContain('render');
   });
 

@@ -41,7 +41,11 @@ export interface AmbianceEffects {
   stopRotation(): void;
   /** true = the canvas takes pointer events (drag the sky); false = the page does. */
   setSkyInteractive(interactive: boolean): void;
-  /** Tween a value from `from` to `to`, calling `onUpdate` on every frame. */
+  /**
+   * Tween a value from `from` to `to`, calling `onUpdate` on every frame.
+   * Must cancel any tween it already has in flight, so a fast break↔focus
+   * toggle cannot leave two of them fighting over the sky.
+   */
   animate(from: number, to: number, onUpdate: (value: number) => void): void;
 }
 
@@ -51,8 +55,8 @@ export interface AmbianceOptions {
 }
 
 export interface Ambiance {
-  /** Current dawn amount, between NIGHT and DAWN. */
-  readonly amount: number;
+  /** How lit the sky currently is, between NIGHT and DAWN. */
+  readonly dawnAmount: number;
   /** Move the sky to night and give the page back its pointer events. */
   toFocus(options?: AmbianceOptions): void;
   /** Move the sky to dawn and let the viewer drag it. */
@@ -60,29 +64,32 @@ export interface Ambiance {
 }
 
 export function createAmbiance(effects: AmbianceEffects): Ambiance {
-  let amount: number = NIGHT;
+  let dawnAmount: number = NIGHT;
 
   function transition(target: number, { animated = true }: AmbianceOptions) {
     if (!animated) {
-      amount = target;
+      dawnAmount = target;
       effects.render();
       return;
     }
-    effects.animate(amount, target, (value) => {
-      amount = value;
+    effects.animate(dawnAmount, target, (value) => {
+      dawnAmount = value;
       effects.render();
     });
   }
 
   return {
-    get amount() {
-      return amount;
+    get dawnAmount() {
+      return dawnAmount;
     },
 
+    // Both modes settle the same way: pointer events, then rotation, then the
+    // sky itself. Rotation is resumed before the focus transition rather than
+    // after it, so the sky keeps drifting while it darkens.
     toFocus(options = {}) {
       effects.setSkyInteractive(false);
-      transition(NIGHT, options);
       effects.startRotation();
+      transition(NIGHT, options);
     },
 
     toBreak(options = {}) {

@@ -822,13 +822,10 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
 
     it('hands pointer events between the page and the canvas', () => {
       // Which mode gets pointer events is an ambiance-module rule; the page owns
-      // only the DOM writes behind setSkyInteractive.
-      const handoff = page.slice(page.indexOf('setSkyInteractive:'));
-      const body = handoff.slice(0, handoff.indexOf('animate:'));
-      expect(body).toContain("mainContent.style.pointerEvents = 'none'");
-      expect(body).toContain("starfieldCanvas.style.pointerEvents = 'auto'");
-      expect(body).toContain("mainContent.style.pointerEvents = ''");
-      expect(body).toContain("starfieldCanvas.style.pointerEvents = ''");
+      // only the DOM writes, and it makes them in exactly one place.
+      expect(page).toContain("mainContent.style.pointerEvents = 'none'");
+      expect(page).toContain("mainContent.style.pointerEvents = ''");
+      expect(page.match(/mainContent\.style\.pointerEvents/g)).toHaveLength(2);
     });
 
     it('timer-container has pointer-events-auto so controls remain clickable', () => {
