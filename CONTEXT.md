@@ -43,6 +43,13 @@ which is why the two vocabularies are not the same list.
 *derived* from it, never counted down, so a hidden tab, a sleeping machine or a page reload
 cannot make the Session drift. Replaced a per-frame decrement plus a backup `setTimeout`.
 
+**Remembered Focus** — the focus duration last chosen (`lastFocusSeconds`), and what a focus
+Session starts at whenever the viewer has not just picked one. Written the moment a focus
+Session *starts*, not when it completes, so a duration abandoned mid-Session is still the last
+answer; a break start leaves it alone. Both **Repeat Focus** and the **Start Focus** that
+follows a break read it, which is what keeps the two paths from disagreeing — they were two
+hardcoded defaults before. A first Session, having chosen nothing, gets `DEFAULT_FOCUS_MINUTES`.
+
 **Effect** — something the page must do that a pure module cannot: `startAlarm`, `stopAlarm`,
 `pulseRing`, `stopPulse`, `showStarfield`, `playEntrance`, `clearSaved`, `save`. The reducer
 decides which Effects a transition produces; the page only knows how to perform each one, and
