@@ -43,7 +43,7 @@ bun run test       # run vitest tests
 
 Deploys are owned by Vercel's GitHub integration: push to `main` triggers a production deploy at `sean-mcconnell.com`; push to any other branch triggers a preview deploy at `<project>-<hash>.vercel.app`. The `FIREBASE_SERVICE_ACCOUNT_JSON` env var is set in Vercel project settings (not GitHub secrets) and used by the `api/` routes at runtime.
 
-Two workflows in `.github/workflows/`:
+One workflow in `.github/workflows/`:
 
 ### `deploy.yml` — Build Validity (tests-only)
 
