@@ -41,6 +41,7 @@ import Layout from '../../layouts/Layout.astro';
     import Link from '@tiptap/extension-link';
     import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
     import { common, createLowlight } from 'lowlight';
+    import { formatPostDate, readingTime } from '../../lib/blog/post';
 
     const lowlight = createLowlight(common);
     const extensions = [
@@ -52,16 +53,6 @@ import Layout from '../../layouts/Layout.astro';
 
     const previewLoading = document.getElementById('preview-loading')!;
     const previewContent = document.getElementById('preview-content')!;
-
-    function wordCount(json: any): number {
-      let count = 0;
-      function walk(node: any) {
-        if (node.text) count += node.text.split(/\s+/).filter(Boolean).length;
-        if (node.content) node.content.forEach(walk);
-      }
-      walk(json);
-      return count;
-    }
 
     onAuthStateChanged(auth, async (user) => {
       if (!user || user.email !== ADMIN_EMAIL) {
@@ -86,13 +77,10 @@ import Layout from '../../layouts/Layout.astro';
       document.getElementById('preview-title')!.textContent = data.title || 'Untitled';
 
       const date = data.publishedAt?.toDate() || data.createdAt?.toDate() || new Date();
-      document.getElementById('preview-date')!.textContent = date.toLocaleDateString('en-US', {
-        month: 'long', day: 'numeric', year: 'numeric',
-      });
+      document.getElementById('preview-date')!.textContent = formatPostDate(date);
 
-      const words = data.content ? wordCount(data.content) : 0;
-      const minutes = Math.max(1, Math.round(words / 200));
-      document.getElementById('preview-reading-time')!.textContent = `${minutes} min read`;
+      document.getElementById('preview-reading-time')!.textContent =
+        `${readingTime(data.content)} min read`;
 
       const tagsContainer = document.getElementById('preview-tags')!;
       (data.tags || []).forEach((tag: string) => {

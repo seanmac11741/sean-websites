@@ -19,50 +19,23 @@ import Nav from '../../components/Nav.astro';
   </main>
 
   <script>
+    import { fetchPosts, isDev } from '../../lib/blog/client';
+    import { renderPostCard } from '../../lib/blog/post';
+
     const blogList = document.getElementById('blog-list')!;
 
     async function loadPosts() {
       try {
-        const res = await fetch('/api/blog');
-        if (!res.ok) throw new Error('Failed to fetch');
-        const posts: Array<{
-          slug: string;
-          title: string;
-          description: string;
-          tags: string[];
-          publishedAt: string | null;
-          readingTime: number;
-        }> = await res.json();
+        const posts = await fetchPosts();
 
         if (posts.length === 0) {
           blogList.innerHTML = '<p class="text-slate-500 text-center py-16">No posts yet. Check back soon!</p>';
           return;
         }
 
-        blogList.innerHTML = '';
-        posts.forEach((post) => {
-          const date = post.publishedAt
-            ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-            : '';
-
-          const tags = post.tags
-            .map((t) => `<span class="text-xs bg-white/5 text-slate-400 px-2 py-1 rounded-full">${t}</span>`)
-            .join('');
-
-          const card = document.createElement('a');
-          card.href = `/blog/${post.slug}`;
-          card.className = 'block bg-surface border border-white/10 rounded-xl p-6 hover:border-accent/50 transition-all duration-200 mb-4 group';
-          card.innerHTML = `
-            <h2 class="text-xl font-semibold text-white group-hover:text-accent transition-colors duration-200 mb-2">${post.title}</h2>
-            <p class="text-slate-400 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
-            <div class="flex flex-wrap items-center gap-3">
-              <time class="text-xs text-slate-500">${date}</time>
-              ${date && post.readingTime ? '<span class="text-xs text-slate-600">·</span>' : ''}
-              ${post.readingTime ? `<span class="text-xs text-slate-500">${post.readingTime} min read</span>` : ''}
-              ${tags ? `<div class="flex flex-wrap gap-2">${tags}</div>` : ''}
-            </div>`;
-          blogList.appendChild(card);
-        });
+        blogList.innerHTML = posts
+          .map((post) => renderPostCard(post, { variant: 'list', isDev: isDev() }))
+          .join('');
       } catch {
         blogList.innerHTML = '<p class="text-red-400 text-center py-16">Failed to load posts.</p>';
       }

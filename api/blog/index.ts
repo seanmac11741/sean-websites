@@ -1,4 +1,5 @@
-import { getDb, setCors, wordCount } from "../_lib/firebase.js";
+import { getDb, setCors } from "../_lib/firebase.js";
+import { readingTime } from "../../src/lib/blog/post.js";
 
 export default async function handler(req: any, res: any) {
   setCors(req, res);
@@ -23,15 +24,13 @@ export default async function handler(req: any, res: any) {
 
     const posts = snapshot.docs.map((doc) => {
       const data = doc.data();
-      const words = data.content ? wordCount(data.content) : 0;
-      const readingTime = Math.max(1, Math.round(words / 250));
       return {
         slug: doc.id,
         title: data.title,
         description: data.description,
         tags: data.tags || [],
         publishedAt: data.publishedAt?.toDate().toISOString() || null,
-        readingTime,
+        readingTime: readingTime(data.content),
       };
     });
 

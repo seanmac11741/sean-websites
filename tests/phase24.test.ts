@@ -42,6 +42,14 @@ describe('24 — Preview & Publish Workflow', () => {
       expect(preview).toContain('min read');
     });
 
+    // The preview must agree with the published page, so it takes its reading time
+    // and date format from the same Post module. Rules covered by tests/lib/blog.test.ts.
+    it('takes reading time and date format from the Post module', () => {
+      expect(preview).toContain("from '../../lib/blog/post'");
+      expect(preview).toContain('readingTime(data.content)');
+      expect(preview).toContain('formatPostDate(date)');
+    });
+
     it('renders tags', () => {
       expect(preview).toContain('id="preview-tags"');
     });

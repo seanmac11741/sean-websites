@@ -13,20 +13,12 @@ describe('25 — Public Blog Pages', () => {
 
     const listing = readFileSync('src/pages/blog/index.astro', 'utf-8');
 
-    it('fetches from /api/blog', () => {
-      expect(listing).toContain("fetch('/api/blog')");
-    });
-
-    it('renders post cards with links', () => {
-      expect(listing).toContain('/blog/${post.slug}');
-    });
-
-    it('shows tags on cards', () => {
-      expect(listing).toContain('post.tags');
-    });
-
-    it('shows date on cards', () => {
-      expect(listing).toContain('post.publishedAt');
+    // Fetching, card markup, tags and dates are covered by tests/lib/blog.test.ts.
+    // All this page still owes is the wiring.
+    it('renders its cards through the Post module', () => {
+      expect(listing).toContain("from '../../lib/blog/client'");
+      expect(listing).toContain("from '../../lib/blog/post'");
+      expect(listing).toContain('renderPostCard(');
     });
 
     it('has a loading spinner', () => {
@@ -49,8 +41,11 @@ describe('25 — Public Blog Pages', () => {
 
     const post = readFileSync('src/pages/blog/post.astro', 'utf-8');
 
-    it('fetches from /api/blog/:slug', () => {
-      expect(post).toContain('`/api/blog/${slug}`');
+    it('loads the post and its reading time through the Post module', () => {
+      expect(post).toContain("from '../../lib/blog/client'");
+      expect(post).toContain("from '../../lib/blog/post'");
+      expect(post).toContain('fetchPost(slug)');
+      expect(post).toContain('readingTime(');
     });
 
     it('uses generateHTML to render Tiptap content', () => {

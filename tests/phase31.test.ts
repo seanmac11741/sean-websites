@@ -27,8 +27,12 @@ describe('31 — Latest Blog Post on Homepage', () => {
       expect(src).toContain('id="latest-post-content"');
     });
 
-    it('fetches from /api/blog', () => {
-      expect(src).toContain('/api/blog');
+    // Fetching, card markup and the "Read more" affordance are covered by
+    // tests/lib/blog.test.ts (the `latest` variant). This component only wires them up.
+    it('renders its card through the Post module', () => {
+      expect(src).toContain("from '../lib/blog/client'");
+      expect(src).toContain("from '../lib/blog/post'");
+      expect(src).toContain("renderPostCard(posts[0], { variant: 'latest'");
     });
 
     it('grabs the first post from the array', () => {
@@ -45,22 +49,6 @@ describe('31 — Latest Blog Post on Homepage', () => {
       expect(catchBlock).toContain("section.style.display = 'none'");
     });
 
-    it('renders card with link to blog post', () => {
-      expect(src).toContain('/blog/${post.slug}');
-    });
-
-    it('shows post title, description, date, reading time, and tags', () => {
-      expect(src).toContain('post.title');
-      expect(src).toContain('post.description');
-      expect(src).toContain('post.publishedAt');
-      expect(src).toContain('post.readingTime');
-      expect(src).toContain('post.tags');
-    });
-
-    it('has a "Read more" link', () => {
-      expect(src).toContain('Read more');
-    });
-
     it('has GSAP ScrollTrigger animation for heading', () => {
       expect(src).toContain("gsap.from('#latest-post-heading'");
       expect(src).toContain('ScrollTrigger');
@@ -75,11 +63,6 @@ describe('31 — Latest Blog Post on Homepage', () => {
       expect(src).toContain('max-w-6xl mx-auto px-6');
     });
 
-    it('card has hover states matching site style', () => {
-      expect(src).toContain('hover:border-accent/50');
-      expect(src).toContain('hover:-translate-y-1');
-      expect(src).toContain('hover:bg-surface/80');
-    });
   });
 
   describe('homepage integration', () => {

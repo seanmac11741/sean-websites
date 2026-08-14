@@ -35,12 +35,3 @@ export function setCors(req: { headers: Record<string, string | string[] | undef
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-export function wordCount(json: any): number {
-  let count = 0;
-  function walk(node: any) {
-    if (node?.text) count += node.text.split(/\s+/).filter(Boolean).length;
-    if (node?.content) node.content.forEach(walk);
-  }
-  if (json) walk(json);
-  return count;
-}

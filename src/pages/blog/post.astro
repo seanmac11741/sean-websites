@@ -44,6 +44,8 @@ import Nav from '../../components/Nav.astro';
     import Link from '@tiptap/extension-link';
     import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
     import { common, createLowlight } from 'lowlight';
+    import { fetchPost } from '../../lib/blog/client';
+    import { formatPostDate, readingTime } from '../../lib/blog/post';
 
     const lowlight = createLowlight(common);
     const extensions = [
@@ -56,16 +58,6 @@ import Nav from '../../components/Nav.astro';
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('slug') || window.location.pathname.replace(/^\/blog\//, '').replace(/\/$/, '');
 
-    function wordCount(json: any): number {
-      let count = 0;
-      function walk(node: any) {
-        if (node.text) count += node.text.split(/\s+/).filter(Boolean).length;
-        if (node.content) node.content.forEach(walk);
-      }
-      walk(json);
-      return count;
-    }
-
     async function loadPost() {
       if (!slug) {
         document.getElementById('post-loading')!.classList.add('hidden');
@@ -74,14 +66,12 @@ import Nav from '../../components/Nav.astro';
       }
 
       try {
-        const res = await fetch(`/api/blog/${slug}`);
-        if (!res.ok) {
+        const post = await fetchPost(slug);
+        if (!post) {
           document.getElementById('post-loading')!.classList.add('hidden');
           document.getElementById('post-not-found')!.classList.remove('hidden');
           return;
         }
-
-        const post = await res.json();
 
         document.getElementById('post-title')!.textContent = post.title;
         document.title = `${post.title} — Sean McConnell`;
@@ -89,16 +79,10 @@ import Nav from '../../components/Nav.astro';
         const meta = document.querySelector('meta[name="description"]');
         if (meta && post.description) meta.setAttribute('content', post.description);
 
-        if (post.publishedAt) {
-          document.getElementById('post-date')!.textContent = new Date(post.publishedAt).toLocaleDateString('en-US', {
-            month: 'long', day: 'numeric', year: 'numeric',
-          });
-        }
+        document.getElementById('post-date')!.textContent = formatPostDate(post.publishedAt);
 
         if (post.content) {
-          const words = wordCount(post.content);
-          const minutes = Math.max(1, Math.round(words / 200));
-          document.getElementById('post-reading-time')!.textContent = `${minutes} min read`;
+          document.getElementById('post-reading-time')!.textContent = `${readingTime(post.content)} min read`;
 
           const html = generateHTML(post.content, extensions);
           document.getElementById('post-body')!.innerHTML = html;
