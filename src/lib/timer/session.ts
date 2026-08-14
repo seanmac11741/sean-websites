@@ -31,7 +31,12 @@ export interface Session {
   endsAt: number | null;
   /** Time left. Derived from the Deadline while running; held while paused. */
   remainingSeconds: number;
-  /** How long the last completed focus Session ran — what "Repeat Focus" uses. */
+  /**
+   * The focus duration last chosen — what a focus Session starts at when the
+   * viewer has not just picked one. Both "Repeat Focus" and the "Start Focus"
+   * that follows a break read it, so the two agree. Only a focus Session
+   * starting writes it; a break leaves it alone.
+   */
   lastFocusSeconds: number;
   /** The break duration currently chosen on the transition screen. */
   breakSeconds: number;
@@ -162,6 +167,9 @@ function begin(session: Session, mode: Mode, totalSeconds: number, now: number):
       totalSeconds,
       endsAt: now + totalSeconds * 1000,
       remainingSeconds: totalSeconds,
+      // A focus duration is remembered the moment it is chosen, not when the
+      // Session it started completes — an abandoned 45 is still the last answer.
+      lastFocusSeconds: mode === 'focus' ? totalSeconds : session.lastFocusSeconds,
       phrase: null,
     },
     effects: ['showStarfield', 'playEntrance', 'save'],
@@ -190,8 +198,6 @@ export function reduce(session: Session, event: Event): Outcome {
           status: 'ringing',
           endsAt: null,
           remainingSeconds: 0,
-          lastFocusSeconds:
-            session.mode === 'focus' ? session.totalSeconds : session.lastFocusSeconds,
         },
         effects: ['clearSaved', 'startAlarm', 'pulseRing'],
       };
@@ -420,7 +426,7 @@ export function defaultMinutes(mode: Mode): number {
 export function nextStart(session: Session): { mode: Mode; minutes: number } {
   return session.mode === 'focus'
     ? { mode: 'break', minutes: Math.round(session.breakSeconds / 60) }
-    : { mode: 'focus', minutes: DEFAULT_FOCUS_MINUTES };
+    : { mode: 'focus', minutes: Math.round(session.lastFocusSeconds / 60) };
 }
 
 export interface TransitionView {
