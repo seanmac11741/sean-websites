@@ -6,6 +6,7 @@ import {
   DEFAULT_FOCUS_MINUTES,
   FOCUS_PHRASES,
   MAX_MINUTES,
+  RESUME_WINDOW_MS,
   formatTime,
   initialSession,
   modeLabel,
@@ -279,7 +280,7 @@ describe('Session', () => {
 
   describe('restore', () => {
     it('restores a running payload as paused, with the time actually left', () => {
-      const saved = toSaved(running(90));
+      const saved = toSaved(running(90), T0);
       const { session, effects } = reduce(initialSession(), {
         type: 'restore',
         payload: saved,
@@ -296,8 +297,8 @@ describe('Session', () => {
       const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
       const { session } = reduce(initialSession(), {
         type: 'restore',
-        payload: toSaved(paused),
-        now: T0 + 400 * MINUTE,
+        payload: toSaved(paused, T0 + 10 * MINUTE),
+        now: T0 + 30 * MINUTE,
       });
       expect(session.status).toBe('paused');
       expect(session.remainingSeconds).toBe(80 * 60);
@@ -314,20 +315,66 @@ describe('Session', () => {
       );
       const { session } = reduce(initialSession(), {
         type: 'restore',
-        payload: toSaved(withChoices),
+        payload: toSaved(withChoices, T0 + 46 * MINUTE),
         now: T0 + 46 * MINUTE,
       });
       expect(session.lastFocusSeconds).toBe(45 * 60);
       expect(session.breakSeconds).toBe(5 * 60);
     });
 
-    it('clamps a payload whose Deadline has already passed to zero', () => {
+    it('clamps a payload whose Deadline has just passed to zero', () => {
       const { session } = reduce(initialSession(), {
         type: 'restore',
-        payload: toSaved(running(90)),
+        payload: toSaved(running(90), T0),
+        now: T0 + 95 * MINUTE,
+      });
+      expect(session.status).toBe('paused');
+      expect(session.remainingSeconds).toBe(0);
+    });
+
+    it('offers a payload whose Deadline passed exactly the resume window ago', () => {
+      const { session, effects } = reduce(initialSession(), {
+        type: 'restore',
+        payload: toSaved(running(90), T0),
+        now: T0 + 90 * MINUTE + RESUME_WINDOW_MS,
+      });
+      expect(session.status).toBe('paused');
+      expect(effects).toEqual([]);
+    });
+
+    it('drops a payload whose Deadline passed more than the resume window ago', () => {
+      const { session, effects } = reduce(initialSession(), {
+        type: 'restore',
+        payload: toSaved(running(90), T0),
+        now: T0 + 90 * MINUTE + RESUME_WINDOW_MS + 1,
+      });
+      expect(session).toEqual(initialSession());
+      expect(effects).toEqual(['clearSaved']);
+    });
+
+    it('ages a paused payload from when it was left, not from when it would have ended', () => {
+      // Paused with 80 minutes on it, so its Deadline is still ahead at T0+80 —
+      // but it has sat untouched for 70 minutes, and that is what makes it stale.
+      const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
+      const payload = toSaved(paused, T0 + 10 * MINUTE);
+
+      const fresh = reduce(initialSession(), { type: 'restore', payload, now: T0 + 69 * MINUTE });
+      expect(fresh.session.status).toBe('paused');
+
+      const stale = reduce(initialSession(), { type: 'restore', payload, now: T0 + 71 * MINUTE });
+      expect(stale.session).toEqual(initialSession());
+      expect(stale.effects).toEqual(['clearSaved']);
+    });
+
+    it('drops a paused payload left alone for longer than the resume window', () => {
+      const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
+      const { session, effects } = reduce(initialSession(), {
+        type: 'restore',
+        payload: toSaved(paused, T0 + 10 * MINUTE),
         now: T0 + 400 * MINUTE,
       });
-      expect(session.remainingSeconds).toBe(0);
+      expect(session).toEqual(initialSession());
+      expect(effects).toEqual(['clearSaved']);
     });
 
     it.each([
@@ -336,8 +383,11 @@ describe('Session', () => {
       ['an empty object', {}],
       ['an unknown mode', { status: 'running', mode: 'sleep', totalSeconds: 60, endsAt: T0 }],
       ['a running payload with no Deadline', { status: 'running', mode: 'focus', totalSeconds: 60, endsAt: null }],
-      ['a non-numeric duration', { status: 'paused', mode: 'focus', totalSeconds: 'lots', remainingSeconds: 10 }],
-      ['a zero duration', { status: 'paused', mode: 'focus', totalSeconds: 0, remainingSeconds: 0 }],
+      ['a paused payload with no Deadline', { status: 'paused', mode: 'focus', totalSeconds: 60, remainingSeconds: 10 }],
+      ['a payload from the previous version', { remainingSeconds: 300, totalSeconds: 5400, mode: 'focus', savedAt: T0 }],
+      ['a non-numeric duration', { status: 'paused', mode: 'focus', totalSeconds: 'lots', remainingSeconds: 10, endsAt: T0 }],
+      ['a zero duration', { status: 'paused', mode: 'focus', totalSeconds: 0, remainingSeconds: 0, endsAt: T0 }],
+      ['a paused payload with no remaining time recorded', { status: 'paused', mode: 'focus', totalSeconds: 60, endsAt: T0 }],
     ])('falls back to a fresh Session and clears the save for %s', (_label, payload) => {
       const { session, effects } = reduce(running(90), { type: 'restore', payload, now: T0 });
       expect(session).toEqual(initialSession());
@@ -347,47 +397,51 @@ describe('Session', () => {
     it('says whether there is anything to offer the viewer', () => {
       const restored = (payload: unknown) =>
         reduce(initialSession(), { type: 'restore', payload, now: T0 }).session;
-      expect(canResume(restored(toSaved(running(90))))).toBe(true);
+      expect(canResume(restored(toSaved(running(90), T0)))).toBe(true);
       expect(canResume(restored('junk'))).toBe(false);
       expect(canResume(initialSession())).toBe(false);
     });
 
-    it('accepts a legacy payload that predates the status field', () => {
-      const { session, effects } = reduce(initialSession(), {
+    it('states the time genuinely left, not the time the Session was saved with', () => {
+      const paused = run(running(90), { type: 'pause', now: T0 + 70 * MINUTE });
+      const { session } = reduce(initialSession(), {
         type: 'restore',
-        payload: { remainingSeconds: 300, totalSeconds: 5400, mode: 'focus', savedAt: T0 },
-        now: T0,
+        payload: toSaved(run(paused, { type: 'resume', now: T0 + 70 * MINUTE }), T0 + 70 * MINUTE),
+        now: T0 + 86 * MINUTE,
       });
-      expect(session.status).toBe('paused');
-      expect(session.remainingSeconds).toBe(300);
-      expect(session.totalSeconds).toBe(5400);
-      expect(effects).toEqual([]);
+      expect(session.remainingSeconds).toBe(4 * 60);
+      expect(resumeMessage(session)).toBe('You had 4 minutes left on your focus timer. Resume?');
     });
   });
 
   describe('saved payload', () => {
     it('saves a running Session with its Deadline', () => {
-      const saved = toSaved(running(90));
+      const saved = toSaved(running(90), T0);
       expect(saved).toMatchObject({ status: 'running', mode: 'focus', endsAt: T0 + 90 * MINUTE });
     });
 
-    it('saves a paused Session with its remaining time', () => {
-      const saved = toSaved(run(running(90), { type: 'pause', now: T0 + 10 * MINUTE }));
-      expect(saved).toMatchObject({ status: 'paused', remainingSeconds: 80 * 60, endsAt: null });
+    it('saves a paused Session with its remaining time, and the Deadline it would have', () => {
+      const savedAt = T0 + 10 * MINUTE;
+      const saved = toSaved(run(running(90), { type: 'pause', now: savedAt }), savedAt);
+      expect(saved).toMatchObject({
+        status: 'paused',
+        remainingSeconds: 80 * 60,
+        endsAt: savedAt + 80 * MINUTE,
+      });
     });
 
     it('saves nothing for an idle, ringing or transition Session', () => {
       const ringing = run(running(1), { type: 'tick', now: T0 + MINUTE });
-      expect(toSaved(initialSession())).toBeNull();
-      expect(toSaved(ringing)).toBeNull();
-      expect(toSaved(run(ringing, { type: 'dismiss', draw: 0 }))).toBeNull();
+      expect(toSaved(initialSession(), T0)).toBeNull();
+      expect(toSaved(ringing, T0)).toBeNull();
+      expect(toSaved(run(ringing, { type: 'dismiss', draw: 0 }), T0)).toBeNull();
     });
 
     it('round-trips through restore', () => {
       const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
       const { session } = reduce(initialSession(), {
         type: 'restore',
-        payload: JSON.parse(JSON.stringify(toSaved(paused))),
+        payload: JSON.parse(JSON.stringify(toSaved(paused, T0 + 10 * MINUTE))),
         now: T0 + 20 * MINUTE,
       });
       expect(session).toEqual(paused);
@@ -410,7 +464,7 @@ describe('Session', () => {
       ['dismiss', ringing, { type: 'dismiss', draw: 0 }, ['stopAlarm', 'stopPulse']],
       ['chooseBreak', transition, { type: 'chooseBreak', minutes: 15 }, []],
       ['repeatFocus', transition, { type: 'repeatFocus', now: T0 + 2 * MINUTE }, ['showStarfield', 'playEntrance', 'save']],
-      ['restore', initialSession(), { type: 'restore', payload: toSaved(paused), now: T0 + 2 * MINUTE }, []],
+      ['restore', initialSession(), { type: 'restore', payload: toSaved(paused, T0 + MINUTE), now: T0 + 2 * MINUTE }, []],
       ['restore of junk', initialSession(), { type: 'restore', payload: 'junk', now: T0 }, ['clearSaved']],
     ])('%s', (_label, session, event, expected) => {
       expect(reduce(session, event).effects).toEqual(expected);
@@ -491,14 +545,14 @@ describe('Session', () => {
       const restored = (payload: unknown, now: number) =>
         reduce(initialSession(), { type: 'restore', payload, now }).session;
 
-      const focus = restored(toSaved(running(90)), T0 + 30 * MINUTE);
+      const focus = restored(toSaved(running(90), T0), T0 + 30 * MINUTE);
       expect(resumeMessage(focus)).toBe('You had 60 minutes left on your focus timer. Resume?');
 
-      const almostDone = restored(toSaved(running(90)), T0 + 89 * MINUTE);
+      const almostDone = restored(toSaved(running(90), T0), T0 + 89 * MINUTE);
       expect(resumeMessage(almostDone)).toBe('You had 1 minute left on your focus timer. Resume?');
 
       const onBreak = restored(
-        toSaved(run(initialSession(), { type: 'start', mode: 'break', minutes: 30, now: T0 })),
+        toSaved(run(initialSession(), { type: 'start', mode: 'break', minutes: 30, now: T0 }), T0),
         T0 + 10 * MINUTE,
       );
       expect(resumeMessage(onBreak)).toBe('You had 20 minutes left on your break timer. Resume?');

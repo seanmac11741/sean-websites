@@ -263,7 +263,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       case 'save': {
         // toSaved decides what may be restored; nothing to save means nothing
         // should stay on disk either.
-        const payload = toSaved(session);
+        const payload = toSaved(session, Date.now());
         if (payload) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
         else apply('clearSaved');
         break;

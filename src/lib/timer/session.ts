@@ -69,12 +69,19 @@ export interface Outcome {
   effects: Effect[];
 }
 
-/** What a running or paused Session is written to storage as. */
+/**
+ * What a running or paused Session is written to storage as.
+ *
+ * Every saved payload carries a Deadline, including a paused one — for a paused
+ * Session it is the instant it would end had it kept running from the save.
+ * That is what makes a saved Session's age knowable, and so what makes it
+ * expirable. A payload without one is not a payload this version wrote.
+ */
 export interface SavedSession {
   status: 'running' | 'paused';
   mode: Mode;
   totalSeconds: number;
-  endsAt: number | null;
+  endsAt: number;
   remainingSeconds: number;
   lastFocusSeconds: number;
   breakSeconds: number;
@@ -84,6 +91,13 @@ export const DEFAULT_FOCUS_MINUTES = 90;
 export const DEFAULT_BREAK_MINUTES = 30;
 export const MIN_MINUTES = 1;
 export const MAX_MINUTES = 300;
+
+/**
+ * How long past its Deadline a saved Session is still worth offering back.
+ * Walk away from a Session for longer than this and it is gone: the preset
+ * screen is a truer answer than a prompt about something long dead.
+ */
+export const RESUME_WINDOW_MS = 60 * 60 * 1000;
 
 export const FOCUS_PHRASES: readonly string[] = [
   'Go take a nap, you earned it.',
@@ -239,8 +253,13 @@ export function reduce(session: Session, event: Event): Outcome {
       return begin(session, 'focus', session.lastFocusSeconds, event.now);
 
     case 'restore': {
+      // Anything this version does not recognise — junk, a payload from before
+      // Sessions carried a Deadline, or one gone stale — is dropped, and the
+      // storage it came from is cleared rather than left to be re-read.
       const saved = parseSaved(event.payload);
-      if (!saved) return { session: initialSession(), effects: ['clearSaved'] };
+      if (!saved || !withinResumeWindow(saved, event.now)) {
+        return { session: initialSession(), effects: ['clearSaved'] };
+      }
 
       // A restored Session waits for the viewer to say "resume" — it does not
       // resume itself, so it comes back paused however it was saved.
@@ -250,8 +269,11 @@ export function reduce(session: Session, event: Event): Outcome {
           mode: saved.mode,
           totalSeconds: saved.totalSeconds,
           endsAt: null,
+          // A Session that was running kept running while the page was gone,
+          // so the time it comes back with is the time genuinely left. A paused
+          // one was not counting, and comes back with what it was paused at.
           remainingSeconds:
-            saved.status === 'running' && saved.endsAt !== null
+            saved.status === 'running'
               ? secondsUntil(saved.endsAt, event.now)
               : Math.max(0, Math.floor(saved.remainingSeconds)),
           lastFocusSeconds: saved.lastFocusSeconds,
@@ -274,14 +296,14 @@ export function choosePhrase(mode: Mode, draw: number): string {
 
 // === Saved payload ===
 
-/** What to persist, or null when this Session must not be restored. */
-export function toSaved(session: Session): SavedSession | null {
+/** What to persist at `now`, or null when this Session must not be restored. */
+export function toSaved(session: Session, now: number): SavedSession | null {
   if (session.status !== 'running' && session.status !== 'paused') return null;
   return {
     status: session.status,
     mode: session.mode,
     totalSeconds: session.totalSeconds,
-    endsAt: session.endsAt,
+    endsAt: session.endsAt ?? now + session.remainingSeconds * 1000,
     remainingSeconds: session.remainingSeconds,
     lastFocusSeconds: session.lastFocusSeconds,
     breakSeconds: session.breakSeconds,
@@ -290,6 +312,22 @@ export function toSaved(session: Session): SavedSession | null {
 
 function positiveNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/**
+ * The instant a saved Session stopped being live: its Deadline while running,
+ * and the instant it was written while paused — a paused Session counts down no
+ * further, so what makes it stale is how long ago it was left, not when it
+ * would have ended. Both are read off the Deadline every payload carries.
+ */
+function lastLiveAt(saved: SavedSession): number {
+  if (saved.status === 'running') return saved.endsAt;
+  return saved.endsAt - saved.remainingSeconds * 1000;
+}
+
+/** Whether a saved Session is recent enough to still be worth offering back. */
+function withinResumeWindow(saved: SavedSession, now: number): boolean {
+  return now - lastLiveAt(saved) <= RESUME_WINDOW_MS;
 }
 
 function parseSaved(payload: unknown): SavedSession | null {
@@ -304,17 +342,17 @@ function parseSaved(payload: unknown): SavedSession | null {
     return null;
   }
 
-  const endsAt =
-    typeof raw.endsAt === 'number' && Number.isFinite(raw.endsAt) ? raw.endsAt : null;
+  // No Deadline, no payload: this is either junk or something written before
+  // Sessions carried one, and either way there is no telling how old it is.
+  const endsAt = raw.endsAt;
+  if (typeof endsAt !== 'number' || !Number.isFinite(endsAt)) return null;
+
   const remainingSeconds =
     typeof raw.remainingSeconds === 'number' && Number.isFinite(raw.remainingSeconds)
       ? raw.remainingSeconds
       : null;
 
-  // Payloads written before Sessions had a Deadline carry only a remaining
-  // count; they restore as paused, which is how every payload is restored.
   const status = raw.status === 'running' ? 'running' : 'paused';
-  if (status === 'running' && endsAt === null) return null;
   if (status === 'paused' && remainingSeconds === null) return null;
 
   return {
