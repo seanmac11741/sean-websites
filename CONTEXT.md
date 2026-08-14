@@ -35,6 +35,10 @@ Pure: events in, a new Session and a list of **Effects** out. No DOM, no timers,
 
 **Mode** — which half of the cycle a Session belongs to: **focus** or **break**.
 
+**Status** — what a Session is doing: `idle`, `running`, `paused`, `ringing`, `transition`.
+It is what the page's screen is derived from (`screen()`); running and paused share one screen,
+which is why the two vocabularies are not the same list.
+
 **Deadline** — the absolute instant a running Session ends (`endsAt`). Time remaining is
 *derived* from it, never counted down, so a hidden tab, a sleeping machine or a page reload
 cannot make the Session drift. Replaced a per-frame decrement plus a backup `setTimeout`.

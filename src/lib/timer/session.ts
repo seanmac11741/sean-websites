@@ -71,7 +71,6 @@ export interface Outcome {
 
 /** What a running or paused Session is written to storage as. */
 export interface SavedSession {
-  version: number;
   status: 'running' | 'paused';
   mode: Mode;
   totalSeconds: number;
@@ -80,8 +79,6 @@ export interface SavedSession {
   lastFocusSeconds: number;
   breakSeconds: number;
 }
-
-export const SAVED_VERSION = 1;
 
 export const DEFAULT_FOCUS_MINUTES = 90;
 export const DEFAULT_BREAK_MINUTES = 30;
@@ -281,7 +278,6 @@ export function choosePhrase(mode: Mode, draw: number): string {
 export function toSaved(session: Session): SavedSession | null {
   if (session.status !== 'running' && session.status !== 'paused') return null;
   return {
-    version: SAVED_VERSION,
     status: session.status,
     mode: session.mode,
     totalSeconds: session.totalSeconds,
@@ -322,7 +318,6 @@ function parseSaved(payload: unknown): SavedSession | null {
   if (status === 'paused' && remainingSeconds === null) return null;
 
   return {
-    version: SAVED_VERSION,
     status,
     mode,
     totalSeconds,
@@ -358,6 +353,14 @@ export function screen(session: Session): Screen {
     case 'transition':
       return 'transition';
   }
+}
+
+/**
+ * Whether a Session restored from storage is one the viewer can be offered.
+ * A junk payload restores as idle, and there is nothing to resume.
+ */
+export function canResume(session: Session): boolean {
+  return session.status === 'paused';
 }
 
 /** How much of the ring is still filled, from 1 at the start to 0 at the end. */
