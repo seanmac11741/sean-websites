@@ -66,29 +66,18 @@ describe('Repeatable focus timer', () => {
     expect(page).toContain("const FOCUS_COLOR = '#818CF8'");
   });
 
-  it('restores night ambiance and auto-rotation when repeating focus', () => {
+  // What night and dawn restore is an ambiance-module rule — see
+  // tests/lib/flowstate-ambiance.test.ts. The page owes only the wiring.
+  it('restores night ambiance immediately when repeating focus', () => {
     const repeatHandler = page.slice(page.indexOf("repeatFocusBtn.addEventListener('click'"), page.indexOf('// === Break/Focus button'));
-    expect(repeatHandler).toContain('setFocusAmbiance()');
-    const focusAmbiance = page.slice(page.indexOf('function setFocusAmbiance'), page.indexOf('function setBreakAmbiance'));
-    expect(focusAmbiance).toContain('dawnAmount = 0');
-    expect(focusAmbiance).toContain('startAutoRotation()');
+    expect(repeatHandler).toContain('ambiance.toFocus({ animated: false })');
   });
 
-  it('disables break-only drag and pointer overrides for repeat focus', () => {
-    const focusAmbiance = page.slice(page.indexOf('function setFocusAmbiance'), page.indexOf('function setBreakAmbiance'));
-    expect(focusAmbiance).toContain("mainContent.style.pointerEvents = ''");
-    expect(focusAmbiance).toContain("starfieldCanvas.style.pointerEvents = ''");
-    expect(focusAmbiance).toContain("starfieldCanvas.style.cursor = 'default'");
-    expect(focusAmbiance).toContain('isDragging = false');
-  });
-
-  it('keeps break styling, dawn ambiance, and drag behavior', () => {
+  it('keeps break styling and dawn ambiance', () => {
     const breakHandler = page.slice(page.indexOf("breakBtn.addEventListener('click'"), page.indexOf('// === Check for saved state'));
     expect(breakHandler).toContain("mode = 'break'");
     expect(breakHandler).toContain('BREAK_COLOR');
-    expect(breakHandler).toContain('dawnAmount');
-    expect(breakHandler).toContain('stopAutoRotation()');
-    expect(breakHandler).toContain("starfieldCanvas.style.cursor = 'grab'");
+    expect(breakHandler).toContain('ambiance.toBreak()');
   });
 
   it('persists a repeated focus timer as soon as it starts', () => {

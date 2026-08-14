@@ -139,27 +139,8 @@ describe('Vercel Migration — plan.md todos 9-13', () => {
     });
   });
 
-  // === Todo 23: code-review.yml still works unchanged ===
-  describe('Todo 23: code-review.yml intact', () => {
-    const yml = readFileSync('.github/workflows/code-review.yml', 'utf-8');
-
-    it('still triggers on PR opened/synchronize', () => {
-      expect(yml).toMatch(/pull_request:/);
-      expect(yml).toMatch(/opened/);
-      expect(yml).toMatch(/synchronize/);
-    });
-
-    it('still uses anthropics/claude-code-action and ANTHROPIC_API_KEY', () => {
-      expect(yml).toContain('anthropics/claude-code-action');
-      expect(yml).toContain('ANTHROPIC_API_KEY');
-    });
-
-    it('has no Firebase or hosting references', () => {
-      expect(yml).not.toContain('firebase');
-      expect(yml).not.toContain('FIREBASE');
-      expect(yml).not.toContain('vercel');
-    });
-  });
+  // The auto-review workflow this section covered has been removed; deploy.yml
+  // is the only workflow left, and it is asserted above.
 
   // === Todo 13: vercel.json ===
   describe('Todo 13: vercel.json rewrite + cache headers', () => {
