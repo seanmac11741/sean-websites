@@ -98,6 +98,62 @@ describe('Session', () => {
       });
       expect(effects).toEqual(['showStarfield', 'playEntrance', 'save']);
     });
+
+    it('remembers a chosen focus duration as soon as the Session starts', () => {
+      expect(running(45).lastFocusSeconds).toBe(45 * 60);
+    });
+
+    it('remembers the clamped duration, not the one asked for', () => {
+      expect(running(9999).lastFocusSeconds).toBe(MAX_MINUTES * 60);
+    });
+
+    it('leaves the remembered focus duration alone when a break starts', () => {
+      const afterBreakStart = run(running(45), {
+        type: 'start',
+        mode: 'break',
+        minutes: 5,
+        now: T0,
+      });
+      expect(afterBreakStart.lastFocusSeconds).toBe(45 * 60);
+    });
+  });
+
+  describe('carrying a chosen focus duration across a break', () => {
+    /** A custom focus, run to completion, then a break run to completion. */
+    function afterCustomFocusAndBreak(focusMinutes: number): Session {
+      return run(
+        running(focusMinutes),
+        { type: 'tick', now: T0 + focusMinutes * MINUTE },
+        { type: 'dismiss', draw: 0 },
+        { type: 'start', mode: 'break', minutes: 5, now: T0 },
+        { type: 'tick', now: T0 + 5 * MINUTE },
+        { type: 'dismiss', draw: 0 },
+      );
+    }
+
+    it('starts the post-break focus at the duration last chosen', () => {
+      const transition = afterCustomFocusAndBreak(45);
+      const next = nextStart(transition);
+      const focus = run(transition, { type: 'start', ...next, now: T0 });
+      expect(focus.mode).toBe('focus');
+      expect(focus.totalSeconds).toBe(45 * 60);
+    });
+
+    it('starts Repeat Focus at that same duration', () => {
+      const transition = run(
+        running(45),
+        { type: 'tick', now: T0 + 45 * MINUTE },
+        { type: 'dismiss', draw: 0 },
+      );
+      expect(run(transition, { type: 'repeatFocus', now: T0 }).totalSeconds).toBe(45 * 60);
+    });
+
+    it('takes a newly chosen duration over the remembered one', () => {
+      const transition = afterCustomFocusAndBreak(45);
+      const focus = run(transition, { type: 'start', mode: 'focus', minutes: 20, now: T0 });
+      expect(focus.totalSeconds).toBe(20 * 60);
+      expect(focus.lastFocusSeconds).toBe(20 * 60);
+    });
   });
 
   describe('tick', () => {
@@ -509,6 +565,16 @@ describe('Session', () => {
 
       const afterBreak = run(
         afterFocus,
+        { type: 'start', mode: 'break', minutes: 5, now: T0 },
+        { type: 'tick', now: T0 + 5 * MINUTE },
+        { type: 'dismiss', draw: 0 },
+      );
+      expect(nextStart(afterBreak)).toEqual({ mode: 'focus', minutes: 45 });
+    });
+
+    it('offers the default focus duration after a break in a Session that chose none', () => {
+      const afterBreak = run(
+        initialSession(),
         { type: 'start', mode: 'break', minutes: 5, now: T0 },
         { type: 'tick', now: T0 + 5 * MINUTE },
         { type: 'dismiss', draw: 0 },
