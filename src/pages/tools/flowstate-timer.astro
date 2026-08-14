@@ -157,32 +157,32 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 <script>
   import { gsap } from 'gsap';
   import { createAmbiance, skyColor, starAlpha } from '../../lib/flowstate/ambiance';
+  import {
+    defaultMinutes,
+    formatTime,
+    initialSession,
+    modeLabel,
+    nextStart,
+    reduce,
+    resumeMessage,
+    ringFraction,
+    screen,
+    toSaved,
+    transitionView,
+    type Effect,
+    type Event as SessionEvent,
+    type Mode,
+    type Screen,
+    type Session,
+  } from '../../lib/timer/session';
 
-  // === State ===
+  // The Session module owns every decision: what a transition does, and which
+  // Effects it produces. This page owns only what a browser can do — the DOM,
+  // animation frames, gsap, the alarm oscillator, localStorage and the star
+  // field — and carries out the Effects it is handed.
   const STORAGE_KEY = 'flowstate-timer-state';
-  let totalSeconds = 90 * 60;
-  let remainingSeconds = totalSeconds;
-  let isRunning = false;
-  let isPaused = false;
-  let animationId: number | null = null;
-  let lastTimestamp: number | null = null;
-  let mode: 'focus' | 'break' = 'focus';
-  let completedFocusSeconds = totalSeconds;
 
-  // === Persistence ===
-  function saveState() {
-    const state = {
-      remainingSeconds,
-      totalSeconds,
-      mode,
-      savedAt: Date.now(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  function clearSavedState() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+  let session: Session = initialSession();
 
   // === DOM refs ===
   const mainContent = document.getElementById('main-content')!;
@@ -193,7 +193,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   const startBtn = document.getElementById('start-btn')!;
   const customInput = document.getElementById('custom-minutes') as HTMLInputElement;
   const presetBtns = document.querySelectorAll('.preset-btn');
-  const modeLabel = document.getElementById('mode-label')!;
+  const modeLabelEl = document.getElementById('mode-label')!;
   const pauseBtn = document.getElementById('pause-btn')!;
   const resetBtn = document.getElementById('reset-btn')!;
   const alarmContainer = document.getElementById('alarm-container')!;
@@ -210,243 +210,274 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   const focusPresetsContainer = document.getElementById('focus-presets')!;
   const initialBreakPresetsContainer = document.getElementById('initial-break-presets')!;
 
+  const resumePrompt = document.getElementById('resume-prompt')!;
+  const resumeMessageEl = document.getElementById('resume-message')!;
+  const resumeYes = document.getElementById('resume-yes')!;
+  const resumeNo = document.getElementById('resume-no')!;
+
   const CIRCUMFERENCE = 2 * Math.PI * 126; // ~791.68
   const FOCUS_COLOR = '#818CF8';
   const BREAK_COLOR = '#2dd4bf';
 
+  const ringColor = (mode: Mode) => (mode === 'break' ? BREAK_COLOR : FOCUS_COLOR);
+
+  // === Dispatch: events in, Effects carried out, DOM redrawn ===
+  let entranceQueued = false;
+  let entranceRunning = false;
+  let animationId: number | null = null;
+
+  function dispatch(event: SessionEvent) {
+    const outcome = reduce(session, event);
+    session = outcome.session;
+    for (const effect of outcome.effects) apply(effect);
+    render();
+
+    if (session.status !== 'running') stopLoop();
+    else if (!entranceRunning) startLoop();
+  }
+
+  function apply(effect: Effect) {
+    switch (effect) {
+      case 'startAlarm':
+        startAlarm();
+        break;
+      case 'stopAlarm':
+        stopAlarm();
+        break;
+      case 'pulseRing':
+        pulseRing();
+        break;
+      case 'stopPulse':
+        stopPulse();
+        break;
+      case 'showStarfield':
+        showStarfield();
+        break;
+      case 'playEntrance':
+        entranceQueued = true;
+        break;
+      case 'clearSaved':
+        localStorage.removeItem(STORAGE_KEY);
+        break;
+      case 'save': {
+        const payload = toSaved(session);
+        if (payload) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        else localStorage.removeItem(STORAGE_KEY);
+        break;
+      }
+    }
+  }
+
+  // === Rendering ===
+  let renderedMode: Mode | null = null;
+
+  // render runs on every animation frame, so it writes only what changed.
+  function setText(el: HTMLElement, value: string) {
+    if (el.textContent !== value) el.textContent = value;
+  }
+
+  function render() {
+    setText(timerDisplay, formatTime(session.remainingSeconds));
+    setText(pauseBtn, session.status === 'paused' ? 'Resume' : 'Pause');
+
+    if (ringProgress && session.mode !== renderedMode) {
+      renderedMode = session.mode;
+      ringProgress.setAttribute('stroke', ringColor(session.mode));
+    }
+
+    const transition = transitionView(session);
+    setText(phraseDisplay, transition.phrase);
+    setText(breakBtn, transition.nextLabel);
+    repeatFocusBtn.classList.toggle('hidden', !transition.showsRepeat);
+    breakPresetsContainer.classList.toggle('hidden', !transition.showsBreakChoices);
+
+    if (entranceQueued) {
+      entranceQueued = false;
+      playEntrance();
+      return;
+    }
+
+    // Anything else the viewer does wins over an entrance still in flight.
+    if (entranceRunning) cancelEntrance();
+
+    if (ringProgress) {
+      ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - ringFraction(session)));
+    }
+    showScreen(screen(session));
+  }
+
+  function showScreen(name: Screen) {
+    resumePrompt.classList.add('hidden');
+    presetsContainer.classList.toggle('hidden', name !== 'presets');
+    timerDisplayContainer.classList.toggle('hidden', name !== 'timer');
+    alarmContainer.classList.toggle('hidden', name !== 'alarm');
+    transitionContainer.classList.toggle('hidden', name !== 'transition');
+    if (name === 'presets') gsap.set(presetsContainer, { opacity: 1, scale: 1 });
+  }
+
+  // === Theatrical entrance onto the timer screen ===
+  // One timeline, so one kill undoes the whole thing if the viewer moves on.
+  let entranceTl: gsap.core.Timeline | null = null;
+
+  function playEntrance() {
+    cancelEntrance();
+    entranceRunning = true;
+    if (ringProgress) ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE);
+
+    entranceTl = gsap.timeline({
+      onComplete: () => {
+        entranceTl = null;
+        entranceRunning = false;
+        if (session.status === 'running') startLoop();
+      },
+    });
+
+    entranceTl.to(presetsContainer, { opacity: 0, scale: 0.95, duration: 0.3, ease: 'power2.in' });
+    entranceTl.add(() => {
+      showScreen('timer');
+      gsap.set(presetsContainer, { opacity: 1, scale: 1 });
+      gsap.set(timerDisplayContainer, { opacity: 0 });
+      gsap.set(timerDisplay, { scale: 0.5, opacity: 0 });
+    });
+    entranceTl.to(timerDisplayContainer, { opacity: 1, duration: 0.3, ease: 'power2.out' });
+    entranceTl.to(ringProgress, { strokeDashoffset: 0, duration: 1, ease: 'power3.out' }, '-=0.1');
+    entranceTl.to(timerDisplay, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.6');
+  }
+
+  function cancelEntrance() {
+    entranceTl?.kill();
+    entranceTl = null;
+    entranceRunning = false;
+    gsap.set(presetsContainer, { opacity: 1, scale: 1 });
+    gsap.set(timerDisplayContainer, { opacity: 1 });
+    gsap.set(timerDisplay, { scale: 1, opacity: 1 });
+  }
+
+  // === Timer loop ===
+  // Every frame asks the Session what time is left; the Deadline answers, so a
+  // stalled tab or a sleeping machine costs nothing but a late redraw.
+  function loop() {
+    animationId = null;
+    dispatch({ type: 'tick', now: Date.now() });
+  }
+
+  function startLoop() {
+    if (animationId === null) animationId = requestAnimationFrame(loop);
+  }
+
+  function stopLoop() {
+    if (animationId !== null) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+
   // === Preset selection ===
-  let selectedMinutes = 90;
+  let selectedMode: Mode = 'focus';
+  let selectedMinutes = defaultMinutes('focus');
+
+  function clearPresetHighlight(buttons: NodeListOf<Element>) {
+    buttons.forEach((b) => {
+      (b as HTMLElement).classList.remove('border-accent', 'text-accent');
+      (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
+    });
+  }
+
+  function highlightPreset(btn: Element, buttons: NodeListOf<Element>) {
+    clearPresetHighlight(buttons);
+    (btn as HTMLElement).classList.remove('border-white/20', 'text-slate-300');
+    (btn as HTMLElement).classList.add('border-accent', 'text-accent');
+  }
 
   presetBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const minutes = parseInt((btn as HTMLElement).dataset.minutes || '90');
-      selectedMinutes = minutes;
+      selectedMinutes = parseInt((btn as HTMLElement).dataset.minutes || '90');
       customInput.value = '';
-
-      // Update active style
-      presetBtns.forEach((b) => {
-        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
-        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
-      });
-      (btn as HTMLElement).classList.remove('border-white/20', 'text-slate-300');
-      (btn as HTMLElement).classList.add('border-accent', 'text-accent');
+      highlightPreset(btn, presetBtns);
     });
   });
 
   customInput.addEventListener('input', () => {
     const val = parseInt(customInput.value);
     if (val > 0) {
-      selectedMinutes = Math.min(val, 300);
-      presetBtns.forEach((b) => {
-        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
-        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
-      });
+      selectedMinutes = val;
+      clearPresetHighlight(presetBtns);
     }
   });
 
   // === Mode toggle (Focus / Break) on preset screen ===
-  modeToggleFocus.addEventListener('click', () => {
-    mode = 'focus';
-    selectedMinutes = 90;
-    modeLabel.textContent = 'Focus Time';
-    focusPresetsContainer.classList.remove('hidden');
-    initialBreakPresetsContainer.classList.add('hidden');
-    modeToggleFocus.classList.add('bg-accent', 'text-white');
-    modeToggleFocus.classList.remove('text-slate-300');
-    modeToggleBreak.classList.remove('bg-accent', 'text-white');
-    modeToggleBreak.classList.add('text-slate-300');
+  function selectMode(mode: Mode) {
+    selectedMode = mode;
+    selectedMinutes = defaultMinutes(mode);
+    modeLabelEl.textContent = modeLabel(mode);
+
+    const focusChosen = mode === 'focus';
+    focusPresetsContainer.classList.toggle('hidden', !focusChosen);
+    initialBreakPresetsContainer.classList.toggle('hidden', focusChosen);
+    modeToggleFocus.classList.toggle('bg-accent', focusChosen);
+    modeToggleFocus.classList.toggle('text-white', focusChosen);
+    modeToggleFocus.classList.toggle('text-slate-300', !focusChosen);
+    modeToggleBreak.classList.toggle('bg-accent', !focusChosen);
+    modeToggleBreak.classList.toggle('text-white', !focusChosen);
+    modeToggleBreak.classList.toggle('text-slate-300', focusChosen);
+  }
+
+  modeToggleFocus.addEventListener('click', () => selectMode('focus'));
+  modeToggleBreak.addEventListener('click', () => selectMode('break'));
+
+  // === Session controls ===
+  startBtn.addEventListener('click', () => {
+    ensureAudio();
+    dispatch({ type: 'start', mode: selectedMode, minutes: selectedMinutes, now: Date.now() });
   });
 
-  modeToggleBreak.addEventListener('click', () => {
-    mode = 'break';
-    selectedMinutes = 30;
-    modeLabel.textContent = 'Break Time';
-    focusPresetsContainer.classList.add('hidden');
-    initialBreakPresetsContainer.classList.remove('hidden');
-    modeToggleBreak.classList.add('bg-accent', 'text-white');
-    modeToggleBreak.classList.remove('text-slate-300');
-    modeToggleFocus.classList.remove('bg-accent', 'text-white');
-    modeToggleFocus.classList.add('text-slate-300');
-  });
-
-  // === Format time ===
-  function formatTime(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-
-  // === Update ring ===
-  function updateRing() {
-    if (!ringProgress) return;
-    const fraction = remainingSeconds / totalSeconds;
-    const offset = CIRCUMFERENCE * (1 - fraction);
-    ringProgress.style.strokeDashoffset = String(offset);
-  }
-
-  // === Backup timeout (fires even when tab is hidden, unlike rAF) ===
-  let backupTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  function setBackupTimeout() {
-    clearBackupTimeout();
-    if (remainingSeconds > 0) {
-      backupTimeout = setTimeout(() => {
-        if (!isRunning || isPaused) return;
-        remainingSeconds = 0;
-        isRunning = false;
-        timerDisplay.textContent = formatTime(0);
-        updateRing();
-        clearSavedState();
-        if (animationId) cancelAnimationFrame(animationId);
-        onTimerComplete();
-      }, remainingSeconds * 1000);
-    }
-  }
-
-  function clearBackupTimeout() {
-    if (backupTimeout) {
-      clearTimeout(backupTimeout);
-      backupTimeout = null;
-    }
-  }
-
-  // === Timer loop ===
-  function tick(timestamp: number) {
-    if (!lastTimestamp) lastTimestamp = timestamp;
-    const elapsed = (timestamp - lastTimestamp) / 1000;
-
-    if (elapsed >= 1) {
-      const secondsToSubtract = Math.floor(elapsed);
-      remainingSeconds = Math.max(0, remainingSeconds - secondsToSubtract);
-      lastTimestamp = timestamp;
-
-      timerDisplay.textContent = formatTime(remainingSeconds);
-      updateRing();
-      saveState();
-
-      if (remainingSeconds <= 0) {
-        isRunning = false;
-        clearBackupTimeout();
-        clearSavedState();
-        onTimerComplete();
-        return;
-      }
-    }
-
-    animationId = requestAnimationFrame(tick);
-  }
-
-  // === Start timer ===
-  function startTimer(durationSeconds?: number) {
-    totalSeconds = durationSeconds ?? selectedMinutes * 60;
-    remainingSeconds = totalSeconds;
-    isRunning = true;
-    isPaused = false;
-    lastTimestamp = null;
-    saveState();
-
-    if (!audioCtx) audioCtx = new AudioContext();
-    showStarfield();
-    timerDisplay.textContent = formatTime(remainingSeconds);
-
-    // Set ring color based on mode and reset to full
-    if (ringProgress) {
-      ringProgress.setAttribute('stroke', mode === 'break' ? BREAK_COLOR : FOCUS_COLOR);
-      ringProgress.style.strokeDashoffset = String(CIRCUMFERENCE);
-    }
-
-    // Theatrical entrance animation
-    gsap.to(presetsContainer, {
-      opacity: 0,
-      scale: 0.95,
-      duration: 0.3,
-      ease: 'power2.in',
-      onComplete: () => {
-        presetsContainer.classList.add('hidden');
-        timerDisplayContainer.classList.remove('hidden');
-
-        // Set initial states for entrance
-        gsap.set(timerDisplayContainer, { opacity: 0 });
-        gsap.set(timerDisplay, { scale: 0.5, opacity: 0 });
-
-        const tl = gsap.timeline({
-          onComplete: () => {
-            setBackupTimeout();
-            animationId = requestAnimationFrame(tick);
-          }
-        });
-
-        // Fade in container
-        tl.to(timerDisplayContainer, {
-          opacity: 1,
-          duration: 0.3,
-          ease: 'power2.out',
-        });
-
-        // Ring draws itself on
-        tl.to(ringProgress, {
-          strokeDashoffset: 0,
-          duration: 1,
-          ease: 'power3.out',
-        }, '-=0.1');
-
-        // Digits scale up and fade in
-        tl.to(timerDisplay, {
-          scale: 1,
-          opacity: 1,
-          duration: 0.5,
-          ease: 'back.out(1.7)',
-        }, '-=0.6');
-      }
-    });
-  }
-
-  startBtn.addEventListener('click', () => startTimer());
-
-  // === Pause / Resume ===
   pauseBtn.addEventListener('click', () => {
-    if (isPaused) {
-      // Resume
-      isPaused = false;
-      isRunning = true;
-      lastTimestamp = null;
-      pauseBtn.textContent = 'Pause';
-      setBackupTimeout();
-      animationId = requestAnimationFrame(tick);
-    } else {
-      // Pause
-      isPaused = true;
-      isRunning = false;
-      pauseBtn.textContent = 'Resume';
-      clearBackupTimeout();
-      if (animationId) cancelAnimationFrame(animationId);
-    }
+    const now = Date.now();
+    dispatch(session.status === 'paused' ? { type: 'resume', now } : { type: 'pause', now });
   });
 
-  // === Reset ===
-  resetBtn.addEventListener('click', () => {
-    isRunning = false;
-    isPaused = false;
-    clearBackupTimeout();
-    if (animationId) cancelAnimationFrame(animationId);
-    animationId = null;
-    lastTimestamp = null;
-    remainingSeconds = totalSeconds;
-    clearSavedState();
+  resetBtn.addEventListener('click', () => dispatch({ type: 'reset' }));
 
-    timerDisplayContainer.classList.add('hidden');
-    presetsContainer.classList.remove('hidden');
-    gsap.set(presetsContainer, { opacity: 1, scale: 1 });
-    pauseBtn.textContent = 'Pause';
+  dismissBtn.addEventListener('click', () => dispatch({ type: 'dismiss', draw: Math.random() }));
 
-    if (ringProgress) {
-      ringProgress.style.strokeDashoffset = '0';
-    }
+  breakPresetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      dispatch({
+        type: 'chooseBreak',
+        minutes: parseInt((btn as HTMLElement).dataset.breakMinutes || '30'),
+      });
+      highlightPreset(btn, breakPresetBtns);
+    });
+  });
+
+  repeatFocusBtn.addEventListener('click', () => {
+    ensureAudio();
+    ambiance.toFocus({ animated: false });
+    dispatch({ type: 'repeatFocus', now: Date.now() });
+  });
+
+  // The Session says which mode comes next; the star field decides what that
+  // mode looks like.
+  breakBtn.addEventListener('click', () => {
+    ensureAudio();
+    const next = nextStart(session);
+    selectedMode = next.mode;
+    selectedMinutes = next.minutes;
+    modeLabelEl.textContent = modeLabel(next.mode);
+    if (next.mode === 'break') ambiance.toBreak();
+    else ambiance.toFocus();
+    dispatch({ type: 'start', ...next, now: Date.now() });
   });
 
   // === Web Audio API Alarm ===
   let audioCtx: AudioContext | null = null;
   let alarmInterval: ReturnType<typeof setInterval> | null = null;
+
+  // The context has to be created inside a user gesture, or the browser
+  // suspends it and the alarm never sounds.
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new AudioContext();
+  }
 
   function playBeep() {
     if (!audioCtx) return;
@@ -494,7 +525,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       ease: 'power2.in',
     });
     pulseTimeline.to(ringProgress, {
-      attr: { stroke: mode === 'break' ? BREAK_COLOR : FOCUS_COLOR },
+      attr: { stroke: ringColor(session.mode) },
       duration: 0.3,
       ease: 'power2.out',
     });
@@ -506,179 +537,43 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       pulseTimeline = null;
     }
     if (ringProgress) {
-      ringProgress.setAttribute('stroke', mode === 'break' ? BREAK_COLOR : FOCUS_COLOR);
+      ringProgress.setAttribute('stroke', ringColor(session.mode));
     }
   }
-
-  // === Timer complete ===
-  function onTimerComplete() {
-    if (mode === 'focus') completedFocusSeconds = totalSeconds;
-    clearSavedState();
-    startAlarm();
-    pulseRing();
-    timerDisplayContainer.classList.add('hidden');
-    alarmContainer.classList.remove('hidden');
-  }
-
-  // === Dismiss alarm ===
-  dismissBtn.addEventListener('click', () => {
-    stopAlarm();
-    stopPulse();
-    alarmContainer.classList.add('hidden');
-    onAlarmDismissed();
-  });
-
-  // === Fun phrases ===
-  const focusPhrases: string[] = [
-    'Go take a nap, you earned it.',
-    'Look up a YouTube video on cats.',
-    'Stretch it out. Touch your toes.',
-    'Go for a walk around the block.',
-    'Grab a snack. Hydrate. Breathe.',
-    'Stare out a window for a bit.',
-    'Text someone you haven\'t talked to in a while.',
-    'Do 20 push-ups. Or 5. Or 1.',
-    'Put on your favorite song and just listen.',
-    'Close your eyes for 2 minutes. Seriously.',
-  ];
-  const breakPhrases: string[] = [
-    'Time to lock in. Let\'s go.',
-    'You\'re refreshed. Now crush it.',
-    'Back to the grind. Build something great.',
-    'Flow state awaits. Focus up.',
-    'Break\'s over. Ship something.',
-    'Channel that energy. Go deep.',
-    'The code isn\'t gonna write itself.',
-    'Ready? Set? Lock in.',
-    'Fresh eyes, fresh mind. Let\'s build.',
-    'One more session. You got this.',
-  ];
-
-  function getRandomPhrase(phrases: string[]): string {
-    if (phrases.length === 0) return 'Nice work!';
-    return phrases[Math.floor(Math.random() * phrases.length)];
-  }
-
-  // === Break preset selection ===
-  let selectedBreakMinutes = 30;
-
-  breakPresetBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const minutes = parseInt((btn as HTMLElement).dataset.breakMinutes || '30');
-      selectedBreakMinutes = minutes;
-
-      breakPresetBtns.forEach((b) => {
-        (b as HTMLElement).classList.remove('border-accent', 'text-accent');
-        (b as HTMLElement).classList.add('border-white/20', 'text-slate-300');
-      });
-      (btn as HTMLElement).classList.remove('border-white/20', 'text-slate-300');
-      (btn as HTMLElement).classList.add('border-accent', 'text-accent');
-    });
-  });
-
-  function onAlarmDismissed() {
-    if (mode === 'focus') {
-      // Show post-focus transition
-      phraseDisplay.textContent = getRandomPhrase(focusPhrases);
-      breakBtn.textContent = 'Take a Break';
-      repeatFocusBtn.classList.remove('hidden');
-      breakPresetsContainer.classList.remove('hidden');
-    } else {
-      // Show post-break transition
-      phraseDisplay.textContent = getRandomPhrase(breakPhrases);
-      breakBtn.textContent = 'Start Focus';
-      repeatFocusBtn.classList.add('hidden');
-      breakPresetsContainer.classList.add('hidden');
-    }
-    transitionContainer.classList.remove('hidden');
-  }
-
-  // === Repeat focus with the completed session's exact duration ===
-  repeatFocusBtn.addEventListener('click', () => {
-    mode = 'focus';
-    ambiance.toFocus({ animated: false });
-    transitionContainer.classList.add('hidden');
-    repeatFocusBtn.classList.add('hidden');
-    startTimer(completedFocusSeconds);
-  });
-
-  // === Break/Focus button click — switch mode and start ===
-  breakBtn.addEventListener('click', () => {
-    transitionContainer.classList.add('hidden');
-    breakPresetsContainer.classList.add('hidden');
-
-    if (mode === 'focus') {
-      // Switch to break mode
-      mode = 'break';
-      selectedMinutes = selectedBreakMinutes;
-      modeLabel.textContent = 'Break Time';
-      if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
-      ambiance.toBreak();
-    } else {
-      // Switch to focus mode
-      mode = 'focus';
-      selectedMinutes = 90;
-      modeLabel.textContent = 'Focus Time';
-      if (ringProgress) ringProgress.setAttribute('stroke', FOCUS_COLOR);
-      ambiance.toFocus();
-    }
-
-    startTimer();
-  });
 
   // === Check for saved state on page load ===
-  const resumePrompt = document.getElementById('resume-prompt')!;
-  const resumeMessage = document.getElementById('resume-message')!;
-  const resumeYes = document.getElementById('resume-yes')!;
-  const resumeNo = document.getElementById('resume-no')!;
-
+  // A restored Session comes back paused and waits behind the prompt: the
+  // Session module decides whether the payload is worth restoring at all.
   (function checkSavedState() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
 
+    let payload: unknown = null;
     try {
-      const state = JSON.parse(saved);
-      const minutesLeft = Math.ceil(state.remainingSeconds / 60);
-      const modeText = state.mode === 'focus' ? 'focus' : 'break';
-      resumeMessage.textContent = `You had ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} left on your ${modeText} timer. Resume?`;
-
-      presetsContainer.classList.add('hidden');
-      resumePrompt.classList.remove('hidden');
-
-      resumeYes.addEventListener('click', () => {
-        if (!audioCtx) audioCtx = new AudioContext();
-        totalSeconds = state.totalSeconds;
-        remainingSeconds = state.remainingSeconds;
-        mode = state.mode;
-        selectedMinutes = Math.ceil(state.totalSeconds / 60);
-
-        if (mode === 'break') {
-          modeLabel.textContent = 'Break Time';
-          if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
-        }
-
-        showStarfield();
-        if (mode === 'break') {
-          ambiance.toBreak({ animated: false });
-        }
-        resumePrompt.classList.add('hidden');
-        timerDisplayContainer.classList.remove('hidden');
-        timerDisplay.textContent = formatTime(remainingSeconds);
-        updateRing();
-        lastTimestamp = null;
-        isRunning = true;
-        setBackupTimeout();
-        animationId = requestAnimationFrame(tick);
-      });
-
-      resumeNo.addEventListener('click', () => {
-        clearSavedState();
-        resumePrompt.classList.add('hidden');
-        presetsContainer.classList.remove('hidden');
-      });
+      payload = JSON.parse(saved);
     } catch {
-      clearSavedState();
+      payload = null;
     }
+
+    const outcome = reduce(session, { type: 'restore', payload, now: Date.now() });
+    session = outcome.session;
+    for (const effect of outcome.effects) apply(effect);
+    if (screen(session) !== 'timer') return;
+
+    resumeMessageEl.textContent = resumeMessage(session);
+    presetsContainer.classList.add('hidden');
+    resumePrompt.classList.remove('hidden');
+
+    resumeYes.addEventListener('click', () => {
+      ensureAudio();
+      selectedMode = session.mode;
+      selectedMinutes = Math.ceil(session.totalSeconds / 60);
+      modeLabelEl.textContent = modeLabel(session.mode);
+      if (session.mode === 'break') ambiance.toBreak({ animated: false });
+      dispatch({ type: 'resume', now: Date.now() });
+    });
+
+    resumeNo.addEventListener('click', () => dispatch({ type: 'reset' }));
   })();
 
   // === Star Field ===
@@ -1086,7 +981,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   let dragStartX = 0;
 
   starfieldCanvas.addEventListener('mousedown', (e: MouseEvent) => {
-    if (mode !== 'break') return;
+    if (session.mode !== 'break') return;
     isDragging = true;
     dragStartX = e.clientX;
     starfieldCanvas.style.cursor = 'grabbing';
@@ -1103,14 +998,14 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   window.addEventListener('mouseup', () => {
     if (!isDragging) return;
     isDragging = false;
-    starfieldCanvas.style.cursor = mode === 'break' ? 'grab' : 'default';
+    starfieldCanvas.style.cursor = session.mode === 'break' ? 'grab' : 'default';
   });
 
   // === Touch drag rotation (break mode only, mobile) ===
   let touchStartX = 0;
 
   starfieldCanvas.addEventListener('touchstart', (e: TouchEvent) => {
-    if (mode !== 'break') return;
+    if (session.mode !== 'break') return;
     isDragging = true;
     touchStartX = e.touches[0].clientX;
   }, { passive: true });
