@@ -629,32 +629,18 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
   });
 
   // === Todo 24: Break mode dawn ambiance ===
+  // The ambiance rules themselves live in src/lib/flowstate/ambiance.ts and are
+  // covered by tests/lib/flowstate-ambiance.test.ts. All this page owes is the
+  // wiring a pure test cannot see: that it imports and drives that module.
   describe('Break mode dawn ambiance', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('has a dawnAmount variable for controlling ambiance', () => {
-      expect(page).toContain('dawnAmount');
-    });
-
-    it('uses gsap to transition dawnAmount when entering break mode', () => {
-      const breakClickSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const endIdx = breakClickSection.indexOf('\n  //', 10);
-      const body = endIdx > 0 ? breakClickSection.slice(0, endIdx) : breakClickSection.slice(0, 800);
-      expect(body).toContain('dawnAmount');
-    });
-
-    it('transitions dawnAmount back to 0 when returning to focus mode', () => {
-      const breakClickSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakClickSection.slice(0, 800);
-      // Should animate dawnAmount to 0 for focus
-      expect(body).toMatch(/dawnAmount.*0|dawnAmount.*focus/);
-    });
-
-    it('renderField uses dawnAmount to adjust background color', () => {
-      const renderSection = page.slice(page.indexOf('function renderField'));
-      const nextFn = renderSection.indexOf('\n  function ', 10);
-      const body = nextFn > 0 ? renderSection.slice(0, nextFn) : renderSection.slice(0, 500);
-      expect(body).toContain('dawnAmount');
+    it('drives both mode switches through the shared ambiance module', () => {
+      expect(page).toContain("from '../../lib/flowstate/ambiance'");
+      const breakHandler = page.slice(page.indexOf('breakBtn.addEventListener'));
+      const body = breakHandler.slice(0, breakHandler.indexOf('startTimer();'));
+      expect(body).toContain('ambiance.toBreak()');
+      expect(body).toContain('ambiance.toFocus()');
     });
 
     it('ring color shifts for break mode (uses BREAK_COLOR)', () => {
@@ -691,18 +677,8 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
       expect(body).toContain('rotationAngle');
     });
 
-    it('stops auto-rotation during break mode', () => {
-      // When entering break mode, auto-rotation should stop to allow drag
-      const breakClickSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakClickSection.slice(0, 1500);
-      expect(body).toContain('stopAutoRotation');
-    });
-
-    it('restarts auto-rotation when returning to focus mode', () => {
-      const breakClickSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakClickSection.slice(0, 1500);
-      expect(body).toContain('startAutoRotation');
-    });
+    // Stopping rotation on break and restarting it on focus is a rule of the
+    // ambiance module — see tests/lib/flowstate-ambiance.test.ts.
   });
 
   // === Todo 26: Mobile touch-drag support ===
@@ -844,21 +820,15 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
   describe('Pointer-events fix for break mode drag', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('sets pointer-events via mainContent during mode switch', () => {
-      expect(page).toContain('mainContent.style.pointerEvents');
-    });
-
-    it('disables main pointer-events during break so canvas receives clicks', () => {
-      const breakBtnSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakBtnSection.slice(0, 1500);
+    it('hands pointer events between the page and the canvas', () => {
+      // Which mode gets pointer events is an ambiance-module rule; the page owns
+      // only the DOM writes behind setSkyInteractive.
+      const handoff = page.slice(page.indexOf('setSkyInteractive:'));
+      const body = handoff.slice(0, handoff.indexOf('animate:'));
       expect(body).toContain("mainContent.style.pointerEvents = 'none'");
-    });
-
-    it('restores main pointer-events when returning to focus', () => {
-      const breakBtnSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakBtnSection.slice(0, 1500);
-      // pointerEvents reset to empty string (restores CSS default)
-      expect(body).toMatch(/mainContent\.style\.pointerEvents\s*=\s*['"]['"]|mainContent\.style\.pointerEvents\s*=\s*''/);
+      expect(body).toContain("starfieldCanvas.style.pointerEvents = 'auto'");
+      expect(body).toContain("mainContent.style.pointerEvents = ''");
+      expect(body).toContain("starfieldCanvas.style.pointerEvents = ''");
     });
 
     it('timer-container has pointer-events-auto so controls remain clickable', () => {

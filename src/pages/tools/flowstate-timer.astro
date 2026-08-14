@@ -156,6 +156,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
 <script>
   import { gsap } from 'gsap';
+  import { createAmbiance, skyColor, starAlpha } from '../../lib/flowstate/ambiance';
 
   // === State ===
   const STORAGE_KEY = 'flowstate-timer-state';
@@ -595,7 +596,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   // === Repeat focus with the completed session's exact duration ===
   repeatFocusBtn.addEventListener('click', () => {
     mode = 'focus';
-    setFocusAmbiance();
+    ambiance.toFocus({ animated: false });
     transitionContainer.classList.add('hidden');
     repeatFocusBtn.classList.add('hidden');
     startTimer(completedFocusSeconds);
@@ -612,24 +613,14 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       selectedMinutes = selectedBreakMinutes;
       modeLabel.textContent = 'Break Time';
       if (ringProgress) ringProgress.setAttribute('stroke', BREAK_COLOR);
-      // Dawn ambiance transition
-      gsap.to({ v: dawnAmount }, { v: 1, duration: 2, ease: 'power2.inOut', onUpdate: function() { dawnAmount = this.targets()[0].v; renderField(); } });
-      stopAutoRotation();
-      mainContent.style.pointerEvents = 'none';
-      starfieldCanvas.style.pointerEvents = 'auto';
-      starfieldCanvas.style.cursor = 'grab';
+      ambiance.toBreak();
     } else {
       // Switch to focus mode
       mode = 'focus';
       selectedMinutes = 90;
       modeLabel.textContent = 'Focus Time';
       if (ringProgress) ringProgress.setAttribute('stroke', FOCUS_COLOR);
-      // Return to night ambiance
-      gsap.to({ v: dawnAmount }, { v: 0, duration: 2, ease: 'power2.inOut', onUpdate: function() { dawnAmount = this.targets()[0].v; } });
-      startAutoRotation();
-      mainContent.style.pointerEvents = '';
-      starfieldCanvas.style.pointerEvents = '';
-      starfieldCanvas.style.cursor = 'default';
+      ambiance.toFocus();
     }
 
     startTimer();
@@ -668,11 +659,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
         showStarfield();
         if (mode === 'break') {
-          dawnAmount = 1;
-          stopAutoRotation();
-          mainContent.style.pointerEvents = 'none';
-          starfieldCanvas.style.pointerEvents = 'auto';
-          starfieldCanvas.style.cursor = 'grab';
+          ambiance.toBreak({ animated: false });
         }
         resumePrompt.classList.add('hidden');
         timerDisplayContainer.classList.remove('hidden');
@@ -1008,38 +995,46 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     }
   });
 
-  let dawnAmount = 0; // 0 = night (focus), 1 = dawn (break)
+  // Both mode switches run through this one controller, so focus and break are
+  // mirror images: each repaints the sky on every frame of its transition.
+  const AMBIANCE_DURATION = 2;
 
-  function setFocusAmbiance() {
-    dawnAmount = 0;
-    isDragging = false;
-    mainContent.style.pointerEvents = '';
-    starfieldCanvas.style.pointerEvents = '';
-    starfieldCanvas.style.cursor = 'default';
-    renderField();
-    startAutoRotation();
-  }
-
-  function setBreakAmbiance() {
-    dawnAmount = 1;
-    renderField();
-    stopAutoRotation();
-  }
+  const ambiance = createAmbiance({
+    render: () => renderField(),
+    startRotation: () => startAutoRotation(),
+    stopRotation: () => stopAutoRotation(),
+    setSkyInteractive: (interactive) => {
+      if (interactive) {
+        mainContent.style.pointerEvents = 'none';
+        starfieldCanvas.style.pointerEvents = 'auto';
+        starfieldCanvas.style.cursor = 'grab';
+      } else {
+        isDragging = false;
+        mainContent.style.pointerEvents = '';
+        starfieldCanvas.style.pointerEvents = '';
+        starfieldCanvas.style.cursor = 'default';
+      }
+    },
+    animate: (from, to, onUpdate) => {
+      gsap.to({ v: from }, {
+        v: to,
+        duration: AMBIANCE_DURATION,
+        ease: 'power2.inOut',
+        onUpdate: function () { onUpdate(this.targets()[0].v); },
+      });
+    },
+  });
 
   function renderField() {
     const w = starfieldCanvas.width;
     const h = starfieldCanvas.height;
 
-    // Background gradient
-    const r = Math.round(10 + dawnAmount * 25);
-    const g = Math.round(10 + dawnAmount * 20);
-    const b = Math.round(15 + dawnAmount * 35);
-    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    ctx.fillStyle = skyColor(ambiance.amount);
     ctx.fillRect(0, 0, w, h);
 
-    const starAlpha = 1 - dawnAmount * 0.4;
-    drawStars(starAlpha);
-    drawLines(starAlpha);
+    const alpha = starAlpha(ambiance.amount);
+    drawStars(alpha);
+    drawLines(alpha);
     drawLabels();
   }
 
