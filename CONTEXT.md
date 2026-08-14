@@ -52,11 +52,13 @@ Only running and paused Sessions are saved. A restored Session comes back paused
 behind the resume prompt — a ringing alarm restored on load would beep at a page you just opened.
 It comes back with the time genuinely left, not the time it was saved with.
 
-**Resume Window** — how long past its Deadline a saved Session is still worth offering back:
-one hour (`RESUME_WINDOW_MS`). Every saved payload carries a Deadline, a paused one included —
-there it is the instant the Session would end had it kept running from the save — which is what
-makes a save's age knowable. Past the window the payload is dropped and the storage cleared, and
-the viewer lands on the preset screen. There is no version field and no migration: a payload the
+**Resume Window** — how long after a Session was last live it is still worth offering back:
+one hour (`RESUME_WINDOW_MS`). Last live means its Deadline while running, and the instant it was
+saved while paused — a paused Session counts down no further, so what makes it stale is how long
+ago it was left. Every saved payload carries a Deadline, a paused one included, where it is the
+instant the Session would end had it kept running from the save; both instants are read off it.
+Past the window the payload is dropped and the storage cleared, and the viewer lands on the
+preset screen. There is no version field and no migration: a payload the
 module does not recognise — junk, or one written before Sessions carried a Deadline — degrades
 the same way, to a fresh start.
 

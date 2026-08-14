@@ -352,6 +352,20 @@ describe('Session', () => {
       expect(effects).toEqual(['clearSaved']);
     });
 
+    it('ages a paused payload from when it was left, not from when it would have ended', () => {
+      // Paused with 80 minutes on it, so its Deadline is still ahead at T0+80 —
+      // but it has sat untouched for 70 minutes, and that is what makes it stale.
+      const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
+      const payload = toSaved(paused, T0 + 10 * MINUTE);
+
+      const fresh = reduce(initialSession(), { type: 'restore', payload, now: T0 + 69 * MINUTE });
+      expect(fresh.session.status).toBe('paused');
+
+      const stale = reduce(initialSession(), { type: 'restore', payload, now: T0 + 71 * MINUTE });
+      expect(stale.session).toEqual(initialSession());
+      expect(stale.effects).toEqual(['clearSaved']);
+    });
+
     it('drops a paused payload left alone for longer than the resume window', () => {
       const paused = run(running(90), { type: 'pause', now: T0 + 10 * MINUTE });
       const { session, effects } = reduce(initialSession(), {

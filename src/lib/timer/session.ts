@@ -256,8 +256,10 @@ export function reduce(session: Session, event: Event): Outcome {
       // Anything this version does not recognise — junk, a payload from before
       // Sessions carried a Deadline, or one gone stale — is dropped, and the
       // storage it came from is cleared rather than left to be re-read.
-      const saved = parseSaved(event.payload, event.now);
-      if (!saved) return { session: initialSession(), effects: ['clearSaved'] };
+      const saved = parseSaved(event.payload);
+      if (!saved || !withinResumeWindow(saved, event.now)) {
+        return { session: initialSession(), effects: ['clearSaved'] };
+      }
 
       // A restored Session waits for the viewer to say "resume" — it does not
       // resume itself, so it comes back paused however it was saved.
@@ -312,7 +314,23 @@ function positiveNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-function parseSaved(payload: unknown, now: number): SavedSession | null {
+/**
+ * The instant a saved Session stopped being live: its Deadline while running,
+ * and the instant it was written while paused — a paused Session counts down no
+ * further, so what makes it stale is how long ago it was left, not when it
+ * would have ended. Both are read off the Deadline every payload carries.
+ */
+function lastLiveAt(saved: SavedSession): number {
+  if (saved.status === 'running') return saved.endsAt;
+  return saved.endsAt - saved.remainingSeconds * 1000;
+}
+
+/** Whether a saved Session is recent enough to still be worth offering back. */
+function withinResumeWindow(saved: SavedSession, now: number): boolean {
+  return now - lastLiveAt(saved) <= RESUME_WINDOW_MS;
+}
+
+function parseSaved(payload: unknown): SavedSession | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const raw = payload as Record<string, unknown>;
 
@@ -328,7 +346,6 @@ function parseSaved(payload: unknown, now: number): SavedSession | null {
   // Sessions carried one, and either way there is no telling how old it is.
   const endsAt = raw.endsAt;
   if (typeof endsAt !== 'number' || !Number.isFinite(endsAt)) return null;
-  if (now - endsAt > RESUME_WINDOW_MS) return null;
 
   const remainingSeconds =
     typeof raw.remainingSeconds === 'number' && Number.isFinite(raw.remainingSeconds)
