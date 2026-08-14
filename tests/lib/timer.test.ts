@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BREAK_PHRASES,
+  canResume,
   DEFAULT_BREAK_MINUTES,
   DEFAULT_FOCUS_MINUTES,
   FOCUS_PHRASES,
@@ -341,6 +342,14 @@ describe('Session', () => {
       const { session, effects } = reduce(running(90), { type: 'restore', payload, now: T0 });
       expect(session).toEqual(initialSession());
       expect(effects).toEqual(['clearSaved']);
+    });
+
+    it('says whether there is anything to offer the viewer', () => {
+      const restored = (payload: unknown) =>
+        reduce(initialSession(), { type: 'restore', payload, now: T0 }).session;
+      expect(canResume(restored(toSaved(running(90))))).toBe(true);
+      expect(canResume(restored('junk'))).toBe(false);
+      expect(canResume(initialSession())).toBe(false);
     });
 
     it('accepts a legacy payload that predates the status field', () => {

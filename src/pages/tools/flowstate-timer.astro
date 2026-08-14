@@ -158,6 +158,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   import { gsap } from 'gsap';
   import { createAmbiance, skyColor, starAlpha } from '../../lib/flowstate/ambiance';
   import {
+    canResume,
     defaultMinutes,
     formatTime,
     initialSession,
@@ -260,9 +261,11 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
         localStorage.removeItem(STORAGE_KEY);
         break;
       case 'save': {
+        // toSaved decides what may be restored; nothing to save means nothing
+        // should stay on disk either.
         const payload = toSaved(session);
         if (payload) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        else localStorage.removeItem(STORAGE_KEY);
+        else apply('clearSaved');
         break;
       }
     }
@@ -406,9 +409,11 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   });
 
   // === Mode toggle (Focus / Break) on preset screen ===
-  function selectMode(mode: Mode) {
+  // The one place the preset screen's mode is written, so its label, its
+  // presets and the duration the next Session starts with cannot drift apart.
+  function selectMode(mode: Mode, minutes = defaultMinutes(mode)) {
     selectedMode = mode;
-    selectedMinutes = defaultMinutes(mode);
+    selectedMinutes = minutes;
     modeLabelEl.textContent = modeLabel(mode);
 
     const focusChosen = mode === 'focus';
@@ -461,9 +466,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
   breakBtn.addEventListener('click', () => {
     ensureAudio();
     const next = nextStart(session);
-    selectedMode = next.mode;
-    selectedMinutes = next.minutes;
-    modeLabelEl.textContent = modeLabel(next.mode);
+    selectMode(next.mode, next.minutes);
     if (next.mode === 'break') ambiance.toBreak();
     else ambiance.toFocus();
     dispatch({ type: 'start', ...next, now: Date.now() });
@@ -558,7 +561,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     const outcome = reduce(session, { type: 'restore', payload, now: Date.now() });
     session = outcome.session;
     for (const effect of outcome.effects) apply(effect);
-    if (screen(session) !== 'timer') return;
+    if (!canResume(session)) return;
 
     resumeMessageEl.textContent = resumeMessage(session);
     presetsContainer.classList.add('hidden');
@@ -566,9 +569,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
     resumeYes.addEventListener('click', () => {
       ensureAudio();
-      selectedMode = session.mode;
-      selectedMinutes = Math.ceil(session.totalSeconds / 60);
-      modeLabelEl.textContent = modeLabel(session.mode);
+      selectMode(session.mode, Math.ceil(session.totalSeconds / 60));
       if (session.mode === 'break') ambiance.toBreak({ animated: false });
       dispatch({ type: 'resume', now: Date.now() });
     });

@@ -16,4 +16,13 @@ describe('Repeatable focus timer', () => {
     expect(breakMarkup).toContain('border-white/20');
     expect(breakMarkup).not.toContain('bg-accent');
   });
+
+  // Deliberately absent, and not something the Session module can say: focus
+  // durations start at 25 minutes, and 15 belongs to breaks only.
+  it('does not add a 15-minute focus preset', () => {
+    const focusPresets = page.slice(page.indexOf('id="focus-presets"'), page.indexOf('id="initial-break-presets"'));
+    expect(focusPresets).not.toContain('data-minutes="15"');
+    expect(focusPresets).toContain('data-minutes="25"');
+    expect(page).toContain('id="custom-minutes"');
+  });
 });
