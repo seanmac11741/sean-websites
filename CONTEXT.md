@@ -28,6 +28,29 @@ the published page, so it takes its Reading Time and date format from the Post m
 
 ## Flowstate Timer
 
+**Session** — one run of the timer: its **Mode**, its length, and where it has got to.
+Owned by the **Session module** (`src/lib/timer/session.ts`), which holds every decision the
+timer makes — transitions, phrases, selectors, and the saved payload in both directions.
+Pure: events in, a new Session and a list of **Effects** out. No DOM, no timers, no storage.
+
+**Mode** — which half of the cycle a Session belongs to: **focus** or **break**.
+
+**Status** — what a Session is doing: `idle`, `running`, `paused`, `ringing`, `transition`.
+It is what the page's screen is derived from (`screen()`); running and paused share one screen,
+which is why the two vocabularies are not the same list.
+
+**Deadline** — the absolute instant a running Session ends (`endsAt`). Time remaining is
+*derived* from it, never counted down, so a hidden tab, a sleeping machine or a page reload
+cannot make the Session drift. Replaced a per-frame decrement plus a backup `setTimeout`.
+
+**Effect** — something the page must do that a pure module cannot: `startAlarm`, `stopAlarm`,
+`pulseRing`, `stopPulse`, `showStarfield`, `playEntrance`, `clearSaved`, `save`. The reducer
+decides which Effects a transition produces; the page only knows how to perform each one, and
+makes no decision of its own in doing so.
+
+Only running and paused Sessions are saved. A restored Session comes back paused and waits
+behind the resume prompt — a ringing alarm restored on load would beep at a page you just opened.
+
 **Ambiance** — how the star field looks and behaves in a given mode. **Night** during focus,
 **Dawn** during a break. Owned by the **Ambiance module** (`src/lib/flowstate/ambiance.ts`) —
 nothing else states what night or dawn look like.

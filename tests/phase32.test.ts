@@ -164,28 +164,16 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
   });
 
   // === Todo 7: Countdown timer logic ===
-  describe('Countdown timer logic', () => {
+  // What a Session is, how its Deadline yields the time left, and which Effects
+  // each transition produces all live in src/lib/timer/session.ts and are
+  // covered by tests/lib/timer.test.ts. All this page owes is the wiring a pure
+  // test cannot see: that it imports the Session module and drives it.
+  describe('Session module wiring', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('has a client-side script tag', () => {
-      expect(page).toContain('<script>');
-    });
-
-    it('uses requestAnimationFrame for the timer loop', () => {
-      expect(page).toContain('requestAnimationFrame');
-    });
-
-    it('has logic to update the ring stroke-dashoffset', () => {
-      expect(page).toContain('strokeDashoffset');
-    });
-
-    it('has logic to format time as MM:SS', () => {
-      expect(page).toMatch(/Math\.floor|padStart/);
-    });
-
-    it('selects preset buttons and handles click events', () => {
-      expect(page).toContain('preset-btn');
-      expect(page).toContain('addEventListener');
+    it('imports the Session module and drives the page through it', () => {
+      expect(page).toContain("from '../../lib/timer/session'");
+      expect(page).toContain('reduce(session, event)');
     });
   });
 
@@ -246,28 +234,6 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
     });
   });
 
-  // === Todo 10: Web Audio API alarm ===
-  describe('Web Audio API alarm', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('creates an AudioContext', () => {
-      expect(page).toContain('AudioContext');
-    });
-
-    it('uses OscillatorNode for tone generation', () => {
-      expect(page).toContain('createOscillator');
-    });
-
-    it('has a repeating alarm mechanism with setInterval', () => {
-      expect(page).toContain('setInterval');
-    });
-
-    it('alarm is triggered in onTimerComplete', () => {
-      expect(page).toContain('onTimerComplete');
-      expect(page).toContain('startAlarm');
-    });
-  });
-
   // === Todo 11: Dismiss button ===
   describe('Alarm dismiss button', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
@@ -287,41 +253,15 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
     });
   });
 
-  // === Todo 12: Ring pulses red at zero ===
-  describe('Ring pulse animation at zero', () => {
+  // === Todo 13-14: Transition and break-choice markup ===
+  // Which of these the page shows, and when, is a Session rule — see
+  // tests/lib/timer.test.ts. What survives here is the markup itself.
+  describe('Transition and break-choice markup', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('has a pulseRing function that animates the ring red', () => {
-      expect(page).toContain('pulseRing');
-    });
-
-    it('pulseRing uses gsap to animate stroke color', () => {
-      const pulseSection = page.slice(page.indexOf('pulseRing'));
-      expect(pulseSection).toContain('stroke');
-      expect(pulseSection).toMatch(/gsap\.(to|fromTo|timeline)/);
-    });
-
-    it('onTimerComplete calls pulseRing', () => {
-      const completeSection = page.slice(page.indexOf('function onTimerComplete'));
-      const nextFnIdx = completeSection.indexOf('function ', 1);
-      const body = nextFnIdx > 0 ? completeSection.slice(0, nextFnIdx) : completeSection.slice(0, 300);
-      expect(body).toContain('pulseRing');
-    });
-  });
-
-  // === Todo 13: Post-focus flow ===
-  describe('Post-focus transition', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('has a transition container for phrases and next-mode button', () => {
+    it('has a transition container for phrases and the next-mode button', () => {
       expect(page).toContain('id="transition-container"');
-    });
-
-    it('has a phrase display element', () => {
       expect(page).toContain('id="phrase-display"');
-    });
-
-    it('has a Take a Break button', () => {
       expect(page).toContain('id="break-btn"');
       expect(page).toContain('Take a Break');
     });
@@ -331,16 +271,6 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
       const surrounding = page.slice(Math.max(0, idx - 200), idx + 100);
       expect(surrounding).toContain('hidden');
     });
-
-    it('onAlarmDismissed shows the transition container', () => {
-      const section = page.slice(page.indexOf('onAlarmDismissed'));
-      expect(section).toContain('transitionContainer');
-    });
-  });
-
-  // === Todo 14: Break timer mode ===
-  describe('Break timer mode', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
     it('has break preset buttons for 5, 15, 30 minutes', () => {
       expect(page).toContain('data-break-minutes="5"');
@@ -354,90 +284,8 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
       expect(surrounding).toContain('data-default');
     });
 
-    it('has a break color defined different from focus accent', () => {
+    it('has a break ring color distinct from the focus accent', () => {
       expect(page).toMatch(/#(2dd4bf|34d399|4ade80|10b981)/);
-    });
-
-    it('break button click switches mode to break and starts timer', () => {
-      const breakSection = page.slice(page.indexOf('breakBtn'));
-      expect(breakSection).toContain("mode = 'break'");
-    });
-  });
-
-  // === Todo 15: Post-break flow loops back to focus ===
-  describe('Post-break flow', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('onAlarmDismissed handles break mode with Start Focus text', () => {
-      const section = page.slice(page.indexOf('onAlarmDismissed'));
-      expect(section).toContain('Start Focus');
-    });
-
-    it('breakBtn click switches mode back to focus', () => {
-      const section = page.slice(page.indexOf('breakBtn.addEventListener'));
-      expect(section).toContain("mode = 'focus'");
-    });
-
-    it('restores focus color when switching back to focus', () => {
-      const section = page.slice(page.indexOf('breakBtn.addEventListener'));
-      expect(section).toContain('FOCUS_COLOR');
-    });
-  });
-
-  // === Todo 16: Post-focus fun phrases ===
-  describe('Post-focus fun phrases', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('has at least 8 focus phrases', () => {
-      const match = page.match(/focusPhrases.*?=.*?\[([\s\S]*?)\]/);
-      expect(match).not.toBeNull();
-      const items = match![1].split(',').filter((s: string) => s.trim().length > 0);
-      expect(items.length).toBeGreaterThanOrEqual(8);
-    });
-
-    it('focus phrases include relaxation-themed content', () => {
-      const section = page.slice(page.indexOf('focusPhrases'));
-      expect(section).toMatch(/(nap|relax|stretch|walk|breathe|rest|cat|snack)/i);
-    });
-  });
-
-  // === Todo 17: Post-break fun phrases ===
-  describe('Post-break fun phrases', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('has at least 8 break phrases', () => {
-      const match = page.match(/breakPhrases.*?=.*?\[([\s\S]*?)\]/);
-      expect(match).not.toBeNull();
-      const items = match![1].split(',').filter((s: string) => s.trim().length > 0);
-      expect(items.length).toBeGreaterThanOrEqual(8);
-    });
-
-    it('break phrases include motivation-themed content', () => {
-      const section = page.slice(page.indexOf('breakPhrases'));
-      expect(section).toMatch(/(crush|focus|lock|go|build|ship|grind|flow)/i);
-    });
-  });
-
-  // === Todo 18: localStorage persistence ===
-  describe('Timer state persistence', () => {
-    const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
-
-    it('saves state to localStorage', () => {
-      expect(page).toContain('localStorage.setItem');
-    });
-
-    it('uses a consistent storage key', () => {
-      expect(page).toContain('flowstate-timer');
-    });
-
-    it('saves mode, remaining seconds, and total seconds', () => {
-      expect(page).toContain('remainingSeconds');
-      expect(page).toContain('totalSeconds');
-      expect(page).toContain('mode');
-    });
-
-    it('has a saveState function', () => {
-      expect(page).toContain('saveState');
     });
   });
 
@@ -473,26 +321,9 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
   describe('Bug fixes', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('reset handler restores presets opacity via gsap.set', () => {
-      const resetSection = page.slice(page.indexOf('resetBtn.addEventListener'));
-      expect(resetSection).toContain('gsap.set(presetsContainer');
-      expect(resetSection).toContain('opacity: 1');
-    });
-
     it('has Focus/Break mode toggle buttons on preset screen', () => {
       expect(page).toContain('id="mode-toggle-focus"');
       expect(page).toContain('id="mode-toggle-break"');
-    });
-
-    it('mode toggle switches to break mode and shows break presets', () => {
-      const section = page.slice(page.indexOf('modeToggleBreak.addEventListener'));
-      expect(section).toContain("mode = 'break'");
-      expect(section).toContain('initialBreakPresetsContainer');
-    });
-
-    it('mode toggle switches back to focus mode', () => {
-      const section = page.slice(page.indexOf('modeToggleFocus.addEventListener'));
-      expect(section).toContain("mode = 'focus'");
     });
 
     it('has initial break presets (5, 15, 30) on preset screen', () => {
@@ -565,12 +396,9 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
   describe('Star field fade-in on timer start', () => {
     const page = readFileSync('src/pages/tools/flowstate-timer.astro', 'utf-8');
 
-    it('showStarfield is called inside startTimer', () => {
-      const startTimerSection = page.slice(page.indexOf('function startTimer'));
-      const nextFn = startTimerSection.indexOf('\n  function ', 10);
-      const body = nextFn > 0 ? startTimerSection.slice(0, nextFn) : startTimerSection.slice(0, 800);
-      expect(body).toContain('showStarfield');
-    });
+    // That starting or resuming a Session shows the star field is an Effect of
+    // those transitions — asserted in tests/lib/timer.test.ts. The page only
+    // performs the Effect, which the wiring assertion above already covers.
 
     it('showStarfield uses gsap to fade in the canvas', () => {
       const section = page.slice(page.indexOf('function showStarfield'));
@@ -590,12 +418,8 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
       expect(body).not.toContain('starfield');
     });
 
-    it('showStarfield is also called on resume (resumeYes click)', () => {
-      const resumeSection = page.slice(page.indexOf('resumeYes.addEventListener'));
-      const endSection = resumeSection.indexOf('});', resumeSection.indexOf('addEventListener'));
-      const body = endSection > 0 ? resumeSection.slice(0, endSection + 3) : resumeSection.slice(0, 600);
-      expect(body).toContain('showStarfield');
-    });
+    // Resuming a restored Session shows the star field too — that it does so is
+    // an Effect of the resume transition, asserted in tests/lib/timer.test.ts.
   });
 
   // === Todo 23: Focus mode slow auto-rotation ===
@@ -638,14 +462,14 @@ describe('Phase 32 — Tools Page & Flowstate Timer', () => {
     it('drives both mode switches through the shared ambiance module', () => {
       expect(page).toContain("from '../../lib/flowstate/ambiance'");
       const breakHandler = page.slice(page.indexOf('breakBtn.addEventListener'));
-      const body = breakHandler.slice(0, breakHandler.indexOf('startTimer();'));
+      const body = breakHandler.slice(0, breakHandler.indexOf("dispatch({ type: 'start'"));
       expect(body).toContain('ambiance.toBreak()');
       expect(body).toContain('ambiance.toFocus()');
     });
 
-    it('ring color shifts for break mode (uses BREAK_COLOR)', () => {
-      const breakClickSection = page.slice(page.indexOf('breakBtn.addEventListener'));
-      expect(breakClickSection).toContain('BREAK_COLOR');
+    it('has a break ring color distinct from the focus accent', () => {
+      expect(page).toContain('BREAK_COLOR');
+      expect(page).toContain('FOCUS_COLOR');
     });
   });
 
