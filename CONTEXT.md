@@ -50,6 +50,15 @@ makes no decision of its own in doing so.
 
 Only running and paused Sessions are saved. A restored Session comes back paused and waits
 behind the resume prompt — a ringing alarm restored on load would beep at a page you just opened.
+It comes back with the time genuinely left, not the time it was saved with.
+
+**Resume Window** — how long past its Deadline a saved Session is still worth offering back:
+one hour (`RESUME_WINDOW_MS`). Every saved payload carries a Deadline, a paused one included —
+there it is the instant the Session would end had it kept running from the save — which is what
+makes a save's age knowable. Past the window the payload is dropped and the storage cleared, and
+the viewer lands on the preset screen. There is no version field and no migration: a payload the
+module does not recognise — junk, or one written before Sessions carried a Deadline — degrades
+the same way, to a fresh start.
 
 **Ambiance** — how the star field looks and behaves in a given mode. **Night** during focus,
 **Dawn** during a break. Owned by the **Ambiance module** (`src/lib/flowstate/ambiance.ts`) —
