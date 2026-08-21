@@ -170,6 +170,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
     screen,
     toSaved,
     transitionView,
+    wakeDelay,
     type Effect,
     type Event as SessionEvent,
     type Mode,
@@ -235,6 +236,7 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
 
     if (session.status !== 'running') stopLoop();
     else if (!entranceRunning) startLoop();
+    armWake();
   }
 
   function apply(effect: Effect) {
@@ -373,6 +375,33 @@ const description = 'A focus and break timer to help you lock in. 90 minutes on,
       cancelAnimationFrame(animationId);
       animationId = null;
     }
+  }
+
+  // === Deadline wakeup ===
+  // The loop above cannot be what notices a Deadline has passed: browsers
+  // suspend animation frames in a hidden tab, so a backgrounded Session used to
+  // stay silent until it was clicked back into view. A single timeout fires on
+  // the wall clock whether or not anything is being painted — and being
+  // unchained, it is exempt from Chrome's intensive throttling however long its
+  // delay, so it lands on time rather than at the next minute boundary.
+  //
+  // It is re-derived on every dispatch rather than emitted as an Effect, so it
+  // cannot fall out of step with the Session: pause, reset and dismissal all
+  // disarm it by simply no longer having a Deadline to offer.
+  let wakeId: ReturnType<typeof setTimeout> | null = null;
+
+  function armWake() {
+    if (wakeId !== null) {
+      clearTimeout(wakeId);
+      wakeId = null;
+    }
+    const delay = wakeDelay(session, Date.now());
+    if (delay === null) return;
+    // An ordinary tick, so there stays exactly one path to a ringing Session.
+    wakeId = setTimeout(() => {
+      wakeId = null;
+      dispatch({ type: 'tick', now: Date.now() });
+    }, delay);
   }
 
   // === Preset selection ===

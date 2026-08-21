@@ -18,6 +18,7 @@ import {
   screen,
   toSaved,
   transitionView,
+  wakeDelay,
   type Event,
   type Session,
 } from '../../src/lib/timer/session';
@@ -622,6 +623,73 @@ describe('Session', () => {
         T0 + 10 * MINUTE,
       );
       expect(resumeMessage(onBreak)).toBe('You had 20 minutes left on your break timer. Resume?');
+    });
+  });
+
+  describe('Deadline wakeup', () => {
+    it('is due at the Deadline of a running Session', () => {
+      expect(wakeDelay(running(90), T0)).toBe(90 * MINUTE);
+    });
+
+    it('shrinks as the Session runs down', () => {
+      expect(wakeDelay(running(90), T0 + 30 * MINUTE)).toBe(60 * MINUTE);
+    });
+
+    it('is due immediately once the Deadline is already past', () => {
+      // What a tab hidden past its Deadline comes back to: overdue, not negative.
+      expect(wakeDelay(running(90), T0 + 91 * MINUTE)).toBe(0);
+    });
+
+    it('asks for no wakeup before a Session has started', () => {
+      expect(wakeDelay(initialSession(), T0)).toBeNull();
+    });
+
+    it('asks for no wakeup while paused', () => {
+      const session = run(running(90), { type: 'pause', now: T0 + MINUTE });
+      expect(wakeDelay(session, T0 + MINUTE)).toBeNull();
+    });
+
+    it('asks again from the new Deadline once resumed', () => {
+      const session = run(
+        running(90),
+        { type: 'pause', now: T0 + 30 * MINUTE },
+        { type: 'resume', now: T0 + 90 * MINUTE },
+      );
+      // An hour was left at the pause, and a pause costs the Session nothing.
+      expect(wakeDelay(session, T0 + 90 * MINUTE)).toBe(60 * MINUTE);
+    });
+
+    it('asks for no wakeup while ringing', () => {
+      const session = run(running(90), { type: 'tick', now: T0 + 90 * MINUTE });
+      expect(session.status).toBe('ringing');
+      expect(wakeDelay(session, T0 + 90 * MINUTE)).toBeNull();
+    });
+
+    it('asks for no wakeup on the transition screen', () => {
+      const session = run(
+        running(90),
+        { type: 'tick', now: T0 + 90 * MINUTE },
+        { type: 'dismiss', draw: 0 },
+      );
+      expect(session.status).toBe('transition');
+      expect(wakeDelay(session, T0 + 90 * MINUTE)).toBeNull();
+    });
+
+    it('asks for no wakeup after a reset', () => {
+      const session = run(running(90), { type: 'reset' });
+      expect(wakeDelay(session, T0 + MINUTE)).toBeNull();
+    });
+
+    it('asks for no wakeup for a Session restored from storage', () => {
+      // A restored Session waits behind the resume prompt; nothing is due yet.
+      const saved = toSaved(running(90), T0 + 30 * MINUTE);
+      const session = run(initialSession(), {
+        type: 'restore',
+        payload: saved,
+        now: T0 + 31 * MINUTE,
+      });
+      expect(canResume(session)).toBe(true);
+      expect(wakeDelay(session, T0 + 31 * MINUTE)).toBeNull();
     });
   });
 });
