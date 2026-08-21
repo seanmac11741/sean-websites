@@ -43,6 +43,22 @@ which is why the two vocabularies are not the same list.
 *derived* from it, never counted down, so a hidden tab, a sleeping machine or a page reload
 cannot make the Session drift. Replaced a per-frame decrement plus a backup `setTimeout`.
 
+**Wakeup** — the single timeout armed at a running Session's Deadline (`wakeDelay`), so the
+Session rings on time in a tab nobody is looking at. The animation frames that drive the display
+are suspended while a tab is hidden, so they cannot be what notices a Deadline has passed — the
+alarm used to wait for the viewer to click back. The Wakeup fires an ordinary tick, leaving
+exactly one path by which a Session becomes `ringing`.
+
+It is *derived*, not an **Effect**: the page re-arms it after every dispatch from the Session's
+status and Deadline, and everything that is not a running Session asks for no Wakeup at all. That
+is what disarms it on pause, reset and dismissal without those transitions each having to
+remember to say so — the failure an Effect would invite is a timeout surviving a pause and
+ringing mid-break.
+
+One timeout, never a repeating interval: Chrome throttles *chained* timers in a hidden tab to one
+run a minute, and their periodic wakeups are the CPU signature that gets a background tab frozen
+outright. An unchained timeout is exempt however long its delay.
+
 **Remembered Focus** — the focus duration last chosen (`lastFocusSeconds`), and what a focus
 Session starts at whenever the viewer has not just picked one. Written the moment a focus
 Session *starts*, not when it completes, so a duration abandoned mid-Session is still the last

@@ -5,7 +5,11 @@
  * where it has got to. While running it holds a **Deadline** — the absolute
  * instant it ends — and the time remaining is derived from that rather than
  * counted down. A Deadline stays correct in a hidden tab, on a sleeping
- * machine, and across a page reload, which is why no backup timeout is needed.
+ * machine, and across a page reload.
+ *
+ * Staying correct is not the same as being noticed, though: something has to
+ * ask. `wakeDelay` is what lets the page arm a wall-clock wakeup for the
+ * Deadline, so a Session ends on time even while nothing is being painted.
  *
  * The module is pure: events in, a new Session and a list of **Effects** out.
  * Every decision lives here; the page owns only DOM ids, animation frames,
@@ -405,6 +409,23 @@ export function screen(session: Session): Screen {
  */
 export function canResume(session: Session): boolean {
   return session.status === 'paused';
+}
+
+/**
+ * How long from `now` until this Session's Deadline, or null when there is no
+ * Deadline to wait for.
+ *
+ * The page arms a wakeup with this so a running Session rings on time in a
+ * hidden tab, where the animation frames it is otherwise driven by are
+ * suspended. Everything except a running Session answers null — which is what
+ * disarms the wakeup on pause, reset and dismissal, without any of those
+ * transitions having to remember to say so.
+ *
+ * Never negative: a Deadline already past is due immediately.
+ */
+export function wakeDelay(session: Session, now: number): number | null {
+  if (session.status !== 'running' || session.endsAt === null) return null;
+  return Math.max(0, session.endsAt - now);
 }
 
 /** How much of the ring is still filled, from 1 at the start to 0 at the end. */
