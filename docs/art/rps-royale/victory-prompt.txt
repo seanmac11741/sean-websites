@@ -1,0 +1,9 @@
+Use case: stylized-concept. Make SIX isolated animation frames of the SCISSORS character from the reference, celebrating with an overhead snipping dance and alternating SCISSOR-KICK LEGS. Same exact character design and style: upright silver V blades above two googly eyes on central pivot, coral-orange handle-loop hips, tiny coral limbs, ivory bright rim and charcoal contour, clean cel shading, top-left light. The FACE always looks RIGHT three-quarter profile. Transparent alpha background, no shadow/effect/no text/grid.
+Layout THREE columns by TWO rows, generous transparent separation. This is one six-frame victory cycle.
+Frame1 top-left: silver blades spread WIDE overhead, LEFT FOOT planted under left hip, RIGHT LEG kicked far to the RIGHT. Happy big eyes looking right.
+Frame2 top-middle: silver blades CLOSED vertically overhead, legs CROSS into an X beneath coral hips, both feet touching the ground.
+Frame3 top-right: silver blades spread WIDE overhead, RIGHT FOOT planted under right hip, LEFT LEG kicked far to the LEFT. Face STILL looking RIGHT. The leg pose must be visibly the OPPOSITE of frame1 without mirroring face.
+Frame4 bottom-left: silver blades CLOSED overhead, legs CROSS in the OPPOSITE X configuration, feet touching ground. Eyes joyful blink.
+Frame5 bottom-middle: silver blades WIDE overhead, right leg kicked to the RIGHT again, left foot planted.
+Frame6 bottom-right: silver blades half-open upright V, both legs returned to original standing pose, smiling eyes right, ready to loop.
+Keep character mass and height consistent, feet contact one consistent baseline, all frames fully visible. Very obvious snip SNIP snip SNIP rhythm. Focus on LEFT vs RIGHT alternating leg silhouettes. Use the attached sheet only for character appearance; do not redraw its seven rows. Exactly six frames in a THREE by TWO layout.

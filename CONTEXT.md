@@ -95,3 +95,81 @@ changes (sky colour, star opacity) is a function of it.
 **Ambiance module** — `src/lib/flowstate/ambiance.ts`. Pure: canvas painting, auto-rotation, the
 gsap tween and the pointer-events handoff are injected as effects, so the two transitions are one
 shared path. `toFocus` and `toBreak` are mirror images; each repaints on every frame.
+
+## RPS Royale
+
+**Type** — which of rock, paper or scissors a **Fighter** currently is. The only thing about a
+Fighter that a Duel can change.
+
+**Fighter** — one character in the **Arena**: its Type, position, heading, facing, hop phase,
+**Activity** and **Cooldown**.
+
+**Roster** — the full population of Fighters. Sixty on a wide viewport, thirty on a narrow one,
+split exactly evenly between the three Types. Constant for the whole round: **Conversion** never
+changes its size, so the board never thins out and no Type is one unlucky encounter from
+extinction. The split is even because the **Pick** must be neither handicapped nor favoured — the
+**Upset** rate is the only randomness that is supposed to matter.
+
+**Arena** — one run of the game: the Roster, the **Duels** in flight, the elapsed time, the
+**Tempo**, and the **Champion** once there is one. Owned by the **Arena module**
+(`src/lib/rps-royale/arena.ts`) — seeding, movement, proximity, the Duel lifecycle, the Upset roll,
+Conversion, Tempo and Champion detection. Pure: no canvas, no DOM, no timers, no storage, and no
+`Math.random` — the random source is injected, which is what makes the ninety-ten split assertable.
+It exposes no drawing concept at all: no colours, no sprite indices, no screen coordinates beyond
+its own.
+
+**Activity** — what a Fighter is doing, exactly one at a time: `roaming`, `spectating`, `duelling`,
+`transforming`, `celebrating`. The transitions between them are the Arena's whole state machine.
+
+**Duel** — a locked encounter between two Fighters of different Types at a fixed point. Three
+seconds at flat **Tempo**: a windup, three **Bonks**, then the loser's transform. It is the thing
+the tool exists to be watched, so it is paced as a beat of animation rather than as a state change
+that happens to be drawn. Its **Outcome** is rolled when the Duel is *created*, not when it ends,
+so every later beat reads a value already decided and the animation can telegraph the result
+instead of contradicting it.
+
+**Bonk** — one clash within a Duel. The third is the one that lands the result. Between Bonks a
+Duel rears back again rather than holding a pose, and each clash is *centred* on its Bonk, so the
+contact frame lands with the hit instead of trailing it (`duelBeat`). Duels escalate with Tempo
+along with everything else — a Duel holds two Fighters and a **Clearing** for as long as it runs,
+so keeping them three seconds long all round would be what made a round grind.
+
+**Outcome** — which Fighter wins a Duel: nine times in ten the standard rock-paper-scissors result,
+one time in ten the **Upset**.
+
+**Upset** — a Duel that goes the other way: scissors beats rock, rock beats paper, paper beats
+scissors. Ten percent, and load-bearing: at zero percent whichever Type gets an early lead wins
+deterministically and there is nothing left to watch, while ten percent is enough that a Type down
+to a handful can genuinely come back.
+
+**Conversion** — the losing Fighter becoming the winner's Type. The only way a Type's count ever
+changes. Nobody dies.
+
+**Cooldown** — the short immunity a Fighter carries out of a Duel. With the pair pushed apart on
+release, it is what makes one encounter produce exactly one Conversion rather than re-rolling the
+Outcome every frame while the two still overlap.
+
+**Clearing** — the radius around an active Duel that pushes non-duelling Fighters outward and
+admits no new Duel. It expires with its Duel, and only Fighters genuinely close to one react, so a
+crowded board cannot deadlock on everyone spectating everyone else.
+
+**Spectator** — a Fighter inside a Clearing: backs off to its edge and turns to watch, playing its
+own Type's idle business. Not a garnish — it is the feature.
+
+**Tempo** — the escalation factor on movement speed and seek bias: flat for the first stretch of a
+round, then ramping to a ceiling. There is no hard time cap and no skip button; the ramp is what
+guarantees a round ends, and the ceiling is what stops a Fighter moving further in one step than a
+Duel's radius and tunnelling past its opponent.
+
+**Champion** — the one Type left when it owns the entire Roster. Ends the round.
+
+**Pick** — the Type the viewer chose before starting. Marked in the tally and on the board.
+
+**Record** — the viewer's running wins and losses across rounds, two integers in `localStorage`,
+resettable from the picker.
+
+**Sheet module** — `src/lib/rps-royale/sprites.ts`. The one place that knows the spritesheet's grid:
+which row is which Type-and-state, how many frames it has, its frame rate, whether it loops, and
+which source rectangle a given frame occupies. Row indices are load-bearing. Pure. The art contract
+it implements is `docs/rps-royale-spritesheet-spec.md`, and the real artwork is a drop-in
+replacement at the same path.
