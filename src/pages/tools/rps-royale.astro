@@ -1,0 +1,780 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import { SHEET_COLS, SHEET_PATH, SHEET_ROWS, TYPES, rowFor } from '../../lib/rps-royale/sprites';
+
+const title = 'RPS Royale — Sean McConnell';
+const description =
+  'Pick rock, paper or scissors, then watch sixty of them fight it out until one type owns the board.';
+
+/**
+ * The picker and the tally show a Type's idle frame as a CSS background. The
+ * row comes from the Sheet module, so the sheet's geometry is still stated in
+ * exactly one place — this page never spells out a row number.
+ */
+const PICKER_CELL = 88;
+const CHIP_CELL = 34;
+
+function idleSprite(type: (typeof TYPES)[number], cell: number) {
+  return [
+    `background-image:url('${SHEET_PATH}')`,
+    `background-size:${SHEET_COLS * cell}px ${SHEET_ROWS * cell}px`,
+    `background-position:0px -${rowFor(type, 'idle') * cell}px`,
+    `width:${cell}px`,
+    `height:${cell}px`,
+  ].join(';');
+}
+
+const fighters = TYPES.map((type) => ({
+  type,
+  label: type[0].toUpperCase() + type.slice(1),
+  picker: idleSprite(type, PICKER_CELL),
+  chip: idleSprite(type, CHIP_CELL),
+}));
+---
+
+<Layout {title} {description}>
+  <Nav />
+
+  <main id="main-content" class="pt-20 pb-8 px-4 min-h-screen flex flex-col">
+    <!-- Picker -->
+    <section id="picker" class="flex-1 flex flex-col items-center justify-center gap-8 py-8">
+      <div class="text-center max-w-xl">
+        <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">RPS Royale</h1>
+        <p class="text-slate-400 leading-relaxed">
+          Pick a fighter. Sixty of them hit the board, twenty each. Whoever loses a bonk turns into
+          whoever won it — nobody dies, so one type slowly takes the whole thing. One duel in ten
+          goes the wrong way, so nothing is decided until it is.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-3 sm:gap-5">
+        {
+          fighters.map((f) => (
+            <button
+              type="button"
+              class="fighter-btn group flex flex-col items-center gap-2 px-5 py-4 rounded-2xl bg-surface border border-white/10 hover:border-accent/50 transition-all duration-200"
+              data-type={f.type}
+              aria-pressed="false"
+            >
+              <span class="sprite" style={f.picker} data-type={f.type} aria-hidden="true" />
+              <span class="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                {f.label}
+              </span>
+            </button>
+          ))
+        }
+      </div>
+
+      <button
+        id="start-btn"
+        type="button"
+        disabled
+        class="px-12 py-4 rounded-full bg-accent text-white text-xl font-bold shadow-lg shadow-accent/25 transition-all duration-200 enabled:hover:bg-accent/80 enabled:hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Start
+      </button>
+
+      <p id="pick-hint" class="text-slate-500 text-sm h-5">Choose a fighter to begin.</p>
+
+      <div class="flex flex-col items-center gap-2">
+        <p class="text-slate-400 text-sm">
+          Record: <span id="record" class="text-white font-semibold tabular-nums">0W – 0L</span>
+        </p>
+        <button
+          id="reset-record"
+          type="button"
+          class="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-4 transition-colors"
+        >
+          Reset record
+        </button>
+      </div>
+
+      <div
+        id="motion-note"
+        class="hidden max-w-md text-center flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-surface px-5 py-4"
+      >
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Your system asks for reduced motion, so a round is played out and only the result is
+          shown — no sixty hopping sprites.
+        </p>
+        <label class="flex items-center gap-2 text-sm text-slate-300">
+          <input id="watch-anyway" type="checkbox" class="accent-accent w-4 h-4" />
+          Watch the fight animated anyway
+        </label>
+      </div>
+
+      <p id="sheet-warning" class="hidden text-amber-400/80 text-xs text-center max-w-sm">
+        The sprite artwork could not be loaded, so the fighters are shown as plain markers. The game
+        still plays.
+      </p>
+    </section>
+
+    <!-- The round -->
+    <section id="round" class="hidden flex-1 flex-col gap-3">
+      <div class="flex items-center justify-between gap-4 max-w-5xl w-full mx-auto">
+        <div id="tally" class="flex items-center gap-3 sm:gap-5" aria-hidden="true">
+          {
+            fighters.map((f) => (
+              <span
+                class="tally-item flex items-center gap-1.5 rounded-full px-2.5 py-1 border border-transparent transition-colors"
+                data-type={f.type}
+              >
+                <span class="sprite shrink-0" style={f.chip} data-type={f.type} />
+                <span class="tally-count text-white font-semibold tabular-nums text-sm sm:text-base">
+                  0
+                </span>
+              </span>
+            ))
+          }
+        </div>
+
+        <button
+          id="mute-btn"
+          type="button"
+          class="shrink-0 px-3 py-1.5 rounded-full border border-white/20 text-slate-300 text-xs hover:border-white/40 hover:text-white transition-colors"
+          aria-pressed="false"
+        >
+          Sound on
+        </button>
+      </div>
+
+      <div id="arena-wrap" class="relative flex-1 min-h-[360px] max-w-5xl w-full mx-auto">
+        <canvas id="arena" class="absolute inset-0 w-full h-full"></canvas>
+
+        <!-- The result sits over the arena, so the winners keep dancing behind it. -->
+        <div
+          id="result"
+          class="hidden absolute inset-0 items-center justify-center p-4 pointer-events-none"
+        >
+          <div
+            id="result-card"
+            class="pointer-events-auto flex flex-col items-center gap-4 text-center rounded-3xl border border-white/10 bg-dark/80 backdrop-blur-md px-8 py-7 sm:px-12 sm:py-9 shadow-2xl shadow-black/50 max-w-md"
+          >
+            <p id="result-verdict" class="text-sm font-semibold tracking-[0.2em] uppercase"></p>
+            <h2 id="result-title" class="text-3xl sm:text-4xl font-bold text-white"></h2>
+            <p id="result-detail" class="text-slate-400 text-sm"></p>
+            <p class="text-slate-400 text-sm">
+              Record:
+              <span id="result-record" class="text-white font-semibold tabular-nums">0W – 0L</span>
+            </p>
+            <div class="flex flex-wrap justify-center gap-3 pt-1">
+              <button
+                id="rematch-btn"
+                type="button"
+                class="px-8 py-3 rounded-full bg-accent text-white text-base font-bold hover:bg-accent/80 hover:scale-105 transition-all duration-200 shadow-lg shadow-accent/25"
+              >
+                Rematch
+              </button>
+              <button
+                id="change-btn"
+                type="button"
+                class="px-6 py-3 rounded-full border border-white/20 text-slate-300 hover:border-white/40 hover:text-white transition-all duration-200"
+              >
+                Change Fighter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
+  </main>
+</Layout>
+
+<style>
+  .sprite {
+    display: block;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+  }
+
+  /* No artwork: the fighters become plain markers, and the game still plays. */
+  :global(body.rps-no-sheet) .sprite {
+    background-image: none !important;
+    border-radius: 9999px;
+    background-color: #d6c3a3;
+  }
+  :global(body.rps-no-sheet) .sprite[data-type='paper'] {
+    background-color: #ece7d6;
+  }
+  :global(body.rps-no-sheet) .sprite[data-type='scissors'] {
+    background-color: #f08a76;
+  }
+
+  .fighter-btn[aria-pressed='true'] {
+    border-color: #818cf8;
+    background-color: rgba(129, 140, 248, 0.12);
+    box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.5);
+  }
+
+  .tally-item[data-mine='true'] {
+    border-color: rgba(129, 140, 248, 0.6);
+    background-color: rgba(129, 140, 248, 0.12);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import {
+    createArena,
+    duelBeat,
+    type Arena,
+    type ArenaEvent,
+    type Duel,
+    type Fighter,
+    type Type,
+  } from '../../lib/rps-royale/arena';
+  import {
+    BASELINE_FRACTION,
+    SHEET_PATH,
+    TYPES,
+    frameAt,
+    frameCount,
+    sourceRect,
+    stateDuration,
+    type State,
+  } from '../../lib/rps-royale/sprites';
+
+  /** How long one clash is on screen — the sheet's own impact animation. */
+  const CLASH_WINDOW = stateDuration('duel-impact');
+
+  // The Arena owns every decision the game makes. This page owns only what a
+  // browser can do: the canvas, the render loop, gsap, the Web Audio bonks,
+  // localStorage, and the DOM of the picker, tally and banner. It decides
+  // nothing about who wins — it steps the Arena and draws what comes back.
+
+  const RECORD_KEY = 'rps-royale-record';
+  const MUTED_KEY = 'rps-royale-muted';
+
+  /** A phone gets a smaller roster: legible at that size, and smooth. */
+  const NARROW_BREAKPOINT = 640;
+  const WIDE_ROSTER = 60;
+  const NARROW_ROSTER = 30;
+  const WIDE_SPRITE = 46;
+  const NARROW_SPRITE = 38;
+
+  /** Colours for the no-artwork fallback. Never used when the sheet loads. */
+  const FALLBACK: Record<Type, string> = {
+    rock: '#d6c3a3',
+    paper: '#ece7d6',
+    scissors: '#f08a76',
+  };
+
+  const ACCENT = '#818CF8';
+  const TAU = Math.PI * 2;
+
+  // === DOM ===
+  const picker = document.getElementById('picker')!;
+  const roundSection = document.getElementById('round')!;
+  const resultSection = document.getElementById('result')!;
+  const startBtn = document.getElementById('start-btn') as HTMLButtonElement;
+  const pickHint = document.getElementById('pick-hint')!;
+  const recordEl = document.getElementById('record')!;
+  const resultRecordEl = document.getElementById('result-record')!;
+  const resetRecordBtn = document.getElementById('reset-record')!;
+  const motionNote = document.getElementById('motion-note')!;
+  const watchAnyway = document.getElementById('watch-anyway') as HTMLInputElement;
+  const sheetWarning = document.getElementById('sheet-warning')!;
+  const muteBtn = document.getElementById('mute-btn') as HTMLButtonElement;
+  const canvas = document.getElementById('arena') as HTMLCanvasElement;
+  const arenaWrap = document.getElementById('arena-wrap')!;
+  const announcer = document.getElementById('announcer')!;
+  const resultCard = document.getElementById('result-card')!;
+  const resultVerdict = document.getElementById('result-verdict')!;
+  const resultTitle = document.getElementById('result-title')!;
+  const resultDetail = document.getElementById('result-detail')!;
+  const rematchBtn = document.getElementById('rematch-btn')!;
+  const changeBtn = document.getElementById('change-btn')!;
+  const fighterBtns = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('.fighter-btn'),
+  );
+  const tallyItems = Array.from(document.querySelectorAll<HTMLElement>('.tally-item'));
+
+  const ctx = canvas.getContext('2d')!;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // === Persisted bits ===
+  interface Record_ {
+    wins: number;
+    losses: number;
+  }
+
+  function loadRecord(): Record_ {
+    try {
+      const raw = JSON.parse(localStorage.getItem(RECORD_KEY) ?? '');
+      const wins = Number(raw?.wins);
+      const losses = Number(raw?.losses);
+      if (Number.isFinite(wins) && Number.isFinite(losses) && wins >= 0 && losses >= 0) {
+        return { wins: Math.floor(wins), losses: Math.floor(losses) };
+      }
+    } catch {
+      // A junk or missing payload is simply a fresh record.
+    }
+    return { wins: 0, losses: 0 };
+  }
+
+  function saveRecord() {
+    try {
+      localStorage.setItem(RECORD_KEY, JSON.stringify(record));
+    } catch {
+      // Storage refused (private mode, quota). The round is unaffected.
+    }
+  }
+
+  let record = loadRecord();
+  let muted = (() => {
+    try {
+      return localStorage.getItem(MUTED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  })();
+
+  // === Round state ===
+  let pick: Type | null = null;
+  let arena: Arena | null = null;
+  let frameHandle: number | null = null;
+  let lastFrame = 0;
+  let finished = false;
+  let lastAnnounce = 0;
+
+  // === The spritesheet ===
+  let sheetReady = false;
+  const sheet = new Image();
+  sheet.decoding = 'async';
+  sheet.addEventListener('load', () => {
+    sheetReady = true;
+  });
+  sheet.addEventListener('error', () => {
+    // A network hiccup must not leave the viewer staring at a blank canvas.
+    document.body.classList.add('rps-no-sheet');
+    sheetWarning.classList.remove('hidden');
+  });
+  sheet.src = SHEET_PATH;
+
+  // === Picker ===
+  function selectFighter(type: Type) {
+    pick = type;
+    for (const btn of fighterBtns) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.type === type));
+    }
+    startBtn.disabled = false;
+    pickHint.textContent = `You are ${type}. Hit Start.`;
+  }
+
+  for (const btn of fighterBtns) {
+    btn.addEventListener('click', () => selectFighter(btn.dataset.type as Type));
+  }
+
+  function renderRecord() {
+    const text = `${record.wins}W – ${record.losses}L`;
+    recordEl.textContent = text;
+    resultRecordEl.textContent = text;
+  }
+
+  resetRecordBtn.addEventListener('click', () => {
+    record = { wins: 0, losses: 0 };
+    saveRecord();
+    renderRecord();
+    announcer.textContent = 'Record reset.';
+  });
+
+  // === Screens ===
+  // Two of them: the picker and the round. The result is not a third — it is an
+  // overlay on the round, so the champions carry on dancing underneath it.
+  function show(section: HTMLElement) {
+    for (const el of [picker, roundSection]) {
+      el.classList.toggle('hidden', el !== section);
+      el.classList.toggle('flex', el === section);
+    }
+  }
+
+  function showResult(visible: boolean) {
+    resultSection.classList.toggle('hidden', !visible);
+    resultSection.classList.toggle('flex', visible);
+  }
+
+  // === Audio: synthesised, and only ever after a Start click ===
+  let audio: AudioContext | null = null;
+  let lastBonkAt = 0;
+
+  function ensureAudio() {
+    if (!audio) audio = new AudioContext();
+    if (audio.state === 'suspended') void audio.resume();
+  }
+
+  function playBonk() {
+    if (muted || !audio) return;
+    // Several duels can land on the same frame; one thud is enough.
+    if (audio.currentTime - lastBonkAt < 0.04) return;
+    lastBonkAt = audio.currentTime;
+
+    const t = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.connect(gain);
+    gain.connect(audio.destination);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180 + Math.random() * 90, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.09);
+    gain.gain.setValueAtTime(0.09, t);
+    gain.gain.exponentialRampToValueAtTime(0.0005, t + 0.12);
+
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+
+  function playVictory() {
+    if (muted || !audio) return;
+    const base = audio.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((hz, i) => {
+      const t = base + i * 0.11;
+      const osc = audio!.createOscillator();
+      const gain = audio!.createGain();
+      osc.connect(gain);
+      gain.connect(audio!.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(hz, t);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.0005, t + 0.3);
+      osc.start(t);
+      osc.stop(t + 0.32);
+    });
+  }
+
+  function renderMute() {
+    muteBtn.textContent = muted ? 'Sound off' : 'Sound on';
+    muteBtn.setAttribute('aria-pressed', String(muted));
+  }
+
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    try {
+      localStorage.setItem(MUTED_KEY, String(muted));
+    } catch {
+      // Not remembering the preference is better than failing the click.
+    }
+    renderMute();
+  });
+
+  // === Canvas ===
+  function sizeCanvas() {
+    const rect = arenaWrap.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return rect;
+  }
+
+  /**
+   * How the Arena's coordinate space maps onto the canvas. The Arena is sized
+   * once, at the start of a round; a window resized mid-round rescales the view
+   * rather than moving the walls out from under the fighters.
+   */
+  function viewport(cssWidth: number, cssHeight: number) {
+    if (!arena) return { scale: 1, ox: 0, oy: 0 };
+    const scale = Math.min(cssWidth / arena.width, cssHeight / arena.height);
+    return {
+      scale,
+      ox: (cssWidth - arena.width * scale) / 2,
+      oy: (cssHeight - arena.height * scale) / 2,
+    };
+  }
+
+  /**
+   * Which sheet state a Fighter's activity puts it in, and how far into it.
+   *
+   * Everything but a duel runs off the Fighter's own animation clock, which
+   * ticks in real seconds whatever the Tempo. A duel runs off the Duel's clock,
+   * which escalates — so the duel art keeps pace with a duel that is getting
+   * shorter, while a victory dance stays a victory dance.
+   */
+  function spriteFor(f: Fighter, duel?: Duel): { state: State; elapsed: number } {
+    switch (f.activity) {
+      case 'celebrating':
+        return { state: 'victory', elapsed: f.stateElapsed };
+      case 'transforming':
+        return { state: 'transform', elapsed: f.stateElapsed };
+      case 'spectating':
+        return { state: 'spectate', elapsed: f.stateElapsed };
+      case 'duelling': {
+        // A duel rears back, clashes, rears back again. The Arena says which
+        // beat is playing; the clash window is however long this sheet's
+        // impact animation happens to run.
+        const beat = duelBeat(duel?.elapsed ?? f.stateElapsed, CLASH_WINDOW);
+        return {
+          state: beat.phase === 'impact' ? 'duel-impact' : 'duel-windup',
+          elapsed: beat.elapsed,
+        };
+      }
+      default:
+        return { state: 'hop', elapsed: 0 };
+    }
+  }
+
+  function drawFighter(
+    f: Fighter,
+    duel: Duel | undefined,
+    size: number,
+    scale: number,
+    ox: number,
+    oy: number,
+  ) {
+    const x = ox + f.x * scale;
+    const y = oy + f.y * scale;
+
+    // The viewer's own Type is marked on the board, not just in the tally.
+    if (f.type === pick) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, size * 0.26, size * 0.1, 0, 0, TAU);
+      ctx.fillStyle = 'rgba(129, 140, 248, 0.4)';
+      ctx.fill();
+    }
+
+    if (!sheetReady) {
+      ctx.beginPath();
+      ctx.arc(x, y - size * 0.25, size * 0.26, 0, TAU);
+      ctx.fillStyle = FALLBACK[f.type];
+      ctx.fill();
+      return;
+    }
+
+    const { state, elapsed } = spriteFor(f, duel);
+    // Hopping is a property of travel, so its frame comes off the hop phase the
+    // Arena exposes rather than off a clock of the page's own.
+    const rect =
+      state === 'hop'
+        ? sourceRect(f.type, 'hop', Math.floor(f.hopPhase * frameCount('hop')))
+        : frameAt(f.type, state, elapsed);
+
+    ctx.save();
+    ctx.translate(x, y);
+    if (f.facing === -1) ctx.scale(-1, 1);
+    ctx.drawImage(
+      sheet,
+      rect.sx,
+      rect.sy,
+      rect.sw,
+      rect.sh,
+      -size / 2,
+      -size * BASELINE_FRACTION,
+      size,
+      size,
+    );
+    ctx.restore();
+  }
+
+  function render() {
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    if (!arena) return;
+
+    const { scale, ox, oy } = viewport(rect.width, rect.height);
+    const size = (window.innerWidth < NARROW_BREAKPOINT ? NARROW_SPRITE : WIDE_SPRITE) * scale;
+
+    // A ring where a duel is happening, so the clearing reads as a clearing.
+    const duelOf = new Map<number, Duel>();
+    for (const duel of arena.duels) {
+      duelOf.set(duel.winner, duel);
+      duelOf.set(duel.loser, duel);
+      ctx.beginPath();
+      ctx.arc(ox + duel.x * scale, oy + duel.y * scale, size * 0.9, 0, TAU);
+      ctx.strokeStyle = 'rgba(129, 140, 248, 0.18)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Painter's order, so a fighter lower on the board overlaps one behind it.
+    for (const f of [...arena.fighters].sort((a, b) => a.y - b.y)) {
+      drawFighter(f, duelOf.get(f.id), size, scale, ox, oy);
+    }
+  }
+
+  function renderTally() {
+    if (!arena) return;
+    const tally = arena.tally;
+    for (const item of tallyItems) {
+      const type = item.dataset.type as Type;
+      item.querySelector('.tally-count')!.textContent = String(tally[type]);
+      item.dataset.mine = String(type === pick);
+    }
+  }
+
+  /** Standings for a screen reader — occasional, not on every conversion. */
+  function announceStandings(force = false) {
+    if (!arena) return;
+    const now = performance.now();
+    if (!force && now - lastAnnounce < 6000) return;
+    lastAnnounce = now;
+    const parts = TYPES.map((t) => `${t} ${arena!.tally[t]}`);
+    announcer.textContent = `${parts.join(', ')}. You are ${pick}.`;
+  }
+
+  // === Events out of the Arena ===
+  function handle(events: readonly ArenaEvent[]) {
+    for (const event of events) {
+      if (event.kind === 'bonk') playBonk();
+      else if (event.kind === 'champion') finish(event.type);
+    }
+  }
+
+  function loop(now: number) {
+    frameHandle = requestAnimationFrame(loop);
+    if (!arena) return;
+
+    const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
+    lastFrame = now;
+
+    // The Arena caps how much time one step simulates, so a tab that was hidden
+    // comes back to a sensible board rather than a leap forward.
+    handle(arena.step(dt));
+    renderTally();
+    announceStandings();
+    render();
+  }
+
+  function startLoop() {
+    stopLoop();
+    lastFrame = 0;
+    frameHandle = requestAnimationFrame(loop);
+  }
+
+  function stopLoop() {
+    if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+    frameHandle = null;
+  }
+
+  // A hidden tab suspends animation frames; the next one back must not be
+  // treated as one enormous delta.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) lastFrame = 0;
+  });
+
+  window.addEventListener('resize', () => {
+    if (arena) {
+      sizeCanvas();
+      render();
+    }
+  });
+
+  // === A round ===
+  function rosterSize() {
+    return window.innerWidth < NARROW_BREAKPOINT ? NARROW_ROSTER : WIDE_ROSTER;
+  }
+
+  function newArena(width: number, height: number) {
+    return createArena({
+      width,
+      height,
+      rosterSize: rosterSize(),
+      random: Math.random,
+    });
+  }
+
+  function startRound() {
+    if (!pick) return;
+    ensureAudio();
+    finished = false;
+    showResult(false);
+
+    if (reduceMotion.matches && !watchAnyway.checked) {
+      show(roundSection);
+      sizeCanvas();
+      playHeadless();
+      return;
+    }
+
+    show(roundSection);
+    const rect = sizeCanvas();
+    arena = newArena(rect.width, rect.height);
+    renderTally();
+    announceStandings(true);
+    render();
+    gsap.fromTo(roundSection, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' });
+    startLoop();
+  }
+
+  /**
+   * Reduced motion: the round is played out without ever being drawn, and the
+   * viewer gets the result. Still a real round — the same Arena, the same rules.
+   */
+  function playHeadless() {
+    const a = newArena(1200, 700);
+    const budget = 60 * 60 * 10; // ten simulated minutes of frames
+    for (let i = 0; i < budget && a.champion === null; i++) a.step(1 / 60);
+    arena = a;
+    renderTally();
+    finish(a.champion ?? a.fighters[0].type);
+  }
+
+  function finish(champion: Type) {
+    if (finished) return;
+    finished = true;
+
+    const won = champion === pick;
+    if (won) record.wins++;
+    else record.losses++;
+    saveRecord();
+    renderRecord();
+    playVictory();
+
+    resultVerdict.textContent = won ? 'You win' : 'You lose';
+    resultVerdict.style.color = won ? ACCENT : '#f87171';
+    resultTitle.textContent = `${champion[0].toUpperCase()}${champion.slice(1)} takes the board`;
+    resultDetail.textContent = won
+      ? `You backed ${pick}. Good call.`
+      : `You backed ${pick}. ${champion[0].toUpperCase()}${champion.slice(1)} had other ideas.`;
+    announcer.textContent = `${champion} wins. You ${won ? 'win' : 'lose'}. Record ${record.wins} wins, ${record.losses} losses.`;
+
+    if (reduceMotion.matches && !watchAnyway.checked) {
+      // No loop ever started: paint the finished board once, and that is that.
+      stopLoop();
+      render();
+      showResult(true);
+      return;
+    }
+
+    // The loop keeps running — the banner lands over a board that is still
+    // dancing, rather than replacing it.
+    gsap.delayedCall(1.2, () => {
+      showResult(true);
+      gsap.fromTo(
+        resultCard,
+        { opacity: 0, y: 20, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'back.out(1.4)' },
+      );
+    });
+  }
+
+  startBtn.addEventListener('click', startRound);
+  rematchBtn.addEventListener('click', startRound);
+
+  changeBtn.addEventListener('click', () => {
+    stopLoop();
+    arena = null;
+    showResult(false);
+    show(picker);
+  });
+
+  // === Boot ===
+  renderRecord();
+  renderMute();
+  if (reduceMotion.matches) motionNote.classList.remove('hidden');
+  show(picker);
+</script>

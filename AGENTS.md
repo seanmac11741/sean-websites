@@ -18,6 +18,11 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 **Completed build plan:** `plan.md`
 **Deferred work (blog, projects, bugs):** `todo.md`
 
+**RPS Royale artwork:** `public/images/rps-royale/sheet.png` is the production
+128 px-cell atlas. When replacing or validating it, see
+`docs/art/rps-royale/README.md` for the source art, animation preview, and
+`python3 scripts/assemble-rps-sprites.py` artifact checks.
+
 ## Stack
 
 - **Framework:** Astro 5 (static output, no SSR)

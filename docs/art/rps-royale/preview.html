@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPS Royale sprite review</title>
+<style>
+  :root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #14141d; color: #eeeeff; }
+  body { max-width: 1100px; margin: 32px auto; padding: 0 20px; }
+  h1 { font-size: 24px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 20px 0; }
+  button, select { font: inherit; padding: 8px 12px; }
+  main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  article { border: 1px solid #404050; border-radius: 10px; overflow: hidden; }
+  h2 { margin: 0; font-size: 14px; padding: 12px; }
+  canvas { display: block; width: 100%; height: auto; }
+  p { color: #bbb; line-height: 1.5; }
+  @media (max-width: 650px) { main { grid-template-columns: 1fr; } }
+</style>
+<h1>RPS Royale animation review</h1>
+<p>Each card shows authored size, game size, and a mirrored game-size sprite.
+  One-shot states repeat here for inspection. Use Step to inspect frame boundaries.</p>
+<div class="controls">
+  <button id="play">Pause</button>
+  <button id="step">Step</button>
+  <label>Background <select id="background"><option value="#0A0A0F">Game dark</option><option value="#ffffff">White</option></select></label>
+  <label>Speed <select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+  <label><input id="guides" type="checkbox"> Cell, safe area and baseline guides</label>
+</div>
+<main></main>
+<p id="status" role="status">Loading sprite sheet…</p>
+<script>
+  const characters = ['Rock', 'Paper', 'Scissors'];
+  const states = ['Idle', 'Hop', 'Duel windup', 'Duel impact', 'Spectate', 'Transform', 'Victory'];
+  const counts = [4, 6, 3, 3, 4, 6, 6];
+  const fps = [6, 12, 12, 14, 6, 12, 8];
+  const sheet = new Image();
+  const cards = [];
+  const status = document.querySelector('#status');
+  let playing = true, elapsed = 0, previous = null, manualFrame = null;
+  for (let state = 0; state < 7; state++) {
+    for (let character = 0; character < 3; character++) {
+      const card = document.createElement('article');
+      const title = document.createElement('h2');
+      const canvas = document.createElement('canvas');
+      canvas.width = 320; canvas.height = 170;
+      canvas.setAttribute('aria-label', characters[character] + ' ' + states[state] + ' animation');
+      title.textContent = characters[character] + ' · ' + states[state];
+      card.append(title, canvas);
+      document.querySelector('main').append(card);
+      cards.push({ canvas, character, state });
+    }
+  }
+  function draw() {
+    for (const { canvas, character, state } of cards) {
+      const ctx = canvas.getContext('2d');
+      const frame = (manualFrame ?? Math.floor(elapsed * fps[state])) % counts[state];
+      ctx.fillStyle = document.querySelector('#background').value;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (const [x, y, size, mirror] of [[12, 12, 128, false], [162, 70, 64, false], [240, 70, 64, true]]) {
+        ctx.save();
+        ctx.translate(x + (mirror ? size : 0), y);
+        ctx.scale(mirror ? -1 : 1, 1);
+        ctx.drawImage(sheet, frame * 128, (character * 7 + state) * 128, 128, 128, 0, 0, size, size);
+        if (document.querySelector('#guides').checked) {
+          ctx.strokeStyle = '#818CF8';
+          ctx.strokeRect(0.5, 0.5, size - 1, size - 1);
+          ctx.strokeRect(size / 8, size / 8, size * 0.75, size * 0.75);
+          ctx.beginPath(); ctx.moveTo(0, size * 104 / 128); ctx.lineTo(size, size * 104 / 128); ctx.stroke();
+        }
+        ctx.restore();
+      }
+      ctx.fillStyle = document.querySelector('#background').value === '#ffffff' ? '#444' : '#aaa';
+      ctx.font = '12px system-ui';
+      ctx.fillText('Frame ' + (frame + 1) + '/' + counts[state] + ' · ' + fps[state] + ' fps', 12, 157);
+    }
+  }
+  function tick(now) {
+    if (previous !== null && playing) elapsed += Math.min((now - previous) / 1000, 0.1) * Number(document.querySelector('#speed').value);
+    previous = now;
+    draw();
+    requestAnimationFrame(tick);
+  }
+  document.querySelector('#play').onclick = () => {
+    playing = !playing; manualFrame = null;
+    document.querySelector('#play').textContent = playing ? 'Pause' : 'Play';
+  };
+  document.querySelector('#step').onclick = () => {
+    playing = false; manualFrame = (manualFrame ?? 0) + 1;
+    document.querySelector('#play').textContent = 'Play';
+  };
+  sheet.onload = () => {
+    status.textContent = sheet.width + ' × ' + sheet.height + ' · 96 frames · 30 transparent padding cells';
+    requestAnimationFrame(tick);
+  };
+  sheet.onerror = () => { status.textContent = 'Could not load the sheet. Keep this preview in docs/art/rps-royale/ within the repository.'; };
+  sheet.src = '../../../public/images/rps-royale/sheet.png';
+</script>
+</html>
