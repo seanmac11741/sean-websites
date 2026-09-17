@@ -230,6 +230,7 @@ const fighters = TYPES.map((type) => ({
 <script>
   import { gsap } from 'gsap';
   import {
+    CLEARING_RADIUS,
     createArena,
     duelBeat,
     type Arena,
@@ -264,8 +265,8 @@ const fighters = TYPES.map((type) => ({
   const NARROW_BREAKPOINT = 640;
   const WIDE_ROSTER = 60;
   const NARROW_ROSTER = 30;
-  const WIDE_SPRITE = 46;
-  const NARROW_SPRITE = 38;
+  const WIDE_SPRITE = 69;
+  const NARROW_SPRITE = 57;
 
   /** Colours for the no-artwork fallback. Never used when the sheet loads. */
   const FALLBACK: Record<Type, string> = {
@@ -594,7 +595,10 @@ const fighters = TYPES.map((type) => ({
       duelOf.set(duel.winner, duel);
       duelOf.set(duel.loser, duel);
       ctx.beginPath();
-      ctx.arc(ox + duel.x * scale, oy + duel.y * scale, size * 0.9, 0, TAU);
+      // The ring is the Clearing, so its radius comes from the Arena's own
+      // CLEARING_RADIUS — the line spectators actually back out to. Deriving it
+      // from the sprite size instead lets the drawn edge drift off the real one.
+      ctx.arc(ox + duel.x * scale, oy + duel.y * scale, CLEARING_RADIUS * scale, 0, TAU);
       ctx.strokeStyle = 'rgba(129, 140, 248, 0.18)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
