@@ -914,6 +914,12 @@ const fighters = TYPES.map((type) => ({
   });
 
   window.addEventListener('resize', () => {
+    // A phone rotated on the picker can cross the breakpoint: show the cap the
+    // round would start with now.
+    if (!picker.classList.contains('hidden')) {
+      pickerDevice = deviceFor(window.innerWidth);
+      renderLineup();
+    }
     if (arena) {
       sizeCanvas();
       render();

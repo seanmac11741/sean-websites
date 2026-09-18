@@ -10,6 +10,7 @@
  * hands it here to be made sense of.
  */
 
+import { FULL_FIGHTER_SIZE } from './arena';
 import { TYPES, type Type } from './sprites';
 
 export type Lineup = Record<Type, number>;
@@ -33,7 +34,7 @@ export interface Device {
 const WIDE: Device = {
   defaultLineup: { rock: 20, paper: 20, scissors: 20 },
   cap: LINEUP_MAX,
-  maxFighterSize: 69,
+  maxFighterSize: FULL_FIGHTER_SIZE,
 };
 
 const NARROW: Device = {

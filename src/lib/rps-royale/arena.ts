@@ -22,6 +22,7 @@
  * how wide a Clearing is, how far apart a crowd spreads — is measured in it.
  */
 
+import type { Lineup } from './lineup';
 import { TYPES, type Type } from './sprites';
 
 export type { Type };
@@ -104,9 +105,6 @@ export interface Shockwave {
   /** Seconds since it went off. It is gone at `SHOCKWAVE_SECONDS`. */
   elapsed: number;
 }
-
-/** How many Fighters of each Type start the round. */
-export type Lineup = Readonly<Record<Type, number>>;
 
 /** An explicit starting placement, instead of the shuffled scatter. */
 export interface FighterSeed {
@@ -276,7 +274,8 @@ const TEMPO_RAMP_SPAN = 10;
  */
 export const MAX_TEMPO = 6;
 
-const BASE_SPEED = 46;
+/** How fast a Fighter roams at flat Tempo. */
+export const BASE_SPEED = 46;
 const BASE_SEEK_RATE = 1.2;
 const MAX_SEEK_RATE = 8;
 const WANDER_RATE = 2.4;

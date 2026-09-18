@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BASE_SPEED,
   BONKS_PER_DUEL,
   BONK_INTERVAL,
   CLEARING_RADIUS,
@@ -167,7 +168,7 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-            random: always(0.5),
+      random: always(0.5),
       seed: pair('rock', 'scissors'),
     });
 
@@ -180,7 +181,7 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-            random: always(0.5),
+      random: always(0.5),
       seed: pair('rock', 'rock'),
     });
 
@@ -194,7 +195,7 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-            random: always(0.5),
+      random: always(0.5),
       seed: [
         { type: 'rock', x: 20, y: 20, heading: Math.PI },
         { type: 'scissors', x: 380, y: 380, heading: 0 },
@@ -211,7 +212,7 @@ describe('a duel', () => {
     return createArena({
       width: 400,
       height: 400,
-            random: always(draw),
+      random: always(draw),
       seed: pair(a, b),
     });
   }
@@ -369,7 +370,7 @@ describe('the beats of a duel', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-            random: always(0.9),
+      random: always(0.9),
       seed: pair('rock', 'scissors'),
     });
 
@@ -395,7 +396,7 @@ describe('what tempo does and does not speed up', () => {
     const arena = createArena({
       width: 4000,
       height: 400,
-            random: always(0.9),
+      random: always(0.9),
       seed: [
         { type: 'rock', x: 60, y: 200, heading: 0 },
         { type: 'scissors', x: 3940, y: 200, heading: Math.PI },
@@ -454,7 +455,7 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 600,
       height: 600,
-            random: always(0.9),
+      random: always(0.9),
       seed: [
         ...pair('rock', 'scissors'),
         { type: 'rock', x: 200 + DUEL_RADIUS, y: 200, heading: Math.PI },
@@ -475,7 +476,7 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 600,
       height: 600,
-            random: always(0.9),
+      random: always(0.9),
       seed: [
         ...pair('rock', 'scissors'),
         { type: 'paper', x: 200 + DUEL_RADIUS, y: 200, heading: Math.PI },
@@ -495,7 +496,7 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 900,
       height: 600,
-            random: always(0.9),
+      random: always(0.9),
       seed: [...pair('rock', 'scissors'), { type: 'rock', x: far, y: 200, heading: 0 }],
     });
 
@@ -813,7 +814,7 @@ describe('the shockwave', () => {
     Math.hypot(arena.fighters[i].x - 600, arena.fighters[i].y - 600);
 
   /** The furthest a Fighter can walk under its own steam in `seconds`. */
-  const walk = (seconds: number) => 46 * seconds;
+  const walk = (seconds: number) => BASE_SPEED * seconds;
 
   // A scissors has no paper to chase here, so it only wanders where it is put.
   const wanderer = (at: number): FighterSeed => ({ type: 'scissors', x: 600, y: 600 + at, heading: 0 });
