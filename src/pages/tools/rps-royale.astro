@@ -1,11 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
+import { LINEUP_MAX, LINEUP_MIN } from '../../lib/rps-royale/lineup';
 import { SHEET_COLS, SHEET_PATH, SHEET_ROWS, TYPES, rowFor } from '../../lib/rps-royale/sprites';
 
 const title = 'RPS Royale — Sean McConnell';
 const description =
-  'Pick rock, paper or scissors, then watch sixty of them fight it out until one type owns the board.';
+  'Pick rock, paper or scissors, set the lineup, then watch them fight it out until one type owns the board.';
 
 /**
  * The picker and the tally show a Type's idle frame as a CSS background. The
@@ -41,11 +42,7 @@ const fighters = TYPES.map((type) => ({
     <section id="picker" class="flex-1 flex flex-col items-center justify-center gap-8 py-8">
       <div class="text-center max-w-xl">
         <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">RPS Royale</h1>
-        <p class="text-slate-400 leading-relaxed">
-          Pick a fighter. Sixty of them hit the board, twenty each. Whoever loses a bonk turns into
-          whoever won it — nobody dies, so one type slowly takes the whole thing. One duel in ten
-          goes the wrong way, so nothing is decided until it is.
-        </p>
+        <p class="text-slate-400 leading-relaxed">Choose your fighter.</p>
       </div>
 
       <div class="flex flex-wrap justify-center gap-3 sm:gap-5">
@@ -64,6 +61,43 @@ const fighters = TYPES.map((type) => ({
             </button>
           ))
         }
+      </div>
+
+      <!-- The Lineup: how many of each Type start the round. -->
+      <div id="lineup" class="w-full max-w-sm flex flex-col gap-3">
+        {
+          fighters.map((f) => (
+            <label class="flex items-center gap-3">
+              <span class="sprite shrink-0" style={f.chip} data-type={f.type} aria-hidden="true" />
+              <span class="sr-only">{f.label}</span>
+              <input
+                type="range"
+                class="lineup-slider flex-1 accent-accent"
+                min={LINEUP_MIN}
+                max={LINEUP_MAX}
+                step="1"
+                data-type={f.type}
+                aria-label={`${f.label} fighters`}
+              />
+              <output
+                class="lineup-count w-8 text-right text-white font-semibold tabular-nums text-sm"
+                data-type={f.type}
+              />
+            </label>
+          ))
+        }
+        <div class="flex items-center justify-between text-sm">
+          <p class="text-slate-400">
+            Total: <span id="lineup-total" class="text-white font-semibold tabular-nums">60</span>
+          </p>
+          <button
+            id="even-btn"
+            type="button"
+            class="text-xs text-slate-400 hover:text-white underline underline-offset-4 transition-colors"
+          >
+            Even it out
+          </button>
+        </div>
       </div>
 
       <button
@@ -96,7 +130,7 @@ const fighters = TYPES.map((type) => ({
       >
         <p class="text-slate-400 text-sm leading-relaxed">
           Your system asks for reduced motion, so a round is played out and only the result is
-          shown — no sixty hopping sprites.
+          shown — no hopping sprites.
         </p>
         <label class="flex items-center gap-2 text-sm text-slate-300">
           <input id="watch-anyway" type="checkbox" class="accent-accent w-4 h-4" />
@@ -154,6 +188,7 @@ const fighters = TYPES.map((type) => ({
             <p id="result-verdict" class="text-sm font-semibold tracking-[0.2em] uppercase"></p>
             <h2 id="result-title" class="text-3xl sm:text-4xl font-bold text-white"></h2>
             <p id="result-detail" class="text-slate-400 text-sm"></p>
+            <p id="result-lineup" class="text-slate-500 text-xs tabular-nums"></p>
             <p class="text-slate-400 text-sm">
               Record:
               <span id="result-record" class="text-white font-semibold tabular-nums">0W – 0L</span>
@@ -230,15 +265,26 @@ const fighters = TYPES.map((type) => ({
 <script>
   import { gsap } from 'gsap';
   import {
-    CLEARING_RADIUS,
+    SHOCKWAVE_SECONDS,
     createArena,
     duelBeat,
+    playOut,
     type Arena,
     type ArenaEvent,
     type Duel,
     type Fighter,
     type Type,
   } from '../../lib/rps-royale/arena';
+  import {
+    clampLineup,
+    describeLineup,
+    deviceFor,
+    lineupTotal,
+    parseLineup,
+    withCount,
+    type Device,
+    type Lineup,
+  } from '../../lib/rps-royale/lineup';
   import {
     BASELINE_FRACTION,
     SHEET_PATH,
@@ -260,22 +306,23 @@ const fighters = TYPES.map((type) => ({
 
   const RECORD_KEY = 'rps-royale-record';
   const MUTED_KEY = 'rps-royale-muted';
+  const LINEUP_KEY = 'rps-royale-lineup';
 
-  /** A phone gets a smaller roster: legible at that size, and smooth. */
-  const NARROW_BREAKPOINT = 640;
-  const WIDE_ROSTER = 60;
-  const NARROW_ROSTER = 30;
-  const WIDE_SPRITE = 69;
-  const NARROW_SPRITE = 57;
+  /** How long a round played without drawing it may run before the biggest Type takes it. */
+  const HEADLESS_LIMIT_SECONDS = 10 * 60;
 
-  /** Colours for the no-artwork fallback. Never used when the sheet loads. */
-  const FALLBACK: Record<Type, string> = {
+  /**
+   * Each Type's colour: the no-artwork markers, the puff a transforming loser
+   * leaves behind, and the Shockwave a winner sends out.
+   */
+  const COLOUR: Record<Type, string> = {
     rock: '#d6c3a3',
     paper: '#ece7d6',
     scissors: '#f08a76',
   };
 
   const ACCENT = '#818CF8';
+  const GOLD = '#fbbf24';
   const TAU = Math.PI * 2;
 
   // === DOM ===
@@ -298,6 +345,11 @@ const fighters = TYPES.map((type) => ({
   const resultVerdict = document.getElementById('result-verdict')!;
   const resultTitle = document.getElementById('result-title')!;
   const resultDetail = document.getElementById('result-detail')!;
+  const resultLineup = document.getElementById('result-lineup')!;
+  const lineupSliders = Array.from(document.querySelectorAll<HTMLInputElement>('.lineup-slider'));
+  const lineupCounts = Array.from(document.querySelectorAll<HTMLOutputElement>('.lineup-count'));
+  const lineupTotalEl = document.getElementById('lineup-total')!;
+  const evenBtn = document.getElementById('even-btn')!;
   const rematchBtn = document.getElementById('rematch-btn')!;
   const changeBtn = document.getElementById('change-btn')!;
   const fighterBtns = Array.from(
@@ -337,6 +389,32 @@ const fighters = TYPES.map((type) => ({
   }
 
   let record = loadRecord();
+
+  /**
+   * The Lineup as saved, or null until the viewer first moves a slider. Never
+   * clamped to the device: a phone shows and plays at most its cap, but a
+   * hundred-a-side Lineup saved on a desktop is still there on the desktop.
+   */
+  let savedLineup: Lineup | null = (() => {
+    try {
+      return parseLineup(localStorage.getItem(LINEUP_KEY));
+    } catch {
+      return null;
+    }
+  })();
+
+  function saveLineup() {
+    try {
+      localStorage.setItem(LINEUP_KEY, JSON.stringify(savedLineup));
+    } catch {
+      // Not remembering the Lineup is better than failing the slider.
+    }
+  }
+
+  /** What this device shows and plays: the saved Lineup, or its default, within its cap. */
+  function playableLineup(device: Device): Lineup {
+    return clampLineup(savedLineup ?? device.defaultLineup, device.cap);
+  }
   let muted = (() => {
     try {
       return localStorage.getItem(MUTED_KEY) === 'true';
@@ -352,6 +430,8 @@ const fighters = TYPES.map((type) => ({
   let lastFrame = 0;
   let finished = false;
   let lastAnnounce = 0;
+  /** The Lineup the current round started from, for the result card. */
+  let startedWith: Lineup | null = null;
 
   // === The spritesheet ===
   let sheetReady = false;
@@ -381,6 +461,37 @@ const fighters = TYPES.map((type) => ({
     btn.addEventListener('click', () => selectFighter(btn.dataset.type as Type));
   }
 
+  // === Lineup ===
+  let pickerDevice = deviceFor(window.innerWidth);
+
+  function renderLineup() {
+    const lineup = playableLineup(pickerDevice);
+    for (const slider of lineupSliders) {
+      slider.max = String(pickerDevice.cap);
+      slider.value = String(lineup[slider.dataset.type as Type]);
+    }
+    for (const count of lineupCounts) {
+      count.textContent = String(lineup[count.dataset.type as Type]);
+    }
+    lineupTotalEl.textContent = String(lineupTotal(lineup));
+  }
+
+  for (const slider of lineupSliders) {
+    slider.addEventListener('input', () => {
+      // Only the slider that moved changes what is saved.
+      const base = savedLineup ?? pickerDevice.defaultLineup;
+      savedLineup = withCount(base, slider.dataset.type as Type, Number(slider.value));
+      saveLineup();
+      renderLineup();
+    });
+  }
+
+  evenBtn.addEventListener('click', () => {
+    savedLineup = { ...pickerDevice.defaultLineup };
+    saveLineup();
+    renderLineup();
+  });
+
   function renderRecord() {
     const text = `${record.wins}W – ${record.losses}L`;
     recordEl.textContent = text;
@@ -398,6 +509,10 @@ const fighters = TYPES.map((type) => ({
   // Two of them: the picker and the round. The result is not a third — it is an
   // overlay on the round, so the champions carry on dancing underneath it.
   function show(section: HTMLElement) {
+    if (section === picker) {
+      pickerDevice = deviceFor(window.innerWidth);
+      renderLineup();
+    }
     for (const el of [picker, roundSection]) {
       el.classList.toggle('hidden', el !== section);
       el.classList.toggle('flex', el === section);
@@ -529,6 +644,126 @@ const fighters = TYPES.map((type) => ({
     }
   }
 
+  // === Death and rebirth, and the Shockwave ===
+  // Page-side garnish: the Arena reports a rebirth and carries its Shockwaves;
+  // how they look is decided here.
+
+  /** The page's own clock, in seconds, for effects the Arena knows nothing of. */
+  let clock = 0;
+
+  interface Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    born: number;
+    colour: string;
+  }
+
+  const PARTICLE_SECONDS = 0.6;
+  const FLASH_SECONDS = 0.25;
+  const POP_SECONDS = 0.4;
+
+  let particles: Particle[] = [];
+  let flashes: { x: number; y: number; born: number }[] = [];
+  /** When each reborn Fighter popped into its new Type, by id. */
+  const pops = new Map<number, number>();
+
+  function rebirth(event: Extract<ArenaEvent, { kind: 'rebirth' }>) {
+    if (!arena) return;
+    flashes.push({ x: event.x, y: event.y, born: clock });
+    pops.set(event.fighter, clock);
+
+    // The puff is what is left of the loser, so it is in the loser's colour.
+    const size = arena.fighterSize;
+    const count = 10;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * TAU + Math.random() * 0.5;
+      const speed = size * (1 + Math.random() * 1.5);
+      particles.push({
+        x: event.x,
+        y: event.y - size * 0.3,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - size * 0.5,
+        born: clock,
+        colour: COLOUR[event.from],
+      });
+    }
+  }
+
+  function clearEffects() {
+    particles = [];
+    flashes = [];
+    pops.clear();
+  }
+
+  /**
+   * The squash and stretch of a Fighter popping into its new Type: it lands
+   * squat and wide, springs up tall and thin, and settles.
+   */
+  function popScale(id: number): { sx: number; sy: number } {
+    const at = pops.get(id);
+    if (at === undefined) return { sx: 1, sy: 1 };
+    const t = (clock - at) / POP_SECONDS;
+    if (t >= 1) {
+      pops.delete(id);
+      return { sx: 1, sy: 1 };
+    }
+    const wobble = Math.cos(t * Math.PI * 2.5) * (1 - t) * 0.45;
+    const grow = 0.6 + 0.4 * Math.min(1, t * 3);
+    return { sx: grow * (1 + wobble), sy: grow * (1 - wobble) };
+  }
+
+  function drawShockwaves(scale: number, ox: number, oy: number) {
+    if (!arena) return;
+    for (const wave of arena.shockwaves) {
+      const t = Math.min(1, wave.elapsed / SHOCKWAVE_SECONDS);
+      const eased = 1 - (1 - t) ** 3;
+      ctx.beginPath();
+      ctx.arc(ox + wave.x * scale, oy + wave.y * scale, wave.radius * eased * scale, 0, TAU);
+      ctx.strokeStyle = wave.upset ? GOLD : COLOUR[wave.type];
+      ctx.globalAlpha = (wave.upset ? 0.7 : 0.35) * (1 - t);
+      ctx.lineWidth = wave.upset ? 4 : 2;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawEffects(dt: number, scale: number, ox: number, oy: number) {
+    if (!arena) return;
+    const size = arena.fighterSize * scale;
+
+    flashes = flashes.filter((f) => clock - f.born < FLASH_SECONDS);
+    for (const flash of flashes) {
+      const t = (clock - flash.born) / FLASH_SECONDS;
+      const x = ox + flash.x * scale;
+      const y = oy + flash.y * scale - size * 0.3;
+      const radius = size * (0.4 + t * 0.8);
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      glow.addColorStop(0, `rgba(255, 255, 255, ${0.9 * (1 - t)})`);
+      glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, TAU);
+      ctx.fill();
+    }
+
+    particles = particles.filter((p) => clock - p.born < PARTICLE_SECONDS);
+    for (const p of particles) {
+      const t = (clock - p.born) / PARTICLE_SECONDS;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 1 - 3 * dt;
+      p.vy = p.vy * (1 - 3 * dt) + arena.fighterSize * 2 * dt;
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = p.colour;
+      ctx.beginPath();
+      ctx.arc(ox + p.x * scale, oy + p.y * scale, Math.max(1.5, size * 0.06 * (1 - t * 0.5)), 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawFighter(
     f: Fighter,
     duel: Duel | undefined,
@@ -551,12 +786,13 @@ const fighters = TYPES.map((type) => ({
     if (!sheetReady) {
       ctx.beginPath();
       ctx.arc(x, y - size * 0.25, size * 0.26, 0, TAU);
-      ctx.fillStyle = FALLBACK[f.type];
+      ctx.fillStyle = COLOUR[f.type];
       ctx.fill();
       return;
     }
 
     const { state, elapsed } = spriteFor(f, duel);
+    const { sx, sy } = popScale(f.id);
     // Hopping is a property of travel, so its frame comes off the hop phase the
     // Arena exposes rather than off a clock of the page's own.
     const rect =
@@ -566,7 +802,7 @@ const fighters = TYPES.map((type) => ({
 
     ctx.save();
     ctx.translate(x, y);
-    if (f.facing === -1) ctx.scale(-1, 1);
+    ctx.scale(f.facing * sx, sy);
     ctx.drawImage(
       sheet,
       rect.sx,
@@ -581,13 +817,16 @@ const fighters = TYPES.map((type) => ({
     ctx.restore();
   }
 
-  function render() {
+  function render(dt = 0) {
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.width, rect.height);
     if (!arena) return;
 
     const { scale, ox, oy } = viewport(rect.width, rect.height);
-    const size = (window.innerWidth < NARROW_BREAKPOINT ? NARROW_SPRITE : WIDE_SPRITE) * scale;
+    // How big a Fighter is depends on how crowded the board is: the Arena's call.
+    const size = arena.fighterSize * scale;
+
+    drawShockwaves(scale, ox, oy);
 
     // A ring where a duel is happening, so the clearing reads as a clearing.
     const duelOf = new Map<number, Duel>();
@@ -596,9 +835,9 @@ const fighters = TYPES.map((type) => ({
       duelOf.set(duel.loser, duel);
       ctx.beginPath();
       // The ring is the Clearing, so its radius comes from the Arena's own
-      // CLEARING_RADIUS — the line spectators actually back out to. Deriving it
-      // from the sprite size instead lets the drawn edge drift off the real one.
-      ctx.arc(ox + duel.x * scale, oy + duel.y * scale, CLEARING_RADIUS * scale, 0, TAU);
+      // clearing radius — the line spectators actually back out to. Deriving it
+      // from the sprite size here instead lets the drawn edge drift off the real one.
+      ctx.arc(ox + duel.x * scale, oy + duel.y * scale, arena.clearingRadius * scale, 0, TAU);
       ctx.strokeStyle = 'rgba(129, 140, 248, 0.18)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
@@ -608,6 +847,8 @@ const fighters = TYPES.map((type) => ({
     for (const f of [...arena.fighters].sort((a, b) => a.y - b.y)) {
       drawFighter(f, duelOf.get(f.id), size, scale, ox, oy);
     }
+
+    drawEffects(dt, scale, ox, oy);
   }
 
   function renderTally() {
@@ -634,6 +875,7 @@ const fighters = TYPES.map((type) => ({
   function handle(events: readonly ArenaEvent[]) {
     for (const event of events) {
       if (event.kind === 'bonk') playBonk();
+      else if (event.kind === 'rebirth') rebirth(event);
       else if (event.kind === 'champion') finish(event.type);
     }
   }
@@ -644,13 +886,14 @@ const fighters = TYPES.map((type) => ({
 
     const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
     lastFrame = now;
+    clock += Math.min(dt, 1 / 30);
 
     // The Arena caps how much time one step simulates, so a tab that was hidden
     // comes back to a sensible board rather than a leap forward.
     handle(arena.step(dt));
     renderTally();
     announceStandings();
-    render();
+    render(Math.min(dt, 1 / 30));
   }
 
   function startLoop() {
@@ -678,15 +921,18 @@ const fighters = TYPES.map((type) => ({
   });
 
   // === A round ===
-  function rosterSize() {
-    return window.innerWidth < NARROW_BREAKPOINT ? NARROW_ROSTER : WIDE_ROSTER;
-  }
-
+  /**
+   * A fresh Arena from the Lineup. The device, and so its cap and its largest
+   * sprite, is decided now, as the round starts — Rematch included.
+   */
   function newArena(width: number, height: number) {
+    const device = deviceFor(window.innerWidth);
+    startedWith = playableLineup(device);
     return createArena({
       width,
       height,
-      rosterSize: rosterSize(),
+      lineup: startedWith,
+      maxFighterSize: device.maxFighterSize,
       random: Math.random,
     });
   }
@@ -696,6 +942,7 @@ const fighters = TYPES.map((type) => ({
     ensureAudio();
     finished = false;
     showResult(false);
+    clearEffects();
 
     if (reduceMotion.matches && !watchAnyway.checked) {
       show(roundSection);
@@ -720,11 +967,10 @@ const fighters = TYPES.map((type) => ({
    */
   function playHeadless() {
     const a = newArena(1200, 700);
-    const budget = 60 * 60 * 10; // ten simulated minutes of frames
-    for (let i = 0; i < budget && a.champion === null; i++) a.step(1 / 60);
+    const champion = playOut(a, HEADLESS_LIMIT_SECONDS, Math.random);
     arena = a;
     renderTally();
-    finish(a.champion ?? a.fighters[0].type);
+    finish(champion);
   }
 
   function finish(champion: Type) {
@@ -744,6 +990,7 @@ const fighters = TYPES.map((type) => ({
     resultDetail.textContent = won
       ? `You backed ${pick}. Good call.`
       : `You backed ${pick}. ${champion[0].toUpperCase()}${champion.slice(1)} had other ideas.`;
+    resultLineup.textContent = startedWith ? describeLineup(startedWith) : '';
     announcer.textContent = `${champion} wins. You ${won ? 'win' : 'lose'}. Record ${record.wins} wins, ${record.losses} losses.`;
 
     if (reduceMotion.matches && !watchAnyway.checked) {
@@ -772,6 +1019,7 @@ const fighters = TYPES.map((type) => ({
   changeBtn.addEventListener('click', () => {
     stopLoop();
     arena = null;
+    clearEffects();
     showResult(false);
     show(picker);
   });

@@ -23,6 +23,11 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 `docs/art/rps-royale/README.md` for the source art, animation preview, and
 `python3 scripts/assemble-rps-sprites.py` artifact checks.
 
+**RPS Royale logic:** every rule lives in pure modules under `src/lib/rps-royale/` —
+`arena.ts` (the game: seeding, Fighter size, Duels, Shockwaves, `playOut`), `lineup.ts` (the
+viewer's Lineup, device caps, and what is saved), `sprites.ts` (the sheet's grid). The page
+`src/pages/tools/rps-royale.astro` only draws and wires the DOM. Tests: `tests/lib/rps-*.test.ts`.
+
 ## Stack
 
 - **Framework:** Astro 5 (static output, no SSR)
