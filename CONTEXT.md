@@ -104,14 +104,33 @@ Fighter that a Duel can change.
 **Fighter** — one character in the **Arena**: its Type, position, heading, facing, hop phase,
 **Activity** and **Cooldown**.
 
-**Roster** — the full population of Fighters. Sixty on a wide viewport, thirty on a narrow one,
-split exactly evenly between the three Types. Constant for the whole round: **Conversion** never
-changes its size, so the board never thins out and no Type is one unlucky encounter from
-extinction. The split is even because the **Pick** must be neither handicapped nor favoured — the
-**Upset** rate is the only randomness that is supposed to matter.
+**Roster** — the full population of Fighters, seeded from the **Lineup**: exactly that many of
+each Type, from three Fighters to three hundred. The Types are shuffled across a jittered grid with
+the Arena's injected random source, so every Type starts mixed into the board and a seeded round
+always places the same way. Its size is constant for the whole round: **Conversion** never changes
+it, so the board never thins out. It used to be split exactly evenly as a fairness rule. That was
+dropped when the viewer got to choose — see `docs/adr/0002-rps-royale-drops-the-even-split.md`.
 
-**Arena** — one run of the game: the Roster, the **Duels** in flight, the elapsed time, the
-**Tempo**, and the **Champion** once there is one. Owned by the **Arena module**
+**Lineup** — how many Fighters of each Type start a round: one to a hundred each, set with three
+sliders under the fighter buttons. A wide viewport defaults to twenty each; a phone to ten each,
+with a **cap** of forty per Type. Saved in `localStorage`, and Rematch reuses it. The sliders show
+it clamped to the device's cap, but the saved value only changes when a slider moves, so a phone
+visit does not quietly shrink a Lineup saved on a desktop. The device, and so its cap, is decided
+when a round starts. **Even it out** restores the device default. Owned by the **Lineup module**
+(`src/lib/rps-royale/lineup.ts`), which is pure: the page hands it the raw saved string.
+
+**Fighter size** — how big a Fighter is, in arena pixels, fixed for the round:
+`clamp(k · √(board area / total Fighters), 32, max)`. `max` is the device's largest sprite, 69 wide
+and 57 on a phone, and `k` puts sixty Fighters on a 960 × 540 board at exactly 69, so the classic
+round looks as it always did. The Duel radius, the **Clearing**, the post-Duel push apart and the
+same-Type spread are all stated at full size and scale with it. The Arena decides it because the
+rules are measured in it; the page only draws at it.
+
+**Spread** — same-Type Fighters that are roaming or spectating push gently apart within about one
+and a half Fighter widths, so a Type reads as a crowd of characters rather than a stack of one sprite.
+
+**Arena** — one run of the game: the Roster, the **Duels** and **Shockwaves** in flight, the
+elapsed time, the **Tempo**, and the **Champion** once there is one. Owned by the **Arena module**
 (`src/lib/rps-royale/arena.ts`) — seeding, movement, proximity, the Duel lifecycle, the Upset roll,
 Conversion, Tempo and Champion detection. Pure: no canvas, no DOM, no timers, no storage, and no
 `Math.random` — the random source is injected, which is what makes the ninety-ten split assertable.
@@ -143,7 +162,17 @@ deterministically and there is nothing left to watch, while ten percent is enoug
 to a handful can genuinely come back.
 
 **Conversion** — the losing Fighter becoming the winner's Type. The only way a Type's count ever
-changes. Nobody dies.
+changes. Nobody dies, though it is staged as a death and rebirth: the loser transforms for about
+1.2 seconds (`TRANSFORM_SECONDS`), and a Fighter mid-transform is not prey and cannot be targeted.
+On the page, the transform art plays at its native 0.5 s and then holds a neutral silhouette. When
+the Arena reports the **rebirth**, the page adds a flash, a puff of particles in the loser's colour,
+and a squash-and-stretch pop into the new Type.
+
+**Shockwave** — the outward push from each Conversion. For about 0.4 s
+(`SHOCKWAVE_SECONDS`), fading as it goes, it shoves every roaming and spectating Fighter of any Type
+away from where the Duel landed, out to about two and a half Clearings. Nobody is immune. An
+**Upset** sends a bigger, harder one. The page draws it as a faint ring in the winner's colour, and
+a gold one on an Upset. It keeps a crowded board from settling into clumps around old fights.
 
 **Cooldown** — the short immunity a Fighter carries out of a Duel. With the pair pushed apart on
 release, it is what makes one encounter produce exactly one Conversion rather than re-rolling the
@@ -161,12 +190,15 @@ round, then ramping to a ceiling. There is no hard time cap and no skip button; 
 guarantees a round ends, and the ceiling is what stops a Fighter moving further in one step than a
 Duel's radius and tunnelling past its opponent.
 
-**Champion** — the one Type left when it owns the entire Roster. Ends the round.
+**Champion** — the one Type left when it owns the entire Roster. Ends the round. A round played out
+without being drawn (reduced motion, `playOut`) also has a time limit: if it runs out first, the
+Type with the most Fighters wins (`leaderOf`), with a tie broken by the injected random source.
 
 **Pick** — the Type the viewer chose before starting. Marked in the tally and on the board.
 
 **Record** — the viewer's running wins and losses across rounds, two integers in `localStorage`,
-resettable from the picker.
+resettable from the picker. It counts every round, uneven Lineups included. The result card shows
+the starting Lineup ("Started 100 · 5 · 5") so the context is visible.
 
 **Sheet module** — `src/lib/rps-royale/sprites.ts`. The one place that knows the spritesheet's grid:
 which row is which Type-and-state, how many frames it has, its frame rate, whether it loops, and

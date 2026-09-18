@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BASE_SPEED,
   BONKS_PER_DUEL,
   BONK_INTERVAL,
   CLEARING_RADIUS,
   COOLDOWN_SECONDS,
   DUEL_RADIUS,
   DUEL_SECONDS,
+  FULL_FIGHTER_SIZE,
+  MIN_FIGHTER_SIZE,
   MAX_TEMPO,
   TEMPO_RAMP_START,
   TRANSFORM_SECONDS,
   UPSET_RATE,
   WINDUP_SECONDS,
   beats,
+  fighterSizeFor,
+  leaderOf,
+  playOut,
   createArena,
   duelBeat,
   outcomeFor,
@@ -39,6 +45,9 @@ function mulberry32(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+/** A Lineup of `n` Fighters of every Type. */
+const even = (n: number) => ({ rock: n, paper: n, scissors: n });
 
 /** A random source that always answers the same draw. */
 const always = (value: number) => () => value;
@@ -90,20 +99,39 @@ describe('the rock-paper-scissors rules', () => {
 });
 
 describe('a fresh arena', () => {
-  it('has the requested roster size, split exactly evenly', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(1) });
+  it('seeds exactly the Lineup it was given', () => {
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(1) });
     expect(arena.fighters).toHaveLength(60);
     for (const type of TYPES) expect(arena.tally[type]).toBe(20);
   });
 
-  it('rounds a roster size down to something it can split three ways', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 62, random: mulberry32(1) });
-    expect(arena.fighters).toHaveLength(60);
-    for (const type of TYPES) expect(arena.tally[type]).toBe(20);
+  it('seeds an uneven Lineup just as faithfully', () => {
+    const lineup = { rock: 100, paper: 5, scissors: 1 };
+    const arena = createArena({ width: 1200, height: 700, lineup, random: mulberry32(1) });
+    expect(arena.fighters).toHaveLength(106);
+    expect(arena.tally).toEqual(lineup);
+  });
+
+  it('places the Lineup the same way every time under the same random source', () => {
+    const lineup = { rock: 30, paper: 12, scissors: 3 };
+    const place = (seed: number) =>
+      createArena({ width: 800, height: 600, lineup, random: mulberry32(seed) }).fighters.map(
+        (f) => `${f.type}@${f.x.toFixed(3)},${f.y.toFixed(3)}`,
+      );
+
+    expect(place(5)).toEqual(place(5));
+    expect(place(5)).not.toEqual(place(6));
+  });
+
+  it('shuffles the Types across the board rather than dealing them in turn', () => {
+    // Dealt round-robin, every third grid slot is the same Type.
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(8) });
+    const dealt = arena.fighters.every((f, i) => f.type === TYPES[i % TYPES.length]);
+    expect(dealt).toBe(false);
   });
 
   it('scatters fighters across the arena rather than stacking them', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(7) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(7) });
     const xs = arena.fighters.map((f) => f.x);
     const ys = arena.fighters.map((f) => f.y);
 
@@ -113,7 +141,7 @@ describe('a fresh arena', () => {
   });
 
   it('mixes the types across the board rather than clustering each in one place', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(3) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(3) });
     for (const type of TYPES) {
       const xs = arena.fighters.filter((f) => f.type === type).map((f) => f.x);
       expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(800 * 0.4);
@@ -121,7 +149,7 @@ describe('a fresh arena', () => {
   });
 
   it('starts every fighter roaming, off cooldown, with nothing duelling', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(2) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(2) });
     expect(arena.fighters.every((f) => f.activity === 'roaming')).toBe(true);
     expect(arena.fighters.every((f) => f.cooldown === 0)).toBe(true);
     expect(arena.duels).toHaveLength(0);
@@ -129,7 +157,7 @@ describe('a fresh arena', () => {
   });
 
   it('starts at flat tempo with no elapsed time', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(2) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(2) });
     expect(arena.elapsed).toBe(0);
     expect(arena.tempo).toBe(1);
   });
@@ -140,7 +168,6 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-      rosterSize: 2,
       random: always(0.5),
       seed: pair('rock', 'scissors'),
     });
@@ -154,7 +181,6 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-      rosterSize: 2,
       random: always(0.5),
       seed: pair('rock', 'rock'),
     });
@@ -169,7 +195,6 @@ describe('proximity', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-      rosterSize: 2,
       random: always(0.5),
       seed: [
         { type: 'rock', x: 20, y: 20, heading: Math.PI },
@@ -187,7 +212,6 @@ describe('a duel', () => {
     return createArena({
       width: 400,
       height: 400,
-      rosterSize: 2,
       random: always(draw),
       seed: pair(a, b),
     });
@@ -346,7 +370,6 @@ describe('the beats of a duel', () => {
     const arena = createArena({
       width: 400,
       height: 400,
-      rosterSize: 2,
       random: always(0.9),
       seed: pair('rock', 'scissors'),
     });
@@ -373,7 +396,6 @@ describe('what tempo does and does not speed up', () => {
     const arena = createArena({
       width: 4000,
       height: 400,
-      rosterSize: 2,
       random: always(0.9),
       seed: [
         { type: 'rock', x: 60, y: 200, heading: 0 },
@@ -392,7 +414,7 @@ describe('what tempo does and does not speed up', () => {
   });
 
   it('leaves a fighter animating in real seconds however frantic the round got', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(4) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(4) });
     for (let i = 0; i < 60 * 60 * 5 && arena.champion === null; i++) arena.step(FRAME);
 
     expect(arena.champion).not.toBeNull();
@@ -415,8 +437,7 @@ describe('the upset rate', () => {
       const arena = createArena({
         width: 400,
         height: 400,
-        rosterSize: 2,
-        random,
+                random,
         seed: pair('rock', 'scissors'),
       });
       const [conversion] = conversions(run(arena, ENCOUNTER));
@@ -434,7 +455,6 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 600,
       height: 600,
-      rosterSize: 3,
       random: always(0.9),
       seed: [
         ...pair('rock', 'scissors'),
@@ -456,7 +476,6 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 600,
       height: 600,
-      rosterSize: 3,
       random: always(0.9),
       seed: [
         ...pair('rock', 'scissors'),
@@ -477,7 +496,6 @@ describe('a clearing', () => {
     const arena = createArena({
       width: 900,
       height: 600,
-      rosterSize: 3,
       random: always(0.9),
       seed: [...pair('rock', 'scissors'), { type: 'rock', x: far, y: 200, heading: 0 }],
     });
@@ -489,7 +507,7 @@ describe('a clearing', () => {
 
 describe('stepping an arena', () => {
   it('never changes the roster size — conversion preserves population exactly', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(11) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(11) });
 
     for (let i = 0; i < 3000; i++) {
       arena.step(FRAME);
@@ -499,7 +517,7 @@ describe('stepping an arena', () => {
   });
 
   it('never lets a fighter leave the arena', () => {
-    const arena = createArena({ width: 640, height: 480, rosterSize: 60, random: mulberry32(13) });
+    const arena = createArena({ width: 640, height: 480, lineup: even(20), random: mulberry32(13) });
 
     const bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     for (let i = 0; i < 3000; i++) {
@@ -519,7 +537,7 @@ describe('stepping an arena', () => {
   });
 
   it('ignores a leap forward in time rather than teleporting the board', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 60, random: mulberry32(17) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(20), random: mulberry32(17) });
     arena.step(FRAME);
     const before = arena.fighters.map((f) => ({ x: f.x, y: f.y }));
 
@@ -534,19 +552,19 @@ describe('stepping an arena', () => {
 
 describe('tempo', () => {
   it('stays flat through the early part of a round', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 3, random: always(0.9) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(1), random: always(0.9) });
     run(arena, TEMPO_RAMP_START - 1);
     expect(arena.tempo).toBe(1);
   });
 
   it('ramps up once the round has gone on', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 3, random: always(0.9) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(1), random: always(0.9) });
     run(arena, TEMPO_RAMP_START + 5);
     expect(arena.tempo).toBeGreaterThan(1);
   });
 
   it('is bounded, so a long round speeds up without fighters tunnelling past each other', () => {
-    const arena = createArena({ width: 800, height: 600, rosterSize: 3, random: always(0.9) });
+    const arena = createArena({ width: 800, height: 600, lineup: even(1), random: always(0.9) });
     run(arena, TEMPO_RAMP_START + 500);
     expect(arena.tempo).toBe(MAX_TEMPO);
   });
@@ -554,13 +572,13 @@ describe('tempo', () => {
 
 describe('a champion', () => {
   /** Runs a round to its end, or throws if it never gets there. */
-  function toCompletion(seed: number, rosterSize = 60) {
+  function toCompletion(seed: number, perType = 20) {
     const arena = createArena({
       width: 800,
       height: 600,
-      rosterSize,
+      lineup: even(perType),
       random: mulberry32(seed),
-      });
+    });
     const events: ArenaEvent[] = [];
     const budget = 60 * 60 * 5; // five simulated minutes of frames
 
@@ -610,7 +628,292 @@ describe('a champion', () => {
   });
 
   it('resolves a small roster too', () => {
-    const { arena } = toCompletion(12, 30);
+    const { arena } = toCompletion(12, 10);
     expect(arena.tally[arena.champion!]).toBe(30);
+  });
+});
+
+describe('how big a Fighter is', () => {
+  it('keeps the classic sixty-Fighter wide round at full size', () => {
+    expect(fighterSizeFor(960, 540, 60, FULL_FIGHTER_SIZE)).toBeCloseTo(69, 0);
+    expect(fighterSizeFor(1024, 700, 60, FULL_FIGHTER_SIZE)).toBe(69);
+  });
+
+  it('shrinks as the board gets more crowded', () => {
+    const sixty = fighterSizeFor(960, 540, 60, FULL_FIGHTER_SIZE);
+    const hundredFifty = fighterSizeFor(960, 540, 150, FULL_FIGHTER_SIZE);
+    const threeHundred = fighterSizeFor(960, 540, 300, FULL_FIGHTER_SIZE);
+    expect(hundredFifty).toBeLessThan(sixty);
+    expect(threeHundred).toBeLessThan(hundredFifty);
+  });
+
+  it('never grows past the device maximum or shrinks below legibility', () => {
+    expect(fighterSizeFor(2000, 2000, 3, 57)).toBe(57);
+    expect(fighterSizeFor(300, 300, 300, FULL_FIGHTER_SIZE)).toBe(MIN_FIGHTER_SIZE);
+  });
+
+  it('is what a fresh Arena sizes its Fighters to', () => {
+    const arena = createArena({
+      width: 960,
+      height: 540,
+      lineup: even(100),
+      random: mulberry32(1),
+      maxFighterSize: FULL_FIGHTER_SIZE,
+    });
+    expect(arena.fighterSize).toBe(fighterSizeFor(960, 540, 300, FULL_FIGHTER_SIZE));
+  });
+
+  it('keeps the full-size Duel and Clearing distances on an uncrowded board', () => {
+    const arena = createArena({ width: 400, height: 400, random: always(0.5), seed: pair('rock', 'paper') });
+    expect(arena.duelRadius).toBe(DUEL_RADIUS);
+    expect(arena.clearingRadius).toBe(CLEARING_RADIUS);
+    expect(CLEARING_RADIUS).toBeCloseTo(90, -1);
+  });
+
+  it('shrinks the Duel distance with the Fighters, so a crowded board needs closer contact', () => {
+    const gap = DUEL_RADIUS * 0.8;
+    const roomy = createArena({ width: 400, height: 400, random: always(0.5), seed: pair('rock', 'scissors', gap) });
+    const cramped = createArena({
+      width: 60,
+      height: 60,
+      random: always(0.5),
+      seed: [
+        { type: 'rock', x: 30 - gap / 2, y: 30, heading: 0 },
+        { type: 'scissors', x: 30 + gap / 2, y: 30, heading: Math.PI },
+      ],
+    });
+
+    roomy.step(FRAME);
+    cramped.step(FRAME);
+    expect(cramped.fighterSize).toBeLessThan(roomy.fighterSize);
+    expect(roomy.duels).toHaveLength(1);
+    expect(cramped.duels).toHaveLength(0);
+  });
+});
+
+describe('same-Type spreading', () => {
+  function neighbours(a: Type, b: Type) {
+    // Side by side, both heading right: without a push they travel in parallel.
+    return createArena({
+      width: 2000,
+      height: 1000,
+      random: always(0.5),
+      seed: [
+        { type: a, x: 200, y: 500, heading: 0 },
+        { type: b, x: 200, y: 520, heading: 0 },
+      ],
+    });
+  }
+
+  it('pushes roaming Fighters of the same Type gently apart', () => {
+    const arena = neighbours('rock', 'rock');
+    run(arena, 0.5);
+    const [a, b] = arena.fighters;
+    const gap = Math.hypot(a.x - b.x, a.y - b.y);
+    expect(gap).toBeGreaterThan(20);
+    // Gently: a nudge, not a scatter.
+    expect(gap).toBeLessThan(FULL_FIGHTER_SIZE * 1.5);
+  });
+
+  it('stops pushing once they are about a sprite and a half apart', () => {
+    const arena = createArena({
+      width: 2000,
+      height: 1000,
+      random: always(0.5),
+      seed: [
+        { type: 'rock', x: 200, y: 500, heading: 0 },
+        { type: 'rock', x: 200, y: 500 + FULL_FIGHTER_SIZE * 1.6, heading: 0 },
+      ],
+    });
+    run(arena, 0.5);
+    const [a, b] = arena.fighters;
+    expect(Math.abs(b.y - a.y)).toBeCloseTo(FULL_FIGHTER_SIZE * 1.6, 5);
+  });
+
+  it('spreads spectators of the same Type along the Clearing too', () => {
+    const arena = createArena({
+      width: 600,
+      height: 600,
+      random: always(0.9),
+      seed: [
+        ...pair('rock', 'scissors'),
+        { type: 'paper', x: 200, y: 200 + DUEL_RADIUS, heading: 0 },
+        { type: 'paper', x: 203, y: 200 + DUEL_RADIUS, heading: 0 },
+      ],
+    });
+    run(arena, 1);
+    const [, , c, d] = arena.fighters;
+    expect(c.activity).toBe('spectating');
+    expect(d.activity).toBe('spectating');
+    expect(Math.hypot(c.x - d.x, c.y - d.y)).toBeGreaterThan(20);
+  });
+});
+
+describe('the transform', () => {
+  it('takes about a second and a bit, long enough to read as a death and a rebirth', () => {
+    expect(TRANSFORM_SECONDS).toBeCloseTo(1.2, 1);
+  });
+
+  it('reports the rebirth when the new Type takes over', () => {
+    const arena = createArena({ width: 400, height: 400, random: always(0.9), seed: pair('rock', 'scissors') });
+    const events = run(arena, ENCOUNTER);
+    const reborn = events.filter((e) => e.kind === 'rebirth');
+    expect(reborn).toHaveLength(1);
+    expect(reborn[0]).toMatchObject({ fighter: 1, from: 'scissors', to: 'rock' });
+  });
+
+  it('is not prey: nobody hunts a Fighter mid-transform', () => {
+    // C is a rock far below, walking straight down, away from the Duel. The
+    // only scissors on the board is the one losing it, so while that Duel runs
+    // C bends back toward it; once it is transforming, C has nothing to chase.
+    const arena = createArena({
+      width: 2000,
+      height: 2000,
+      random: always(0.5),
+      seed: [...pair('rock', 'scissors'), { type: 'rock', x: 200, y: 1400, heading: Math.PI / 2 }],
+    });
+
+    const events: ArenaEvent[] = [];
+    while (conversions(events).length === 0) events.push(...arena.step(FRAME));
+    const c = arena.fighters[2];
+    const before = c.heading;
+    run(arena, TRANSFORM_SECONDS * 0.8);
+    expect(arena.fighters[1].activity).toBe('transforming');
+    expect(c.heading).toBeCloseTo(before, 6);
+  });
+});
+
+describe('the shockwave', () => {
+  /**
+   * A rock-scissors Duel at the centre of a big board, and one bystander,
+   * stepped until the Conversion lands. Also says what the bystander was doing
+   * the moment before: the Clearing goes with its Duel, so a spectator is
+   * released in the very step the Shockwave goes off.
+   */
+  function fight(draw: number, bystander: FighterSeed) {
+    const arena = createArena({
+      width: 1200,
+      height: 1200,
+      random: always(draw),
+      seed: [
+        { type: 'rock', x: 600 - DUEL_RADIUS / 4, y: 600, heading: 0 },
+        { type: 'scissors', x: 600 + DUEL_RADIUS / 4, y: 600, heading: Math.PI },
+        bystander,
+      ],
+    });
+    let wasDoing = arena.fighters[2].activity;
+    const events: ArenaEvent[] = [];
+    while (conversions(events).length === 0) {
+      wasDoing = arena.fighters[2].activity;
+      events.push(...arena.step(FRAME));
+    }
+    return { arena, wasDoing };
+  }
+
+  const distance = (arena: Arena, i: number) =>
+    Math.hypot(arena.fighters[i].x - 600, arena.fighters[i].y - 600);
+
+  /** The furthest a Fighter can walk under its own steam in `seconds`. */
+  const walk = (seconds: number) => BASE_SPEED * seconds;
+
+  // A scissors has no paper to chase here, so it only wanders where it is put.
+  const wanderer = (at: number): FighterSeed => ({ type: 'scissors', x: 600, y: 600 + at, heading: 0 });
+
+  it("goes off where a Conversion lands, in the winner's Type", () => {
+    const { arena } = fight(0.9, wanderer(500));
+    expect(arena.shockwaves).toHaveLength(1);
+    const [wave] = arena.shockwaves;
+    expect(wave).toMatchObject({ type: 'rock', upset: false });
+    expect(wave.x).toBeCloseTo(600, 1);
+    expect(wave.y).toBeCloseTo(600, 1);
+    expect(arena.shockwaves[0].radius).toBeCloseTo(CLEARING_RADIUS * 2.5, 0);
+  });
+
+  it('pushes a spectator well out past the Clearing', () => {
+    const { arena, wasDoing } = fight(0.9, { type: 'paper', x: 600, y: 600 + DUEL_RADIUS * 2, heading: 0 });
+    expect(wasDoing).toBe('spectating');
+    run(arena, 0.4);
+    expect(distance(arena, 2)).toBeGreaterThan(CLEARING_RADIUS * 1.5);
+  });
+
+  it('pushes a roaming Fighter outward too — nobody is immune', () => {
+    const { arena, wasDoing } = fight(0.9, wanderer(CLEARING_RADIUS * 1.4));
+    expect(wasDoing).toBe('roaming');
+    const before = distance(arena, 2);
+    run(arena, 0.4);
+    expect(distance(arena, 2) - before).toBeGreaterThan(walk(0.4) + CLEARING_RADIUS * 0.3);
+  });
+
+  it('leaves Fighters beyond its reach alone', () => {
+    const { arena } = fight(0.9, wanderer(CLEARING_RADIUS * 3));
+    expect(distance(arena, 2)).toBeGreaterThan(arena.shockwaves[0].radius);
+    const before = distance(arena, 2);
+    run(arena, 0.4);
+    expect(Math.abs(distance(arena, 2) - before)).toBeLessThanOrEqual(walk(0.4));
+  });
+
+  it('fades out in under half a second', () => {
+    const { arena } = fight(0.9, wanderer(500));
+    run(arena, 0.45);
+    expect(arena.shockwaves).toHaveLength(0);
+  });
+
+  it('is bigger on an Upset', () => {
+    const standard = fight(0.9, wanderer(500)).arena;
+    const upset = fight(0, wanderer(500)).arena;
+    expect(upset.shockwaves[0].upset).toBe(true);
+    expect(upset.shockwaves[0].radius).toBeGreaterThan(standard.shockwaves[0].radius);
+
+    const pushed = (draw: number) => {
+      const { arena } = fight(draw, { type: 'paper', x: 600, y: 600 + DUEL_RADIUS * 2, heading: 0 });
+      run(arena, 0.4);
+      return distance(arena, 2);
+    };
+    expect(pushed(0)).toBeGreaterThan(pushed(0.9));
+  });
+});
+
+describe('playing a round out without drawing it', () => {
+  const LIMIT = 10 * 60;
+
+  it('crowns a Champion in a seeded hundred-a-side round within the time limit', () => {
+    const arena = createArena({ width: 1200, height: 700, lineup: even(100), random: mulberry32(21) });
+    const winner = playOut(arena, LIMIT, mulberry32(1));
+    expect(arena.champion).toBe(winner);
+    expect(arena.elapsed).toBeLessThan(LIMIT);
+  });
+
+  it('crowns a Champion in a lopsided one-one-hundred round within the time limit', () => {
+    const arena = createArena({
+      width: 1200,
+      height: 700,
+      lineup: { rock: 1, paper: 1, scissors: 100 },
+      random: mulberry32(22),
+    });
+    const winner = playOut(arena, LIMIT, mulberry32(1));
+    expect(arena.champion).toBe(winner);
+  });
+
+  it('gives the round to the biggest Type when time runs out first', () => {
+    // Nobody here can ever meet: the time limit is what ends it.
+    const arena = createArena({
+      width: 4000,
+      height: 4000,
+      random: always(0.5),
+      seed: [
+        { type: 'rock', x: 100, y: 100, heading: Math.PI },
+        { type: 'rock', x: 300, y: 100, heading: Math.PI },
+        { type: 'paper', x: 3900, y: 3900, heading: 0 },
+      ],
+    });
+    expect(playOut(arena, 1, always(0.5))).toBe('rock');
+    expect(arena.champion).toBeNull();
+  });
+
+  it('breaks a tie for the most Fighters with the random source', () => {
+    const tally = { rock: 4, paper: 4, scissors: 1 };
+    expect(leaderOf(tally, always(0))).toBe('rock');
+    expect(leaderOf(tally, always(0.99))).toBe('paper');
+    expect(leaderOf({ rock: 1, paper: 2, scissors: 9 }, always(0))).toBe('scissors');
   });
 });
