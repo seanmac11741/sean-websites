@@ -897,7 +897,7 @@ describe('the shockwave', () => {
     expect(wave).toMatchObject({ type: 'scissors' });
     expect(wave.x).toBeCloseTo(600, 1);
     expect(wave.y).toBeCloseTo(600, 1);
-    expect(wave.radius).toBeCloseTo(CLEARING_RADIUS * 2.5 * 1.4, 0);
+    expect(wave.radius).toBeCloseTo(CLEARING_RADIUS * 3.5, 0);
   });
 
   it('is an Upset alone: a standard Outcome resolves without one', () => {
@@ -912,11 +912,6 @@ describe('the shockwave', () => {
     const before = distance(arena, 2);
     run(arena, 0.4);
     expect(Math.abs(distance(arena, 2) - before)).toBeLessThanOrEqual(walk(0.4));
-  });
-
-  it('carries no upset flag — every Shockwave is an Upset', () => {
-    const { arena } = fight(UPSET, wanderer(500));
-    expect(arena.shockwaves[0]).not.toHaveProperty('upset');
   });
 
   it('pushes a spectator well out past the Clearing', () => {

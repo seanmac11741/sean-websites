@@ -286,7 +286,8 @@ export const BASE_SPEED = 46;
 const BASE_SEEK_RATE = 1.2;
 const MAX_SEEK_RATE = 8;
 const WANDER_RATE = 2.4;
-const SPECTATOR_BACKOFF = 70;
+/** How fast a spectator walks to its place on the Clearing's ring, from either side. */
+const SPECTATOR_WALK = 70;
 /**
  * Where on the Clearing a spectator stands, as a fraction of its radius. Just
  * inside rather than exactly on the edge: a crowd standing on the boundary
@@ -546,7 +547,7 @@ export function createArena(options: ArenaOptions): Arena {
     const dy = f.y - duel.y;
     const distance = Math.sqrt(dx * dx + dy * dy) || 0.001;
     const ring = clearingRadius * SPECTATOR_RING;
-    const walk = SPECTATOR_BACKOFF * scale * d * tempo;
+    const walk = SPECTATOR_WALK * scale * d * tempo;
     const target =
       distance < ring ? Math.min(ring, distance + walk) : Math.max(ring, distance - walk);
     f.x = duel.x + (dx / distance) * target;
@@ -557,8 +558,8 @@ export function createArena(options: ArenaOptions): Arena {
     f.facing = facingOf(f.heading);
   }
 
-  function enter(f: Fighter, activity: Activity) {
-    if (activity !== 'spectating') f.watching = null;
+  function enter(f: Fighter, activity: Activity, watching: number | null = null) {
+    f.watching = activity === 'spectating' ? watching : null;
     if (f.activity !== activity) {
       f.activity = activity;
       f.stateElapsed = 0;
@@ -825,8 +826,7 @@ export function createArena(options: ArenaOptions): Arena {
         // free of one looks around for a Clearing to join.
         const clearing = watchedBy(f) ?? clearingAround(f);
         if (clearing) {
-          enter(f, 'spectating');
-          f.watching = clearing.id;
+          enter(f, 'spectating', clearing.id);
           spectate(f, clearing, d);
         } else {
           enter(f, 'roaming');
