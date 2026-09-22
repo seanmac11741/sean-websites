@@ -3,7 +3,7 @@
  *
  * An Arena is one run: a **Roster** of Fighters hopping around a rectangle,
  * seeded from the viewer's **Lineup**, the **Duels** in flight, the
- * **Shockwaves** spreading from each Conversion, the elapsed time, the
+ * **Shockwaves** spreading from each Upset, the elapsed time, the
  * **Tempo**, and the **Champion** once one Type owns the whole board. Nobody dies — the loser of a Duel
  * **converts** into the winner's Type — so the Roster's size is invariant for
  * the life of the Arena and one Type slowly sweeps the board.
@@ -34,7 +34,7 @@ export type { Type };
  * ```
  * roaming      --near an enemy, neither on Cooldown, no Clearing in the way--> duelling
  * roaming      --inside someone else's Clearing--> spectating
- * spectating   --that Clearing expires--> roaming
+ * spectating   --the Duel it is watching ends--> roaming, facing outward
  * duelling     --windup, bonk, bonk, bonk--> transforming (loser) / roaming (winner)
  * transforming --the morph completes (a rebirth)--> roaming, now the winner's Type
  * any          --a Champion emerges--> celebrating
@@ -61,6 +61,12 @@ export interface Fighter {
   stateElapsed: number;
   /** The Type a transforming Fighter is becoming, null for everyone else. */
   becoming: Type | null;
+  /**
+   * The Duel a spectating Fighter is watching, null for everyone else. A
+   * spectator is committed to it: it watches that one Duel out rather than
+   * re-deciding every step whether it is still inside a Clearing.
+   */
+  watching: number | null;
 }
 
 export interface Duel {
@@ -91,17 +97,18 @@ export type ArenaEvent =
   | { kind: 'champion'; type: Type };
 
 /**
- * The outward push from a Conversion. It shoves roaming and spectating
- * Fighters of every Type away from where the Duel landed, and fades out.
+ * The outward push from an Upset. It shoves roaming and spectating Fighters of
+ * every Type away from where the Duel landed, and fades out. Only an Upset
+ * makes one: a Shockwave on every Conversion is constant, and constant is what
+ * stops the Upset — the thing worth noticing — reading as anything at all.
  */
 export interface Shockwave {
   readonly x: number;
   readonly y: number;
-  /** How far it reaches. Bigger on an Upset. */
+  /** How far it reaches. */
   readonly radius: number;
   /** The winner's Type. */
   readonly type: Type;
-  readonly upset: boolean;
   /** Seconds since it went off. It is gone at `SHOCKWAVE_SECONDS`. */
   elapsed: number;
 }
@@ -203,7 +210,7 @@ export function fighterSizeFor(width: number, height: number, total: number, max
 
 /** How close two full-size Fighters must get to lock into a Duel. */
 export const DUEL_RADIUS = 18;
-/** The radius a Duel clears around itself at full size. Spectators back out to its edge. */
+/** The radius a Duel clears around itself at full size. Spectators ring the inside of it. */
 export const CLEARING_RADIUS = DUEL_RADIUS * 5;
 
 export const BONKS_PER_DUEL = 3;
@@ -280,6 +287,12 @@ const BASE_SEEK_RATE = 1.2;
 const MAX_SEEK_RATE = 8;
 const WANDER_RATE = 2.4;
 const SPECTATOR_BACKOFF = 70;
+/**
+ * Where on the Clearing a spectator stands, as a fraction of its radius. Just
+ * inside rather than exactly on the edge: a crowd standing on the boundary
+ * itself is a crowd half in and half out of the Clearing every frame.
+ */
+const SPECTATOR_RING = 0.95;
 const HOP_CYCLES_PER_SECOND = 1.6;
 const SEPARATION = DUEL_RADIUS * 1.2;
 const MARGIN = 16;
@@ -291,13 +304,10 @@ const SPREAD_SPEED = 60;
 
 /** How long a Shockwave lasts. */
 export const SHOCKWAVE_SECONDS = 0.4;
-/** How far a Shockwave reaches, in Clearings. */
-const SHOCKWAVE_REACH = 2.5;
+/** How far an Upset's Shockwave reaches, in Clearings. */
+const SHOCKWAVE_REACH = 3.5;
 /** The initial outward speed at the centre, at full size. */
-const SHOCKWAVE_PUSH = 900;
-/** An Upset hits harder and further. */
-const UPSET_REACH = 1.4;
-const UPSET_PUSH = 1.5;
+const SHOCKWAVE_PUSH = 1350;
 
 /**
  * The largest slice of time one step will simulate. A tab that was hidden for a
@@ -365,6 +375,7 @@ export function createArena(options: ArenaOptions): Arena {
       cooldown: 0,
       stateElapsed: 0,
       becoming: null,
+      watching: null,
     };
   }
 
@@ -525,12 +536,19 @@ export function createArena(options: ArenaOptions): Arena {
     f.hopPhase = (f.hopPhase + HOP_CYCLES_PER_SECOND * tempo * d) % 1;
   }
 
-  /** Back out to the Clearing's edge and turn to watch the fight. */
+  /**
+   * Hold a place on the Clearing's ring and turn to watch the fight. A
+   * spectator walks to the ring from either side, so one knocked outward by a
+   * Shockwave drifts back over the following frames rather than snapping home.
+   */
   function spectate(f: Fighter, duel: Duel, d: number) {
     const dx = f.x - duel.x;
     const dy = f.y - duel.y;
     const distance = Math.sqrt(dx * dx + dy * dy) || 0.001;
-    const target = Math.min(clearingRadius, distance + SPECTATOR_BACKOFF * scale * d * tempo);
+    const ring = clearingRadius * SPECTATOR_RING;
+    const walk = SPECTATOR_BACKOFF * scale * d * tempo;
+    const target =
+      distance < ring ? Math.min(ring, distance + walk) : Math.max(ring, distance - walk);
     f.x = duel.x + (dx / distance) * target;
     f.y = duel.y + (dy / distance) * target;
     clamp(f);
@@ -540,10 +558,17 @@ export function createArena(options: ArenaOptions): Arena {
   }
 
   function enter(f: Fighter, activity: Activity) {
+    if (activity !== 'spectating') f.watching = null;
     if (f.activity !== activity) {
       f.activity = activity;
       f.stateElapsed = 0;
     }
+  }
+
+  /** The Duel a spectator is committed to, while that Duel is still running. */
+  function watchedBy(f: Fighter): Duel | null {
+    if (f.watching === null) return null;
+    return duels.find((duel) => duel.id === f.watching) ?? null;
   }
 
   /** Pairs eligible to start a Duel, closest first, one Duel per Fighter. */
@@ -643,14 +668,24 @@ export function createArena(options: ArenaOptions): Arena {
     clamp(winner);
     clamp(loser);
 
-    shockwaves.push({
-      x: duel.x,
-      y: duel.y,
-      radius: clearingRadius * SHOCKWAVE_REACH * (duel.upset ? UPSET_REACH : 1),
-      type: duel.winnerType,
-      upset: duel.upset,
-      elapsed: 0,
-    });
+    // The crowd breaks up facing outward, so it wanders off the spot the fight
+    // just vacated instead of converging on it.
+    for (const f of fighters) {
+      if (f.watching !== duel.id) continue;
+      f.heading = Math.atan2(f.y - duel.y, f.x - duel.x);
+      f.facing = facingOf(f.heading);
+      enter(f, 'roaming');
+    }
+
+    if (duel.upset) {
+      shockwaves.push({
+        x: duel.x,
+        y: duel.y,
+        radius: clearingRadius * SHOCKWAVE_REACH,
+        type: duel.winnerType,
+        elapsed: 0,
+      });
+    }
 
     events.push({
       kind: 'conversion',
@@ -711,7 +746,7 @@ export function createArena(options: ArenaOptions): Arena {
   function blast(d: number) {
     for (const wave of shockwaves) {
       const fade = Math.max(0, 1 - wave.elapsed / SHOCKWAVE_SECONDS);
-      const strength = SHOCKWAVE_PUSH * scale * (wave.upset ? UPSET_PUSH : 1) * fade;
+      const strength = SHOCKWAVE_PUSH * scale * fade;
       for (const f of fighters) {
         if (!free(f)) continue;
         const dx = f.x - wave.x;
@@ -786,9 +821,12 @@ export function createArena(options: ArenaOptions): Arena {
 
       for (const f of fighters) {
         if (f.activity === 'duelling' || f.activity === 'transforming') continue;
-        const clearing = clearingAround(f);
+        // A spectator watches the Duel it committed to out; only a Fighter
+        // free of one looks around for a Clearing to join.
+        const clearing = watchedBy(f) ?? clearingAround(f);
         if (clearing) {
           enter(f, 'spectating');
+          f.watching = clearing.id;
           spectate(f, clearing, d);
         } else {
           enter(f, 'roaming');

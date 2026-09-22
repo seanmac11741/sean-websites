@@ -721,9 +721,10 @@ const fighters = TYPES.map((type) => ({
       const eased = 1 - (1 - t) ** 3;
       ctx.beginPath();
       ctx.arc(ox + wave.x * scale, oy + wave.y * scale, wave.radius * eased * scale, 0, TAU);
-      ctx.strokeStyle = wave.upset ? GOLD : COLOUR[wave.type];
-      ctx.globalAlpha = (wave.upset ? 0.7 : 0.35) * (1 - t);
-      ctx.lineWidth = wave.upset ? 4 : 2;
+      // Every Shockwave is an Upset's, so every ring is the gold one.
+      ctx.strokeStyle = GOLD;
+      ctx.globalAlpha = 0.7 * (1 - t);
+      ctx.lineWidth = 4;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
