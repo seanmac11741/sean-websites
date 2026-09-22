@@ -168,11 +168,12 @@ On the page, the transform art plays at its native 0.5 s and then holds a neutra
 the Arena reports the **rebirth**, the page adds a flash, a puff of particles in the loser's colour,
 and a squash-and-stretch pop into the new Type.
 
-**Shockwave** — the outward push from each Conversion. For about 0.4 s
+**Shockwave** — the outward push from an **Upset**, and from an Upset alone: an explosion on every
+Conversion is constant, and constant is what stopped the Upset reading as anything. For about 0.4 s
 (`SHOCKWAVE_SECONDS`), fading as it goes, it shoves every roaming and spectating Fighter of any Type
-away from where the Duel landed, out to about two and a half Clearings. Nobody is immune. An
-**Upset** sends a bigger, harder one. The page draws it as a faint ring in the winner's colour, and
-a gold one on an Upset. It keeps a crowded board from settling into clumps around old fights.
+away from where the Duel landed, out to about three and a half Clearings. Nobody is immune. The page
+draws it as a gold ring. It keeps a crowded board from settling into clumps around old fights. The
+flash, the particle puff and the rebirth pop are not this: they still play on every Conversion.
 
 **Cooldown** — the short immunity a Fighter carries out of a Duel. With the pair pushed apart on
 release, it is what makes one encounter produce exactly one Conversion rather than re-rolling the
@@ -182,8 +183,12 @@ Outcome every frame while the two still overlap.
 admits no new Duel. It expires with its Duel, and only Fighters genuinely close to one react, so a
 crowded board cannot deadlock on everyone spectating everyone else.
 
-**Spectator** — a Fighter inside a Clearing: backs off to its edge and turns to watch, playing its
-own Type's idle business. Not a garnish — it is the feature.
+**Spectator** — a Fighter inside a Clearing: takes a place on the ring just inside it and turns to
+watch, playing its own Type's idle business. Not a garnish — it is the feature. It commits to that
+one Duel and watches it out rather than re-deciding every frame whether it is still inside the
+Clearing, which is what keeps the crowd — and each sprite's animation — steady; a Shockwave that
+knocks it off the ring leaves it watching, and it walks back. When the Duel ends the whole crowd is
+released facing outward, so it breaks up instead of converging on the spot the fight just vacated.
 
 **Tempo** — the escalation factor on movement speed and seek bias: flat for the first stretch of a
 round, then ramping to a ceiling. There is no hard time cap and no skip button; the ramp is what

@@ -24,6 +24,7 @@ import {
   standardWinner,
   type Arena,
   type ArenaEvent,
+  type Duel,
   type FighterSeed,
   type Type,
 } from '../../src/lib/rps-royale/arena';
@@ -491,6 +492,72 @@ describe('a clearing', () => {
     expect(arena.fighters[2].activity).toBe('roaming');
   });
 
+  it('holds a spectator on the same Duel for the whole fight, animation unbroken', () => {
+    const arena = createArena({
+      width: 600,
+      height: 600,
+      random: always(0.9),
+      seed: [
+        ...pair('rock', 'scissors'),
+        { type: 'paper', x: 200 + DUEL_RADIUS, y: 200, heading: Math.PI },
+      ],
+    });
+
+    run(arena, 0.3);
+    const watcher = arena.fighters[2];
+    expect(watcher.activity).toBe('spectating');
+
+    // Once it is watching, it watches: no frame of roaming in the middle, and
+    // so no restart of the animation the sprite is playing.
+    let last = watcher.stateElapsed;
+    for (let t = 0; t < DUEL_SECONDS - 0.5; t += FRAME) {
+      arena.step(FRAME);
+      expect(watcher.activity).toBe('spectating');
+      expect(watcher.stateElapsed).toBeGreaterThan(last);
+      last = watcher.stateElapsed;
+    }
+  });
+
+  it('keeps a spectator just inside the Clearing rather than exactly on its edge', () => {
+    const arena = createArena({
+      width: 600,
+      height: 600,
+      random: always(0.9),
+      seed: [
+        ...pair('rock', 'scissors'),
+        { type: 'paper', x: 200 + DUEL_RADIUS, y: 200, heading: Math.PI },
+      ],
+    });
+
+    run(arena, 1);
+    const watcher = arena.fighters[2];
+    const distance = Math.hypot(watcher.x - 200, watcher.y - 200);
+    expect(distance).toBeLessThan(CLEARING_RADIUS);
+    expect(distance).toBeGreaterThan(CLEARING_RADIUS * 0.8);
+  });
+
+  it('releases each spectator heading away from where the fight was', () => {
+    const arena = createArena({
+      width: 600,
+      height: 600,
+      random: always(0.9),
+      seed: [
+        ...pair('rock', 'scissors'),
+        { type: 'paper', x: 200 + DUEL_RADIUS, y: 200, heading: Math.PI },
+        { type: 'paper', x: 200, y: 200 + DUEL_RADIUS, heading: 0 },
+      ],
+    });
+
+    const events: ArenaEvent[] = [];
+    while (conversions(events).length === 0) events.push(...arena.step(FRAME));
+
+    for (const watcher of [arena.fighters[2], arena.fighters[3]]) {
+      expect(watcher.activity).toBe('roaming');
+      const outward = Math.atan2(watcher.y - 200, watcher.x - 200);
+      expect(Math.cos(watcher.heading - outward)).toBeGreaterThan(0.9);
+    }
+  });
+
   it('leaves fighters outside it going about their business', () => {
     const far = 200 + CLEARING_RADIUS * 2;
     const arena = createArena({
@@ -819,25 +886,43 @@ describe('the shockwave', () => {
   // A scissors has no paper to chase here, so it only wanders where it is put.
   const wanderer = (at: number): FighterSeed => ({ type: 'scissors', x: 600, y: 600 + at, heading: 0 });
 
-  it("goes off where a Conversion lands, in the winner's Type", () => {
-    const { arena } = fight(0.9, wanderer(500));
+  /** An Upset is the only Outcome that sends one out. */
+  const UPSET = 0;
+  const STANDARD = 0.9;
+
+  it("goes off where an Upset lands, in the winner's Type", () => {
+    const { arena } = fight(UPSET, wanderer(500));
     expect(arena.shockwaves).toHaveLength(1);
     const [wave] = arena.shockwaves;
-    expect(wave).toMatchObject({ type: 'rock', upset: false });
+    expect(wave).toMatchObject({ type: 'scissors' });
     expect(wave.x).toBeCloseTo(600, 1);
     expect(wave.y).toBeCloseTo(600, 1);
-    expect(arena.shockwaves[0].radius).toBeCloseTo(CLEARING_RADIUS * 2.5, 0);
+    expect(wave.radius).toBeCloseTo(CLEARING_RADIUS * 3.5, 0);
+  });
+
+  it('is an Upset alone: a standard Outcome resolves without one', () => {
+    const { arena } = fight(STANDARD, wanderer(500));
+    expect(arena.shockwaves).toHaveLength(0);
+    run(arena, 0.4);
+    expect(arena.shockwaves).toHaveLength(0);
+  });
+
+  it('leaves a bystander where it was when the Outcome was standard', () => {
+    const { arena } = fight(STANDARD, wanderer(CLEARING_RADIUS * 1.4));
+    const before = distance(arena, 2);
+    run(arena, 0.4);
+    expect(Math.abs(distance(arena, 2) - before)).toBeLessThanOrEqual(walk(0.4));
   });
 
   it('pushes a spectator well out past the Clearing', () => {
-    const { arena, wasDoing } = fight(0.9, { type: 'paper', x: 600, y: 600 + DUEL_RADIUS * 2, heading: 0 });
+    const { arena, wasDoing } = fight(UPSET, { type: 'paper', x: 600, y: 600 + DUEL_RADIUS * 2, heading: 0 });
     expect(wasDoing).toBe('spectating');
     run(arena, 0.4);
     expect(distance(arena, 2)).toBeGreaterThan(CLEARING_RADIUS * 1.5);
   });
 
   it('pushes a roaming Fighter outward too — nobody is immune', () => {
-    const { arena, wasDoing } = fight(0.9, wanderer(CLEARING_RADIUS * 1.4));
+    const { arena, wasDoing } = fight(UPSET, wanderer(CLEARING_RADIUS * 1.4));
     expect(wasDoing).toBe('roaming');
     const before = distance(arena, 2);
     run(arena, 0.4);
@@ -845,7 +930,7 @@ describe('the shockwave', () => {
   });
 
   it('leaves Fighters beyond its reach alone', () => {
-    const { arena } = fight(0.9, wanderer(CLEARING_RADIUS * 3));
+    const { arena } = fight(UPSET, wanderer(CLEARING_RADIUS * 4));
     expect(distance(arena, 2)).toBeGreaterThan(arena.shockwaves[0].radius);
     const before = distance(arena, 2);
     run(arena, 0.4);
@@ -853,23 +938,56 @@ describe('the shockwave', () => {
   });
 
   it('fades out in under half a second', () => {
-    const { arena } = fight(0.9, wanderer(500));
+    const { arena } = fight(UPSET, wanderer(500));
     run(arena, 0.45);
     expect(arena.shockwaves).toHaveLength(0);
   });
 
-  it('is bigger on an Upset', () => {
-    const standard = fight(0.9, wanderer(500)).arena;
-    const upset = fight(0, wanderer(500)).arena;
-    expect(upset.shockwaves[0].upset).toBe(true);
-    expect(upset.shockwaves[0].radius).toBeGreaterThan(standard.shockwaves[0].radius);
+  it('knocks a Fighter watching another Duel off its ring, which then re-forms', () => {
+    // Staggered Duels are what a seeded round is full of, so this watches one:
+    // the first spectator a Shockwave from somebody else's fight throws well
+    // clear of its Clearing, and what it does next.
+    const arena = createArena({ width: 1200, height: 700, lineup: even(10), random: mulberry32(3) });
+    const watched = (f: (typeof arena.fighters)[number]) =>
+      arena.duels.find((duel) => duel.id === f.watching);
+    const radius = (f: (typeof arena.fighters)[number], duel: Duel) =>
+      Math.hypot(f.x - duel.x, f.y - duel.y);
 
-    const pushed = (draw: number) => {
-      const { arena } = fight(draw, { type: 'paper', x: 600, y: 600 + DUEL_RADIUS * 2, heading: 0 });
-      run(arena, 0.4);
-      return distance(arena, 2);
-    };
-    expect(pushed(0)).toBeGreaterThan(pushed(0.9));
+    let thrown: { id: number; duel: number } | null = null;
+    let outcome: 'returned' | 'lost its Duel first' | 'never happened' = 'never happened';
+
+    for (let i = 0; i < 20000 && outcome !== 'returned'; i++) {
+      arena.step(FRAME);
+
+      if (thrown) {
+        const f = arena.fighters[thrown.id];
+        const duel = watched(f);
+        // Still the same Duel, or the fight it was watching ended under it.
+        if (!duel || f.watching !== thrown.duel) {
+          thrown = null;
+          outcome = 'lost its Duel first';
+          continue;
+        }
+        expect(f.activity).toBe('spectating');
+        if (radius(f, duel) <= arena.clearingRadius) outcome = 'returned';
+        continue;
+      }
+
+      if (arena.shockwaves.length === 0) continue;
+      for (const f of arena.fighters) {
+        const duel = f.activity === 'spectating' ? watched(f) : undefined;
+        if (!duel) continue;
+        const far = arena.shockwaves.every(
+          (wave) => Math.hypot(duel.x - wave.x, duel.y - wave.y) > arena.clearingRadius,
+        );
+        if (far && radius(f, duel) > arena.clearingRadius * 1.1) {
+          thrown = { id: f.id, duel: duel.id };
+          break;
+        }
+      }
+    }
+
+    expect(outcome).toBe('returned');
   });
 });
 
