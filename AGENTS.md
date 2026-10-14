@@ -36,7 +36,12 @@ image or texture assets, and owns the idle spin, drag-with-momentum and ease bac
 view. `parseMove` gives the Turn a move makes (axis, layers, signed quarter turns), which the page
 animates on a pivot group before handing the move to the model and redrawing from it, so the drawing
 never drifts. The Scramble (`src/lib/speed-cubing/scramble.ts`, injected random source) and the
-turn easing (`src/lib/speed-cubing/ease.ts`) are pure too. Tests: `tests/lib/speed-cubing-*.test.ts`.
+turn easing (`src/lib/speed-cubing/ease.ts`) are pure too. The Solve (`src/lib/speed-cubing/solve.ts`)
+returns labelled Stages — the Cross, then four F2L pairs — each the shortest face-turn sequence for that
+Stage alone that keeps earlier Stages solved, by IDA* over sticker slots whose move tables are read off
+the Cube module, bounded by BFS distance tables (built once, ~150 ms; the page builds them while idle via
+`prepareSolve`). `src/lib/speed-cubing/playback.ts` flattens Stages into the Steps the page animates, so
+the stage list's highlighting comes from the same Step as the turn. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 
