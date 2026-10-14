@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
 
 const title = 'Speed Cubing — Sean McConnell';
-const description = 'A Rubik’s cube in your browser. Spin it around, then scramble it.';
+const description = 'A Rubik’s cube in your browser. Spin it around, scramble it, and watch it solve the cross and F2L.';
 ---
 
 <Layout {title} {description}>
@@ -12,34 +12,54 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   <main id="main-content" class="pt-24 pb-8 px-4 min-h-screen flex flex-col items-center">
     <div class="text-center max-w-xl">
       <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">Speed Cubing</h1>
-      <p class="text-slate-400 leading-relaxed">Drag to spin it around, or scramble it.</p>
+      <p class="text-slate-400 leading-relaxed">Drag to spin it around, scramble it, then watch it solve.</p>
     </div>
 
-    <div id="stage" class="stage relative w-full max-w-3xl mt-4">
-      <canvas
-        id="cube-canvas"
-        class="block w-full h-full"
-        role="img"
-        aria-label="A solved Rubik’s cube: yellow on top, green in front, orange on the right."
-      ></canvas>
-    </div>
+    <div class="mt-4 flex w-full max-w-6xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:justify-center">
+      <div class="flex w-full max-w-3xl min-w-0 flex-col items-center">
+        <div id="stage" class="stage relative w-full">
+          <canvas
+            id="cube-canvas"
+            class="block w-full h-full"
+            role="img"
+            aria-label="A solved Rubik’s cube: yellow on top, green in front, orange on the right."
+          ></canvas>
+        </div>
 
-    <div class="mt-2 flex flex-col items-center gap-3 w-full max-w-xl">
-      <button
-        id="scramble"
-        type="button"
-        class="px-5 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Scramble
-      </button>
+        <div class="mt-2 flex flex-col items-center gap-3 w-full max-w-xl">
+          <div class="flex gap-3">
+            <button
+              id="scramble"
+              type="button"
+              class="px-5 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Scramble
+            </button>
+            <button
+              id="solve"
+              type="button"
+              class="px-5 py-2 rounded-full border border-accent text-accent font-semibold transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Solve
+            </button>
+          </div>
 
-      <div id="scramble-result" class="text-center text-sm text-slate-400" aria-live="polite" hidden>
-        <p id="scramble-count"></p>
-        <details id="scramble-details" class="mt-1">
-          <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-300">show moves</summary>
-          <p id="scramble-moves" class="mt-2 font-mono text-xs leading-relaxed text-slate-300 break-words"></p>
-        </details>
+          <div id="scramble-result" class="text-center text-sm text-slate-400" aria-live="polite" hidden>
+            <p id="scramble-count"></p>
+            <details id="scramble-details" class="mt-1">
+              <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-300">show moves</summary>
+              <p id="scramble-moves" class="mt-2 font-mono text-xs leading-relaxed text-slate-300 break-words"></p>
+            </details>
+          </div>
+        </div>
       </div>
+
+      <aside id="solve-panel" class="w-full max-w-xl lg:w-72 lg:shrink-0" aria-labelledby="solve-heading" hidden>
+        <h2 id="solve-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
+          Cross and F2L
+        </h2>
+        <ol id="solve-stages" class="flex flex-col gap-2"></ol>
+      </aside>
     </div>
   </main>
 </Layout>
@@ -60,6 +80,38 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   #cube-canvas:active {
     cursor: grabbing;
   }
+
+  /* The stage list is drawn by the script, so its states are styled here. */
+  #solve-stages :global(li) {
+    border: 1px solid rgb(148 163 184 / 0.15);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: rgb(148 163 184);
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+  }
+
+  #solve-stages :global(li[aria-current='step']) {
+    border-color: var(--color-accent);
+    background: rgb(129 140 248 / 0.08);
+    color: white;
+  }
+
+  #solve-stages :global(li.done) {
+    color: rgb(100 116 139);
+  }
+
+  #solve-stages :global(.move) {
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.375rem;
+    text-align: center;
+  }
+
+  #solve-stages :global(.move[aria-current='true']) {
+    background: var(--color-accent);
+    color: var(--color-dark);
+  }
 </style>
 
 <script>
@@ -76,6 +128,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   } from '../../lib/speed-cubing/cube';
   import { easeTurn } from '../../lib/speed-cubing/ease';
   import { scramble } from '../../lib/speed-cubing/scramble';
+  import { prepareSolve, solveF2L, type Stage } from '../../lib/speed-cubing/solve';
+  import { playback, type Step } from '../../lib/speed-cubing/playback';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
   const PAINT: Record<Colour, number> = {
@@ -227,18 +281,30 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   cubeGroup.add(pivot);
   const AXES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 
-  const queue: { move: string; seconds: number }[] = [];
-  let turning: { move: string; turn: Turn; seconds: number; elapsed: number } | null = null;
+  /** A queued move, or a pause (no move) that just takes its time. */
+  interface Queued {
+    move: string | null;
+    seconds: number;
+    onStart?: () => void;
+  }
+
+  const queue: Queued[] = [];
+  let turning: { move: string | null; turn: Turn | null; seconds: number; elapsed: number } | null = null;
   let onQueueEmpty: (() => void) | null = null;
 
-  function startTurn(move: string, seconds: number) {
+  function start({ move, seconds, onStart }: Queued) {
+    onStart?.();
+    turning = { move, turn: move ? startTurn(move) : null, seconds, elapsed: 0 };
+  }
+
+  function startTurn(move: string): Turn {
     const turn = parseMove(move);
     const inLayers = (coordinate: number) => turn.layers.includes(Math.round(coordinate));
     for (const cubie of cubies) if (inLayers(cubie.position.getComponent(turn.axis))) pivot.add(cubie);
     cube.stickers.forEach((s, i) => {
       if (inLayers(s.position[turn.axis])) pivot.add(stickers[i]);
     });
-    turning = { move, turn, seconds, elapsed: 0 };
+    return turn;
   }
 
   /** Lands the turn on the model, and redraws from it so the two never drift. */
@@ -261,11 +327,12 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
       if (!turning) {
         const next = queue.shift();
         if (!next) break;
-        startTurn(next.move, next.seconds);
+        start(next);
       }
       const t = turning!;
       t.elapsed += spare;
       if (t.elapsed < t.seconds) {
+        if (!t.turn) return;
         const angle = (t.turn.quarters * Math.PI) / 2;
         pivot.quaternion.setFromAxisAngle(AXES[t.turn.axis], angle * easeTurn(t.elapsed / t.seconds));
         needsRender = true;
@@ -273,7 +340,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
       }
       spare = t.elapsed - t.seconds;
       turning = null;
-      finishTurn(t.move);
+      if (t.move) finishTurn(t.move);
     }
     if (onQueueEmpty) {
       const done = onQueueEmpty;
@@ -282,9 +349,9 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
     }
   }
 
-  /** Queues moves to animate, each over `seconds` (instantly under reduced motion). */
-  function play(moves: string[], seconds: number, done: () => void) {
-    for (const move of moves) queue.push({ move, seconds: reduceMotion ? 0 : seconds });
+  /** Queues moves and pauses to play out, each over its seconds (instantly under reduced motion). */
+  function play(items: Queued[], done: () => void) {
+    for (const item of items) queue.push({ ...item, seconds: reduceMotion ? 0 : item.seconds });
     onQueueEmpty = done;
   }
 
@@ -296,19 +363,95 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   const scrambleMoves = document.getElementById('scramble-moves')!;
   const scrambleDetails = document.getElementById('scramble-details') as HTMLDetailsElement;
 
+  const solveButton = document.getElementById('solve') as HTMLButtonElement;
+  const solvePanel = document.getElementById('solve-panel')!;
+  const solveStages = document.getElementById('solve-stages')!;
+
+  const setBusy = (busy: boolean) => {
+    scrambleButton.disabled = busy;
+    solveButton.disabled = busy;
+  };
+
   scrambleButton.addEventListener('click', () => {
     const moves = scramble(Math.random);
-    scrambleButton.disabled = true;
+    setBusy(true);
     scrambleResult.hidden = true;
-    play(moves, SCRAMBLE_TURN_SECONDS, () => {
-      scrambleButton.disabled = false;
-      scrambleCount.textContent = `Scrambled: ${moves.length} moves`;
-      scrambleMoves.textContent = moves.join(' ');
-      scrambleDetails.open = false;
-      scrambleResult.hidden = false;
-      canvas.setAttribute('aria-label', 'A scrambled Rubik’s cube.');
-    });
+    solvePanel.hidden = true;
+    play(
+      moves.map((move) => ({ move, seconds: SCRAMBLE_TURN_SECONDS })),
+      () => {
+        setBusy(false);
+        scrambleCount.textContent = `Scrambled: ${moves.length} moves`;
+        scrambleMoves.textContent = moves.join(' ');
+        scrambleDetails.open = false;
+        scrambleResult.hidden = false;
+        canvas.setAttribute('aria-label', 'A scrambled Rubik’s cube.');
+      },
+    );
   });
+
+  // --- Solve: the Cross, then the four F2L pairs ---------------------------------
+
+  /** Lists the Stages, each with its moves, and returns their list items. */
+  function listStages(stages: Stage[]): { item: HTMLLIElement; moves: HTMLSpanElement[] }[] {
+    solveStages.replaceChildren();
+    return stages.map((stage) => {
+      const item = document.createElement('li');
+      const label = document.createElement('p');
+      label.className = 'text-sm font-medium';
+      label.textContent = stage.label;
+      const line = document.createElement('p');
+      line.className = 'mt-1 font-mono text-xs leading-relaxed';
+      const moves = stage.moves.map((move) => {
+        const span = document.createElement('span');
+        span.className = 'move';
+        span.textContent = move;
+        return span;
+      });
+      if (moves.length) line.append(...moves);
+      else line.textContent = 'already solved';
+      item.append(label, line);
+      solveStages.append(item);
+      return { item, moves };
+    });
+  }
+
+  /** Highlights the Stage and the move a Step puts on screen; earlier Stages read as done. */
+  function highlight(rows: ReturnType<typeof listStages>, step: Step | 'finished') {
+    rows.forEach(({ item, moves }, s) => {
+      const current = step !== 'finished' && s === step.stage;
+      item.classList.toggle('done', step === 'finished' || s < step.stage);
+      if (current) item.setAttribute('aria-current', 'step');
+      else item.removeAttribute('aria-current');
+      moves.forEach((span, i) => {
+        if (current && step.kind === 'move' && i === step.index) span.setAttribute('aria-current', 'true');
+        else span.removeAttribute('aria-current');
+      });
+    });
+  }
+
+  solveButton.addEventListener('click', () => {
+    const stages = solveF2L(cube);
+    const rows = listStages(stages);
+    setBusy(true);
+    solvePanel.hidden = false;
+    play(
+      playback(stages).map((step) => ({
+        move: step.kind === 'move' ? step.move : null,
+        seconds: step.seconds,
+        onStart: () => highlight(rows, step),
+      })),
+      () => {
+        highlight(rows, 'finished');
+        setBusy(false);
+        canvas.setAttribute('aria-label', 'A Rubik’s cube with the white cross and the first two layers solved.');
+      },
+    );
+  });
+
+  // The search's tables take a moment to build: build them while the page is idle.
+  const whenIdle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 200));
+  whenIdle(() => prepareSolve());
 
   // --- Sizing ----------------------------------------------------------------
 

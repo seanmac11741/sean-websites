@@ -245,6 +245,26 @@ played at 0.04 s a Move. Owned by the pure **Scramble module** (`src/lib/speed-c
 the random source is injected. Afterwards the page shows the count and, behind "show moves", the
 exact sequence it applied.
 
+**Solve** — the cube solving itself on screen, beginner-CFOP style, white on the bottom: the
+**Cross**, then the four **F2L pairs**, as labelled **Stages** (`solveF2L(cube)`). It stops once F2L is
+done; OLL and PLL come later. Owned by the pure **Solve module** (`src/lib/speed-cubing/solve.ts`).
+Each Stage is the shortest run of face turns that solves that Stage alone while keeping every earlier
+one solved, so it reads like a real solve rather than a machine's optimal answer: about six turns for
+the Cross and each pair. The next pair is whichever unsolved one is quickest, as a solver looking ahead
+picks it. Played at 0.5 s a Move (`SOLVE_TURN_SECONDS`) with a short pause between Stages, beside the
+stage list (below the cube on a phone), which highlights the current Stage and Move.
+
+**Stage** — one labelled step of a Solve and its Moves: "Cross", then "F2L pair 1 of 4" to "F2L pair
+4 of 4". A Stage already solved has no Moves.
+
+**Cross** — the four white edges home around the white centre on the bottom.
+
+**F2L pair** — a white corner and the edge above it, home in one of the four slots between the
+bottom layer and the middle one. All four pairs and the Cross make the first two layers (F2L).
+
+**Step** — one beat of a Solve's playback (`playback(stages)`): a Move or a pause, tagged with its
+Stage and its place in it, so the stage list is highlighted from the same Step the cube is turning.
+
 **Faces** — a Cube read out face by face (`faces(cube)`): each face's nine Colours in reading order
 as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
 top. This is what the tests compare.
