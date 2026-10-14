@@ -37,7 +37,7 @@ each the phone default. **Even it out** restores the default in one click.
 - The Arena takes a `lineup` in place of a `rosterSize`, and a Roster's size is whatever the Lineup
   adds up to: three to three hundred Fighters. How big a Fighter is now depends on how crowded the
   board is, and every distance in the rules scales with that size (see **Fighter size** in
-  `CONTEXT.md`).
+  `GLOSSARY.md`).
 - A lopsided round still has to end. Headless rounds get a time limit, after which the Type with the
   most Fighters wins.
 - The Upset is no longer the only randomness that matters, but it is still what lets a Type down to
