@@ -417,10 +417,10 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   }
 
   /** Highlights the Stage and the move a Step puts on screen; earlier Stages read as done. */
-  function highlight(rows: ReturnType<typeof listStages>, step: Step | null) {
+  function highlight(rows: ReturnType<typeof listStages>, step: Step | 'finished') {
     rows.forEach(({ item, moves }, s) => {
-      const current = step !== null && s === step.stage;
-      item.classList.toggle('done', step === null || s < step.stage);
+      const current = step !== 'finished' && s === step.stage;
+      item.classList.toggle('done', step === 'finished' || s < step.stage);
       if (current) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
       moves.forEach((span, i) => {
@@ -435,7 +435,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     const rows = listStages(stages);
     setBusy(true);
     solvePanel.hidden = false;
-    highlight(rows, { kind: 'pause', stage: 0, seconds: 0 });
     play(
       playback(stages).map((step) => ({
         move: step.kind === 'move' ? step.move : null,
@@ -443,7 +442,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
         onStart: () => highlight(rows, step),
       })),
       () => {
-        highlight(rows, null);
+        highlight(rows, 'finished');
         setBusy(false);
         canvas.setAttribute('aria-label', 'A Rubik’s cube with the white cross and the first two layers solved.');
       },

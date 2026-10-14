@@ -215,10 +215,10 @@ export function prepareSolve() {
 }
 
 /**
- * A bound read from `table`, built for front-right's `group`, applied to slot
- * k's pieces (k = 0 is front-right itself, and the Cross as it stands).
+ * A bound read from `table`, built for front-right's `group`, applied to the
+ * pieces of F2L pair k (k = 0 is front-right itself, and the Cross as it stands).
  */
-function slotBound(table: Uint8Array, group: readonly Piece[], k: number): Bound {
+function pairBound(table: Uint8Array, group: readonly Piece[], k: number): Bound {
   const at = group.map((p) => TRACKED.indexOf(Y_TO[k][p]));
   const back = Y_FROM[k];
   return (slots) => {
@@ -235,8 +235,8 @@ function slotBound(table: Uint8Array, group: readonly Piece[], k: number): Bound
  */
 export function solveF2L(cube: Cube): Stage[] {
   const { cross, near, far } = prepareSolve();
-  const crossBound = slotBound(cross, CROSS, 0);
-  const pairBounds = (k: number) => [slotBound(near, NEAR, k), slotBound(far, FAR, k)];
+  const crossBound = pairBound(cross, CROSS, 0);
+  const pairBounds = (k: number) => [pairBound(near, NEAR, k), pairBound(far, FAR, k)];
 
   let slots = Int8Array.from(locate(cube, TRACKED));
   const play = (moves: string[]) => {

@@ -41,7 +41,7 @@ const SLOTS = [
   [-1, -1],
 ] as const;
 const solvedSlots = (cube: Cube) =>
-  SLOTS.filter(([x, z]) => home(cube, [x, -1, z]) && home(cube, [x, 0, z])).length;
+  SLOTS.filter(([x, z]) => home(cube, [x, -1, z]) && home(cube, [x, 0, z]));
 
 const scrambled = (seed: number) => applyMoves(solvedCube(), scramble(mulberry32(seed)).join(' '));
 
@@ -64,20 +64,24 @@ describe('solveF2L', () => {
         'F2L pair 4 of 4',
       ]);
       let cube = applyMoves(scrambled(seed), stages[0].moves.join(' '));
+      let before = solvedSlots(cube);
       stages.slice(1).forEach((stage, i) => {
         cube = applyMoves(cube, stage.moves.join(' '));
+        const after = solvedSlots(cube);
         expect(crossSolved(cube)).toBe(true);
-        expect(solvedSlots(cube)).toBeGreaterThanOrEqual(i + 1);
+        expect(after).toEqual(expect.arrayContaining(before));
+        expect(after.length).toBeGreaterThanOrEqual(i + 1);
+        before = after;
       });
-      expect(solvedSlots(cube)).toBe(4);
+      expect(before).toHaveLength(4);
     }
   });
 
-  it('keeps every stage short: the Cross in at most 8 face turns, each pair in at most 11', () => {
+  it('keeps every stage short: the Cross in at most 8 face turns, each pair in at most 10', () => {
     for (let seed = 100; seed < 300; seed++) {
       const [cross, ...pairs] = solveF2L(scrambled(seed));
       expect(cross.moves.length).toBeLessThanOrEqual(8);
-      for (const pair of pairs) expect(pair.moves.length).toBeLessThanOrEqual(11);
+      for (const pair of pairs) expect(pair.moves.length).toBeLessThanOrEqual(10);
       for (const stage of [cross, ...pairs]) for (const move of stage.moves) expect(move).toMatch(/^[UDLRFB](2|')?$/);
     }
   });

@@ -14,18 +14,14 @@ describe('playback', () => {
     expect(STAGE_PAUSE_SECONDS).toBeLessThanOrEqual(1);
   });
 
-  it('plays every move of every stage, in order, each tagged with its stage and its place in it', () => {
+  it('leads into every stage with a pause, then plays its moves in order, each tagged with its stage and place', () => {
     expect(playback(stages)).toEqual([
+      { kind: 'pause', stage: 0, seconds: STAGE_PAUSE_SECONDS },
       { kind: 'move', stage: 0, index: 0, move: 'F', seconds: 0.5 },
       { kind: 'move', stage: 0, index: 1, move: "R'", seconds: 0.5 },
       { kind: 'pause', stage: 1, seconds: STAGE_PAUSE_SECONDS },
       { kind: 'pause', stage: 2, seconds: STAGE_PAUSE_SECONDS },
       { kind: 'move', stage: 2, index: 0, move: 'U2', seconds: 0.5 },
     ]);
-  });
-
-  it('plays at the speeds it is given', () => {
-    const steps = playback(stages, { turnSeconds: 0, pauseSeconds: 0 });
-    expect(steps.every((s) => s.seconds === 0)).toBe(true);
   });
 });

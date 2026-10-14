@@ -14,13 +14,10 @@ export type Step =
   | { kind: 'move'; stage: number; index: number; move: string; seconds: number }
   | { kind: 'pause'; stage: number; seconds: number };
 
-/** Every Stage's moves in order, with a pause leading into each Stage after the first. */
-export function playback(
-  stages: readonly Stage[],
-  { turnSeconds = SOLVE_TURN_SECONDS, pauseSeconds = STAGE_PAUSE_SECONDS } = {},
-): Step[] {
-  return stages.flatMap((stage, s) => [
-    ...(s > 0 ? [{ kind: 'pause' as const, stage: s, seconds: pauseSeconds }] : []),
-    ...stage.moves.map((move, index) => ({ kind: 'move' as const, stage: s, index, move, seconds: turnSeconds })),
+/** Every Stage's moves in order, each Stage led into with a pause that shows it before it turns. */
+export function playback(stages: readonly Stage[]): Step[] {
+  return stages.flatMap((stage, s): Step[] => [
+    { kind: 'pause', stage: s, seconds: STAGE_PAUSE_SECONDS },
+    ...stage.moves.map((move, index): Step => ({ kind: 'move', stage: s, index, move, seconds: SOLVE_TURN_SECONDS })),
   ]);
 }
