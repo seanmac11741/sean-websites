@@ -266,7 +266,7 @@ Moves. White is on the bottom between Stages.
 **F2L pair** — a white corner and the edge above it, home in one of the four slots between the
 bottom layer and the middle one. All four pairs and the Cross make the first two layers (F2L).
 
-**Look** — one step of the last layer: a goal and the **Algorithms** for its cases. Four, in order:
+**Look** — one part of the last layer: a goal and the **Algorithms** for its cases. Four, in order:
 OLL's yellow cross, then yellow corners (the whole top yellow), then PLL's corners, then its edges.
 Each goal ignores a turn of the top layer; the last Stage ends with the U-turn that brings it home.
 **Recognising** a case (`recognise(cube, look)`) finds the Algorithm, and the U-turn lining it up,

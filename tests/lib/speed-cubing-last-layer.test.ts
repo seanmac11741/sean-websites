@@ -23,6 +23,7 @@ const caseOf = (look: Look, name: string): Cube => {
 };
 
 const Y: Colour = 'yellow';
+const SIDES = ['F', 'R', 'B', 'L'] as const;
 /** The U face in net order: back row, middle row, front row, left to right. */
 const top = (cube: Cube) => faces(cube).U.map((c) => c === Y);
 /** A side face's top row, left to right as you look at that face. */
@@ -34,7 +35,7 @@ function firstTwoLayersSolved(cube: Cube): boolean {
   const f = faces(cube);
   return (
     f.D.every((c) => c === 'white') &&
-    (['F', 'R', 'B', 'L'] as const).every((face) => f[face].slice(3).every((c) => c === f[face][4])) &&
+    SIDES.every((face) => f[face].slice(3).every((c) => c === f[face][4])) &&
     f.F[4] === 'green' &&
     f.U[4] === Y
   );
@@ -101,7 +102,7 @@ describe('the algorithms from the CFOP notes', () => {
     it('Pi: no corner yellow up, two yellow on one side and none on the side across from it', () => {
       const cube = caseOf(YELLOW_CORNERS, 'Pi');
       expect(corners(cube)).toEqual([false, false, false, false]);
-      const pairs = (['F', 'R', 'B', 'L'] as const).map((f) => yellowIn(cube, f).filter(Boolean).length);
+      const pairs = SIDES.map((f) => yellowIn(cube, f).filter(Boolean).length);
       const two = pairs.indexOf(2);
       expect(two).toBeGreaterThanOrEqual(0);
       expect(pairs[(two + 2) % 4]).toBe(0);
@@ -127,7 +128,7 @@ describe('the algorithms from the CFOP notes', () => {
 
   describe('PLL step 1: the corners', () => {
     const headlights = (cube: Cube) =>
-      (['F', 'R', 'B', 'L'] as const).filter((f) => row(cube, f)[0] === row(cube, f)[2]);
+      SIDES.filter((f) => row(cube, f)[0] === row(cube, f)[2]);
 
     it('Diagonal Swap: no face has matching corners', () => {
       expect(headlights(caseOf(PLL_CORNERS, 'Diagonal Swap'))).toEqual([]);
@@ -142,7 +143,7 @@ describe('the algorithms from the CFOP notes', () => {
     const edge = (cube: Cube, face: 'F' | 'R' | 'B' | 'L') => row(cube, face)[1];
     const centre = (cube: Cube, face: 'F' | 'R' | 'B' | 'L') => faces(cube)[face][4];
     const cornersHome = (cube: Cube) =>
-      (['F', 'R', 'B', 'L'] as const).every((f) => row(cube, f)[0] === centre(cube, f) && row(cube, f)[2] === centre(cube, f));
+      SIDES.every((f) => row(cube, f)[0] === centre(cube, f) && row(cube, f)[2] === centre(cube, f));
 
     it('Right to Left: solved edge at the back; the right edge belongs on the left', () => {
       const cube = caseOf(PLL_EDGES, 'Right to Left');
@@ -165,7 +166,7 @@ describe('the algorithms from the CFOP notes', () => {
     it('Adjacent Edge Swap: two pairs of neighbouring edges swapped', () => {
       const cube = caseOf(PLL_EDGES, 'Adjacent Edge Swap');
       expect(cornersHome(cube)).toBe(true);
-      const wrong = (['F', 'R', 'B', 'L'] as const).filter((f) => edge(cube, f) !== centre(cube, f));
+      const wrong = SIDES.filter((f) => edge(cube, f) !== centre(cube, f));
       expect(wrong).toHaveLength(4);
       for (const f of wrong) {
         const opposite = { F: 'B', B: 'F', L: 'R', R: 'L' } as const;
@@ -227,7 +228,7 @@ describe('solveLastLayer', () => {
     expect(stages).toHaveLength(4);
     expect(stages.map((s) => s.label.split(':')[0])).toEqual(['OLL', 'OLL', 'PLL', 'PLL']);
     for (const [i, stage] of stages.entries()) {
-      const names = LOOKS[i].algorithms.map((a) => `${LOOKS[i].step}: ${a.name}`);
+      const names = LOOKS[i].algorithms.map((a) => `${LOOKS[i].method}: ${a.name}`);
       if (stage.moves.length) expect(names).toContain(stage.label);
     }
   });
@@ -238,7 +239,7 @@ describe('solveLastLayer', () => {
       solveLastLayer(applyMoves(jumbled, offset)).forEach((stage, i) => {
         if (!stage.moves.length) return;
         const look = LOOKS[i];
-        const algorithm = look.algorithms.find((a) => `${look.step}: ${a.name}` === stage.label)!;
+        const algorithm = look.algorithms.find((a) => `${look.method}: ${a.name}` === stage.label)!;
         const body = algorithmMoves(algorithm);
         const moves = [...stage.moves];
         if (moves.length > body.length && isU(moves[0])) moves.shift();

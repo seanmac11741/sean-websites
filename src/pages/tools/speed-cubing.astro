@@ -488,28 +488,28 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   // --- Celebration: a quick spin with a glow pulse --------------------------------
 
   /** Seconds into the spin, or null when not spinning. */
-  let spinning: number | null = null;
+  let spinElapsed: number | null = null;
 
   function celebrate() {
     // Restarts the CSS pulse even if the last one is still on.
     stage.classList.remove('celebrating');
     void stage.offsetWidth;
     stage.classList.add('celebrating');
-    if (!reduceMotion) spinning = 0;
+    if (!reduceMotion) spinElapsed = 0;
   }
 
   stage.addEventListener('animationend', () => stage.classList.remove('celebrating'));
 
-  /** The spin's extra yaw: one whole turn, fast then easing out, so it lands where it began. */
-  function spinAngle(dt: number): number {
-    if (spinning === null) return 0;
-    spinning += dt;
+  /** Advances the spin and returns its extra yaw: one whole turn, fast then easing out, so it lands where it began. */
+  function advanceSpin(dt: number): number {
+    if (spinElapsed === null) return 0;
+    spinElapsed += dt;
     needsRender = true;
-    if (spinning >= CELEBRATE_SECONDS) {
-      spinning = null;
+    if (spinElapsed >= CELEBRATE_SECONDS) {
+      spinElapsed = null;
       return 0;
     }
-    const t = spinning / CELEBRATE_SECONDS;
+    const t = spinElapsed / CELEBRATE_SECONDS;
     return 2 * Math.PI * (1 - (1 - t) ** 3);
   }
 
@@ -622,7 +622,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     const dt = Math.min((now - previous) / 1000, 0.1);
     step(dt);
     stepTurns(dt);
-    const spin = spinAngle(dt);
+    const spin = advanceSpin(dt);
     previous = now;
     if (needsRender) {
       // Yaw turns the cube about its own up axis, then the tilt is applied.

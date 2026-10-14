@@ -17,12 +17,12 @@ export interface Algorithm {
 }
 
 /**
- * One step of the last layer: its kind, its title, the algorithms for its
+ * One Look at the last layer: its method, its title, the algorithms for its
  * cases, and whether the cube has reached its goal. Every goal ignores a turn
  * of the top layer, which the solve lines up at the end.
  */
 export interface Look {
-  readonly step: 'OLL' | 'PLL';
+  readonly method: 'OLL' | 'PLL';
   readonly title: string;
   readonly algorithms: readonly Algorithm[];
   done(cube: Cube): boolean;
@@ -41,7 +41,7 @@ const rowsMatch = (cube: Cube, at: readonly number[]) => {
 };
 
 export const YELLOW_CROSS: Look = {
-  step: 'OLL',
+  method: 'OLL',
   title: 'Yellow cross',
   done: (cube) => topMatches(cube, [1, 3, 5, 7]),
   algorithms: [
@@ -52,7 +52,7 @@ export const YELLOW_CROSS: Look = {
 };
 
 export const YELLOW_CORNERS: Look = {
-  step: 'OLL',
+  method: 'OLL',
   title: 'Yellow corners',
   done: (cube) => topMatches(cube, [0, 1, 2, 3, 5, 6, 7, 8]),
   algorithms: [
@@ -67,7 +67,7 @@ export const YELLOW_CORNERS: Look = {
 };
 
 export const PLL_CORNERS: Look = {
-  step: 'PLL',
+  method: 'PLL',
   title: 'Corners',
   // Each side's two top corners match: the corners are in place but for a U-turn.
   done: (cube) => rowsMatch(cube, [0, 2]),
@@ -78,7 +78,7 @@ export const PLL_CORNERS: Look = {
 };
 
 export const PLL_EDGES: Look = {
-  step: 'PLL',
+  method: 'PLL',
   title: 'Edges',
   done: (cube) => rowsMatch(cube, [0, 1, 2]),
   algorithms: [
@@ -134,10 +134,10 @@ export function recognise(cube: Cube, look: Look): { algorithm: Algorithm; setup
 export function solveLastLayer(cube: Cube): Stage[] {
   const stages = LOOKS.map((look): Stage => {
     const found = recognise(cube, look);
-    if (!found) return { label: `${look.step}: ${look.title}`, moves: [] };
+    if (!found) return { label: `${look.method}: ${look.title}`, moves: [] };
     const moves = [...found.setup, ...algorithmMoves(found.algorithm)];
     cube = applyMoves(cube, moves.join(' '));
-    return { label: `${look.step}: ${found.algorithm.name}`, moves };
+    return { label: `${look.method}: ${found.algorithm.name}`, moves };
   });
   const last = stages[stages.length - 1];
   const home = SETUPS.find((turn) => isSolved(applyMoves(cube, turn.join(' '))));
