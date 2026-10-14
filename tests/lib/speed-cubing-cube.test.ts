@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyMoves,
   faces,
+  isSolved,
   parseMove,
   solvedCube,
   type Axis,
@@ -22,6 +23,15 @@ describe('solved cube', () => {
       L: nine('red'),
       B: nine('blue'),
     });
+  });
+});
+
+describe('isSolved', () => {
+  it('is true when every face is one colour, whichever way the cube is held', () => {
+    expect(isSolved(solvedCube())).toBe(true);
+    expect(isSolved(applyMoves(solvedCube(), 'x y'))).toBe(true);
+    expect(isSolved(applyMoves(solvedCube(), "R U R' U'"))).toBe(false);
+    expect(isSolved(applyMoves(solvedCube(), 'M'))).toBe(false);
   });
 });
 

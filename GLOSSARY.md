@@ -246,21 +246,38 @@ the random source is injected. Afterwards the page shows the count and, behind "
 exact sequence it applied.
 
 **Solve** — the cube solving itself on screen, beginner-CFOP style, white on the bottom: the
-**Cross**, then the four **F2L pairs**, as labelled **Stages** (`solveF2L(cube)`). It stops once F2L is
-done; OLL and PLL come later. Owned by the pure **Solve module** (`src/lib/speed-cubing/solve.ts`).
-Each Stage is the shortest run of face turns that solves that Stage alone while keeping every earlier
-one solved, so it reads like a real solve rather than a machine's optimal answer: about six turns for
-the Cross and each pair. The next pair is whichever unsolved one is quickest, as a solver looking ahead
-picks it. Played at 0.5 s a Move (`SOLVE_TURN_SECONDS`) with a short pause between Stages, beside the
-stage list (below the cube on a phone), which highlights the current Stage and Move.
+**Cross**, then the four **F2L pairs**, then 2-look **OLL** and 2-look **PLL**, as labelled **Stages**
+(`solve(cube)`). Owned by the pure **Solve module** (`src/lib/speed-cubing/solve.ts`), with the last
+layer in `src/lib/speed-cubing/last-layer.ts`. The Cross and each pair is the shortest run of face
+turns that solves that Stage alone while keeping every earlier one solved, so it reads like a real
+solve rather than a machine's optimal answer: about six turns each. The next pair is whichever
+unsolved one is quickest, as a solver looking ahead picks it. Played at 0.5 s a Move
+(`SOLVE_TURN_SECONDS`) with a short pause between Stages, beside the stage list (below the cube on a
+phone), which highlights the current Stage and Move. Once the cube comes out solved, the
+**Celebration** plays.
 
-**Stage** — one labelled step of a Solve and its Moves: "Cross", then "F2L pair 1 of 4" to "F2L pair
-4 of 4". A Stage already solved has no Moves.
+**Stage** — one labelled step of a Solve and its Moves: "Cross", "F2L pair 1 of 4" to "F2L pair 4 of
+4", then one per **Look**, named for the case it found ("OLL: Sune", "PLL: Adjacent Corner Swap"), or
+for the Look itself ("OLL: Yellow cross") when there was nothing to do. A Stage already solved has no
+Moves. White is on the bottom between Stages.
 
 **Cross** — the four white edges home around the white centre on the bottom.
 
 **F2L pair** — a white corner and the edge above it, home in one of the four slots between the
 bottom layer and the middle one. All four pairs and the Cross make the first two layers (F2L).
+
+**Look** — one step of the last layer: a goal and the **Algorithms** for its cases. Four, in order:
+OLL's yellow cross, then yellow corners (the whole top yellow), then PLL's corners, then its edges.
+Each goal ignores a turn of the top layer; the last Stage ends with the U-turn that brings it home.
+**Recognising** a case (`recognise(cube, look)`) finds the Algorithm, and the U-turn lining it up,
+that reaches the Look's goal.
+
+**Algorithm** — a named sequence from Sean's CFOP notes, kept as written (`f (R U R' U') f'`,
+`F (R U R' U')x3 F'`) and expanded into Moves by `algorithmMoves`. One that starts with a whole-cube
+`x` gets an `x'` at the end, so the view turns back before the next Stage. Only these sixteen are used.
+
+**Celebration** — a quick whole turn of the cube with a glow pulse behind it, when a Solve leaves the
+cube solved (`isSolved`). The spin is skipped under reduced motion.
 
 **Step** — one beat of a Solve's playback (`playback(stages)`): a Move or a pause, tagged with its
 Stage and its place in it, so the stage list is highlighted from the same Step the cube is turning.

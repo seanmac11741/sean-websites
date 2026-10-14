@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { applyMoves, solvedCube, type Cube, type Vec } from '../../src/lib/speed-cubing/cube';
+import { applyMoves, faces, isSolved, solvedCube, type Cube, type Vec } from '../../src/lib/speed-cubing/cube';
 import { scramble } from '../../src/lib/speed-cubing/scramble';
-import { solveF2L } from '../../src/lib/speed-cubing/solve';
+import { solve, solveF2L } from '../../src/lib/speed-cubing/solve';
 
 /** A deterministic uniform source, so a scramble is reproducible. */
 function mulberry32(seed: number): () => number {
@@ -93,5 +93,41 @@ describe('solveF2L', () => {
   it('solves the Cross optimally: a cube one turn off it takes one turn back', () => {
     const [cross] = solveF2L(applyMoves(solvedCube(), 'F'));
     expect(cross.moves).toEqual(["F'"]);
+  });
+});
+
+describe('solve', () => {
+  const centresHome = (cube: Cube) => {
+    const f = faces(cube);
+    return f.U[4] === 'yellow' && f.D[4] === 'white' && f.F[4] === 'green' && f.R[4] === 'orange';
+  };
+
+  it('from any scramble: the Cross, four F2L pairs, two OLL and two PLL Stages, then solved', () => {
+    for (let seed = 1; seed <= 150; seed++) {
+      let cube = scrambled(seed);
+      const stages = solve(cube);
+      expect(stages.map((s) => s.label.split(/:| pair/)[0])).toEqual([
+        'Cross', 'F2L', 'F2L', 'F2L', 'F2L', 'OLL', 'OLL', 'PLL', 'PLL',
+      ]);
+      for (const stage of stages) {
+        cube = applyMoves(cube, stage.moves.join(' '));
+        // White back on the bottom, green in front, between every Stage.
+        expect(centresHome(cube), `seed ${seed}, after ${stage.label}`).toBe(true);
+      }
+      expect(isSolved(cube), `seed ${seed}`).toBe(true);
+    }
+  });
+
+  it('meets every last-layer case across many scrambles', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 400; seed++) for (const s of solve(scrambled(seed)).slice(5)) seen.add(s.label);
+    for (const label of [
+      'OLL: L-shape', 'OLL: Line', 'OLL: Dot',
+      'OLL: Antisune', 'OLL: Sune', 'OLL: H', 'OLL: Pi', 'OLL: L', 'OLL: T', 'OLL: U',
+      'PLL: Diagonal Swap', 'PLL: Adjacent Corner Swap',
+      'PLL: Right to Left', 'PLL: Left to Right', 'PLL: Opposite Edge Swap', 'PLL: Adjacent Edge Swap',
+    ]) {
+      expect(seen).toContain(label);
+    }
   });
 });

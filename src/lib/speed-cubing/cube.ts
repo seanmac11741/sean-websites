@@ -85,6 +85,11 @@ export function faces(cube: Cube): Record<Face, Colour[]> {
   return out;
 }
 
+/** Every face is one Colour, whichever way round the cube is held. */
+export function isSolved(cube: Cube): boolean {
+  return Object.values(faces(cube)).every((face) => face.every((c) => c === face[0]));
+}
+
 export type Axis = 0 | 1 | 2;
 
 /**

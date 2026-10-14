@@ -1,6 +1,6 @@
 /**
- * The Solve: the first half of a beginner-CFOP solve — the white Cross on the
- * bottom, then the four F2L pairs — as labelled Stages of face turns.
+ * The Solve: a beginner-CFOP solve as labelled Stages — the white Cross on the
+ * bottom, then the four F2L pairs, then the last layer (`./last-layer`).
  *
  * Pure: no DOM, no timers. Each Stage is the shortest sequence of face turns
  * that solves it alone while keeping every earlier Stage solved, found by
@@ -15,6 +15,7 @@
  */
 
 import { applyMoves, FACES, solvedCube, type Cube, type Sticker, type Vec } from './cube';
+import { solveLastLayer } from './last-layer';
 
 export interface Stage {
   readonly label: string;
@@ -260,4 +261,10 @@ export function solveF2L(cube: Cube): Stage[] {
     stages.push({ label: `F2L pair ${n} of 4`, moves });
   }
   return stages;
+}
+
+/** Every Stage that takes `cube` to solved: the Cross and F2L, then 2-look OLL and 2-look PLL. */
+export function solve(cube: Cube): Stage[] {
+  const f2l = solveF2L(cube);
+  return [...f2l, ...solveLastLayer(applyMoves(cube, f2l.flatMap((s) => s.moves).join(' ')))];
 }
