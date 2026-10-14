@@ -154,8 +154,8 @@ export function applyMoves(cube: Cube, moves: string): Cube {
     .filter(Boolean)
     .reduce((state, move) => {
       const match = MOVE.exec(move);
-      const t = match && TURNS[match[1]];
-      if (!match || !t) throw new Error(`Not a move: ${move}`);
-      return turn(state, t, match[2] === '2' ? 2 : match[2] === "'" ? -1 : 1);
+      const layersTurned = match && TURNS[match[1]];
+      if (!match || !layersTurned) throw new Error(`Not a move: ${move}`);
+      return turn(state, layersTurned, match[2] === '2' ? 2 : match[2] === "'" ? -1 : 1);
     }, cube);
 }

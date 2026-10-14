@@ -219,8 +219,10 @@ whatever Stickers the Cube module hands it and decides nothing about where they 
 
 **Sticker** — one coloured square: a **Colour**, the position of the piece it sits on (each axis
 −1, 0 or 1), and the outward normal it faces along. Axes are the viewer's: x right, y up, z towards
-them. A sticker is located by where it is, not by which piece it belongs to, so every kind of move
+them. A Sticker is located by where it is, not by which piece it belongs to, so every kind of move
 is the same operation — rotate the Stickers in some layers about one axis.
+
+**Colour** — one of the six sticker colours, by name: yellow, white, green, blue, orange, red.
 
 **Scheme** — which Colour starts on which face, as the viewer holds the cube: yellow up (U), white
 down (D), green front (F), orange right (R), red left (L), blue back (B). Colours are names in the

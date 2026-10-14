@@ -154,5 +154,7 @@ describe('whole-cube rotations', () => {
   it.each(['x', 'y', 'z'])("%s' undoes %s, and four of %s are the identity", (m) => {
     expect(faces(applyMoves(SCRAMBLED, `${m} ${m}'`))).toEqual(faces(SCRAMBLED));
     expect(faces(applyMoves(SCRAMBLED, `${m} ${m} ${m} ${m}`))).toEqual(faces(SCRAMBLED));
+
+    expect(faces(applyMoves(SCRAMBLED, `${m}2`))).toEqual(faces(applyMoves(SCRAMBLED, `${m} ${m}`)));
   });
 });
