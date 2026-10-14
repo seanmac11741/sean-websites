@@ -235,6 +235,16 @@ the slice behind it. The **slice** `M` is the middle layer between L and R, turn
 A **rotation** (`x y z`) turns the whole cube the way R, U and F do, which relabels the faces: after
 `x`, green is on top. Anything else throws.
 
+**Turn** — what one Move does, read with `parseMove("R'")`: the axis, the layers along it, and the
+number of quarter turns about the positive axis by the right-hand rule. The renderer animates
+exactly this, then hands the Move to the model and redraws from it. Every Move animates: it eases
+in, swings slightly past and settles back (`easeTurn`); under reduced motion it lands instantly.
+
+**Scramble** — 100 random face turns (`scramble(random)`), never the same face twice in a row,
+played at 0.04 s a Move. Owned by the pure **Scramble module** (`src/lib/speed-cubing/scramble.ts`);
+the random source is injected. Afterwards the page shows the count and, behind "show moves", the
+exact sequence it applied.
+
 **Faces** — a Cube read out face by face (`faces(cube)`): each face's nine Colours in reading order
 as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
 top. This is what the tests compare.

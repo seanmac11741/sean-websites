@@ -85,20 +85,20 @@ export function faces(cube: Cube): Record<Face, Colour[]> {
   return out;
 }
 
-type Axis = 0 | 1 | 2;
+export type Axis = 0 | 1 | 2;
 
 /**
- * What a move turns: the axis, which way its face points along it, and which
- * layers (coordinates along that axis) go with it. Clockwise is as seen
- * looking at that face.
+ * What a move's letter grips: the axis, which way its face points along it,
+ * and which layers (coordinates along that axis) go with it. Clockwise is as
+ * seen looking at that face.
  */
-interface Turn {
+interface Grip {
   readonly axis: Axis;
   readonly sign: 1 | -1;
   readonly layers: readonly number[];
 }
 
-const TURNS: Readonly<Record<string, Turn>> = {
+const GRIPS: Readonly<Record<string, Grip>> = {
   R: { axis: 0, sign: 1, layers: [1] },
   L: { axis: 0, sign: -1, layers: [-1] },
   U: { axis: 1, sign: 1, layers: [1] },
@@ -120,6 +120,29 @@ const TURNS: Readonly<Record<string, Turn>> = {
   z: { axis: 2, sign: 1, layers: [-1, 0, 1] },
 };
 
+/**
+ * What one move does: the Stickers in `layers` (coordinates along `axis`)
+ * rotate `quarters` quarter turns about the positive axis, by the right-hand
+ * rule, so a renderer can animate exactly the turn the model makes.
+ */
+export interface Turn {
+  readonly axis: Axis;
+  readonly layers: readonly number[];
+  readonly quarters: number;
+}
+
+const MOVE = /^([A-Za-z])(2|')?$/;
+
+/** Reads one move in standard notation: `R`, `U'`, `M2`. Anything else throws. */
+export function parseMove(move: string): Turn {
+  const match = MOVE.exec(move);
+  const grip = match && GRIPS[match[1]];
+  if (!match || !grip) throw new Error(`Not a move: ${move}`);
+  const clockwise = match[2] === '2' ? 2 : match[2] === "'" ? -1 : 1;
+  // Clockwise, looking at the face, is a negative turn about its outward normal.
+  return { axis: grip.axis, layers: grip.layers, quarters: -grip.sign * clockwise };
+}
+
 /** A quarter turn anticlockwise (right-hand rule) about a positive axis. */
 function quarter(v: Vec, axis: Axis): Vec {
   const [x, y, z] = v;
@@ -128,14 +151,13 @@ function quarter(v: Vec, axis: Axis): Vec {
   return [-y, x, z];
 }
 
-function turn(cube: Cube, { axis, sign, layers }: Turn, clockwiseQuarters: number): Cube {
-  // Clockwise, looking at the face, is a negative turn about its outward normal.
-  const quarters = (((-sign * clockwiseQuarters) % 4) + 4) % 4;
+function turn(cube: Cube, { axis, layers, quarters }: Turn): Cube {
+  const times = ((quarters % 4) + 4) % 4;
   return {
     stickers: cube.stickers.map((s) => {
       if (!layers.includes(s.position[axis])) return s;
       let { position, normal } = s;
-      for (let i = 0; i < quarters; i++) {
+      for (let i = 0; i < times; i++) {
         position = quarter(position, axis);
         normal = quarter(normal, axis);
       }
@@ -144,18 +166,11 @@ function turn(cube: Cube, { axis, sign, layers }: Turn, clockwiseQuarters: numbe
   };
 }
 
-const MOVE = /^([A-Za-z])(2|')?$/;
-
 /** Applies moves in standard notation, separated by spaces: `R U R' U2`. */
 export function applyMoves(cube: Cube, moves: string): Cube {
   return moves
     .trim()
     .split(/\s+/)
     .filter(Boolean)
-    .reduce((state, move) => {
-      const match = MOVE.exec(move);
-      const layersTurned = match && TURNS[match[1]];
-      if (!match || !layersTurned) throw new Error(`Not a move: ${move}`);
-      return turn(state, layersTurned, match[2] === '2' ? 2 : match[2] === "'" ? -1 : 1);
-    }, cube);
+    .reduce((state, move) => turn(state, parseMove(move)), cube);
 }

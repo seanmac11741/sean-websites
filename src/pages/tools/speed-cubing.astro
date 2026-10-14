@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
 
 const title = 'Speed Cubing — Sean McConnell';
-const description = 'A Rubik’s cube in your browser. Spin it around and take a look.';
+const description = 'A Rubik’s cube in your browser. Spin it around, then scramble it.';
 ---
 
 <Layout {title} {description}>
@@ -12,7 +12,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
   <main id="main-content" class="pt-24 pb-8 px-4 min-h-screen flex flex-col items-center">
     <div class="text-center max-w-xl">
       <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">Speed Cubing</h1>
-      <p class="text-slate-400 leading-relaxed">Drag to spin it around.</p>
+      <p class="text-slate-400 leading-relaxed">Drag to spin it around, or scramble it.</p>
     </div>
 
     <div id="stage" class="stage relative w-full max-w-3xl mt-4">
@@ -22,6 +22,24 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
         role="img"
         aria-label="A solved Rubik’s cube: yellow on top, green in front, orange on the right."
       ></canvas>
+    </div>
+
+    <div class="mt-2 flex flex-col items-center gap-3 w-full max-w-xl">
+      <button
+        id="scramble"
+        type="button"
+        class="px-5 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Scramble
+      </button>
+
+      <div id="scramble-result" class="text-center text-sm text-slate-400" aria-live="polite" hidden>
+        <p id="scramble-count"></p>
+        <details id="scramble-details" class="mt-1">
+          <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-300">show moves</summary>
+          <p id="scramble-moves" class="mt-2 font-mono text-xs leading-relaxed text-slate-300 break-words"></p>
+        </details>
+      </div>
     </div>
   </main>
 </Layout>
@@ -48,7 +66,16 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
   import * as THREE from 'three';
   import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
   import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-  import { solvedCube, type Colour, type Cube } from '../../lib/speed-cubing/cube';
+  import {
+    applyMoves,
+    parseMove,
+    solvedCube,
+    type Colour,
+    type Cube,
+    type Turn,
+  } from '../../lib/speed-cubing/cube';
+  import { easeTurn } from '../../lib/speed-cubing/ease';
+  import { scramble } from '../../lib/speed-cubing/scramble';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
   const PAINT: Record<Colour, number> = {
@@ -73,6 +100,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
   const SETTLE_SPEED = 0.4; // rad/s: slower than this, momentum hands over to the ease back
   const RETURN_RATE = 5; // per second
   const STALE_DRAG_MS = 80; // a pointer held still this long before release throws nothing
+
+  const SCRAMBLE_TURN_SECONDS = 0.04;
 
   const stage = document.getElementById('stage')!;
   const canvas = document.getElementById('cube-canvas') as HTMLCanvasElement;
@@ -130,14 +159,18 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
   });
   const cubieGeometry = new RoundedBoxGeometry(CUBIE, CUBIE, CUBIE, 4, 0.09);
 
+  // The cubies are all alike, so after a turn each goes back to where it started.
+  const cubies: THREE.Mesh[] = [];
   for (let x = -1; x <= 1; x++) {
     for (let y = -1; y <= 1; y++) {
       for (let z = -1; z <= 1; z++) {
         if (x === 0 && y === 0 && z === 0) continue;
         const cubie = new THREE.Mesh(cubieGeometry, plastic);
         cubie.position.set(x, y, z);
+        cubie.userData.home = new THREE.Vector3(x, y, z);
         cubie.castShadow = true;
         cubeGroup.add(cubie);
+        cubies.push(cubie);
       }
     }
   }
@@ -165,22 +198,117 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
     ]),
   ) as Record<Colour, THREE.MeshPhysicalMaterial>;
 
-  const stickerGroup = new THREE.Group();
-  cubeGroup.add(stickerGroup);
   const outward = new THREE.Vector3(0, 0, 1);
+  /** One mesh per Sticker, in the Cube module's order. */
+  const stickers = solvedCube().stickers.map(() => {
+    const sticker = new THREE.Mesh(stickerGeometry);
+    cubeGroup.add(sticker);
+    return sticker;
+  });
 
   /** Draws whatever the Cube module says is where. */
   function draw(cube: Cube) {
-    stickerGroup.clear();
-    for (const { position, normal, colour } of cube.stickers) {
-      const sticker = new THREE.Mesh(stickerGeometry, stickerMaterials[colour]);
+    cube.stickers.forEach(({ position, normal, colour }, i) => {
+      const sticker = stickers[i];
       const n = new THREE.Vector3(...normal);
+      sticker.material = stickerMaterials[colour];
       sticker.position.set(...position).addScaledVector(n, CUBIE / 2 + 0.002);
       sticker.quaternion.setFromUnitVectors(outward, n);
-      stickerGroup.add(sticker);
-    }
+    });
     needsRender = true;
   }
+
+  // --- Turning: one move at a time, eased, then handed back to the model ------
+
+  let cube = solvedCube();
+
+  /** The layers of the turn in progress ride on the pivot, which the turn rotates. */
+  const pivot = new THREE.Group();
+  cubeGroup.add(pivot);
+  const AXES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
+
+  const queue: { move: string; seconds: number }[] = [];
+  let turning: { move: string; turn: Turn; seconds: number; elapsed: number } | null = null;
+  let onQueueEmpty: (() => void) | null = null;
+
+  function startTurn(move: string, seconds: number) {
+    const turn = parseMove(move);
+    const inLayers = (coordinate: number) => turn.layers.includes(Math.round(coordinate));
+    for (const cubie of cubies) if (inLayers(cubie.position.getComponent(turn.axis))) pivot.add(cubie);
+    cube.stickers.forEach((s, i) => {
+      if (inLayers(s.position[turn.axis])) pivot.add(stickers[i]);
+    });
+    turning = { move, turn, seconds, elapsed: 0 };
+  }
+
+  /** Lands the turn on the model, and redraws from it so the two never drift. */
+  function finishTurn(move: string) {
+    cube = applyMoves(cube, move);
+    for (const cubie of cubies) {
+      cubeGroup.add(cubie);
+      cubie.position.copy(cubie.userData.home);
+      cubie.quaternion.identity();
+    }
+    for (const sticker of stickers) cubeGroup.add(sticker);
+    pivot.quaternion.identity();
+    draw(cube);
+  }
+
+  /** Advances the turns by `dt` seconds, carrying spare time into the next turn. */
+  function stepTurns(dt: number) {
+    let spare = dt;
+    while (true) {
+      if (!turning) {
+        const next = queue.shift();
+        if (!next) break;
+        startTurn(next.move, next.seconds);
+      }
+      const t = turning!;
+      t.elapsed += spare;
+      if (t.elapsed < t.seconds) {
+        const angle = (t.turn.quarters * Math.PI) / 2;
+        pivot.quaternion.setFromAxisAngle(AXES[t.turn.axis], angle * easeTurn(t.elapsed / t.seconds));
+        needsRender = true;
+        return;
+      }
+      spare = t.elapsed - t.seconds;
+      turning = null;
+      finishTurn(t.move);
+    }
+    if (onQueueEmpty) {
+      const done = onQueueEmpty;
+      onQueueEmpty = null;
+      done();
+    }
+  }
+
+  /** Queues moves to animate, each over `seconds` (instantly under reduced motion). */
+  function play(moves: string[], seconds: number, done: () => void) {
+    for (const move of moves) queue.push({ move, seconds: reduceMotion ? 0 : seconds });
+    onQueueEmpty = done;
+  }
+
+  // --- Scramble ----------------------------------------------------------------
+
+  const scrambleButton = document.getElementById('scramble') as HTMLButtonElement;
+  const scrambleResult = document.getElementById('scramble-result')!;
+  const scrambleCount = document.getElementById('scramble-count')!;
+  const scrambleMoves = document.getElementById('scramble-moves')!;
+  const scrambleDetails = document.getElementById('scramble-details') as HTMLDetailsElement;
+
+  scrambleButton.addEventListener('click', () => {
+    const moves = scramble(Math.random);
+    scrambleButton.disabled = true;
+    scrambleResult.hidden = true;
+    play(moves, SCRAMBLE_TURN_SECONDS, () => {
+      scrambleButton.disabled = false;
+      scrambleCount.textContent = `Scrambled: ${moves.length} moves`;
+      scrambleMoves.textContent = moves.join(' ');
+      scrambleDetails.open = false;
+      scrambleResult.hidden = false;
+      canvas.setAttribute('aria-label', 'A scrambled Rubik’s cube.');
+    });
+  });
 
   // --- Sizing ----------------------------------------------------------------
 
@@ -284,7 +412,9 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
 
   function frame(now: number) {
     // Capped, so a tab coming back from the background doesn't lurch.
-    step(Math.min((now - previous) / 1000, 0.1));
+    const dt = Math.min((now - previous) / 1000, 0.1);
+    step(dt);
+    stepTurns(dt);
     previous = now;
     if (needsRender) {
       // Yaw turns the cube about its own up axis, then the tilt is applied.
@@ -295,7 +425,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around and take a
     requestAnimationFrame(frame);
   }
 
-  draw(solvedCube());
+  draw(cube);
   resize();
   requestAnimationFrame(frame);
 </script>
