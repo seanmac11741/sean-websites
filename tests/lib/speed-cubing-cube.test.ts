@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { applyMoves, faces, solvedCube, type Colour } from '../../src/lib/speed-cubing/cube';
+import {
+  applyMoves,
+  faces,
+  parseMove,
+  solvedCube,
+  type Colour,
+  type Cube,
+  type Vec,
+} from '../../src/lib/speed-cubing/cube';
 
 const nine = (c: Colour) => Array<Colour>(9).fill(c);
 
@@ -157,4 +165,52 @@ describe('whole-cube rotations', () => {
 
     expect(faces(applyMoves(SCRAMBLED, `${m}2`))).toEqual(faces(applyMoves(SCRAMBLED, `${m} ${m}`)));
   });
+});
+
+describe('the Turn a move makes', () => {
+  it('names the axis, the layers and the quarter turns about the positive axis, right-hand rule', () => {
+    // Clockwise looking at R is clockwise looking down +x: a negative turn.
+    expect(parseMove('R')).toEqual({ axis: 0, layers: [1], quarters: -1 });
+    expect(parseMove("U'")).toEqual({ axis: 1, layers: [1], quarters: 1 });
+    // L looks down −x, so its clockwise is positive about +x, and M turns with it.
+    expect(parseMove('L')).toEqual({ axis: 0, layers: [-1], quarters: 1 });
+    expect(parseMove('M')).toEqual({ axis: 0, layers: [0], quarters: 1 });
+    expect(parseMove('f')).toEqual({ axis: 2, layers: [1, 0], quarters: -1 });
+    expect(parseMove('y')).toEqual({ axis: 1, layers: [-1, 0, 1], quarters: -1 });
+    expect(Math.abs(parseMove('B2').quarters)).toBe(2);
+  });
+
+  it('rejects anything that is not a move', () => {
+    expect(() => parseMove('Q')).toThrow(/Not a move: Q/);
+    expect(() => parseMove('R3')).toThrow(/Not a move: R3/);
+  });
+
+  /** Rotates a vector about an axis by an angle, the way a renderer would: with cos and sin. */
+  const rotate = (v: Vec, axis: number, angle: number): Vec => {
+    const [i, j] = [(axis + 1) % 3, (axis + 2) % 3];
+    const out = [...v] as [number, number, number];
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    out[i] = Math.round(v[i] * c - v[j] * s);
+    out[j] = Math.round(v[i] * s + v[j] * c);
+    return out;
+  };
+  const stickers = (cube: Cube) =>
+    cube.stickers.map((s) => `${s.position} ${s.normal} ${s.colour}`).sort();
+
+  it.each(['R', "L'", 'U2', 'D', "F'", 'B', 'r', "u'", 'M', 'M2', 'x', "y'", 'z2'])(
+    'turning the layers of %s by its angle lands every Sticker where applyMoves puts it',
+    (move) => {
+      const { axis, layers, quarters } = parseMove(move);
+      const angle = (quarters * Math.PI) / 2;
+      const drawn: Cube = {
+        stickers: SCRAMBLED.stickers.map((s) =>
+          layers.includes(s.position[axis])
+            ? { ...s, position: rotate(s.position, axis, angle), normal: rotate(s.normal, axis, angle) }
+            : s,
+        ),
+      };
+      expect(stickers(drawn)).toEqual(stickers(applyMoves(SCRAMBLED, move)));
+    },
+  );
 });

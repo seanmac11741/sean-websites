@@ -33,7 +33,10 @@ in the pure Cube module `src/lib/speed-cubing/cube.ts` (Stickers with a position
 normal; a move rotates the Stickers in some layers about one axis). The page
 `src/pages/tools/speed-cubing.astro` renders it with three.js from geometry and materials only, no
 image or texture assets, and owns the idle spin, drag-with-momentum and ease back to the standard
-view. Tests: `tests/lib/speed-cubing-cube.test.ts`.
+view. `parseMove` gives the Turn a move makes (axis, layers, signed quarter turns), which the page
+animates on a pivot group before handing the move to the model and redrawing from it, so the drawing
+never drifts. The Scramble (`src/lib/speed-cubing/scramble.ts`, injected random source) and the
+turn easing (`src/lib/speed-cubing/ease.ts`) are pure too. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 
