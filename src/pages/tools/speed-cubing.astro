@@ -35,7 +35,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
 
       <div id="scramble-result" class="text-center text-sm text-slate-400" aria-live="polite" hidden>
         <p id="scramble-count"></p>
-        <details class="mt-1">
+        <details id="scramble-details" class="mt-1">
           <summary class="cursor-pointer text-xs text-slate-500 hover:text-slate-300">show moves</summary>
           <p id="scramble-moves" class="mt-2 font-mono text-xs leading-relaxed text-slate-300 break-words"></p>
         </details>
@@ -231,14 +231,14 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   let turning: { move: string; turn: Turn; seconds: number; elapsed: number } | null = null;
   let onQueueEmpty: (() => void) | null = null;
 
-  function startTurn(move: string, seconds: number, elapsed: number) {
+  function startTurn(move: string, seconds: number) {
     const turn = parseMove(move);
     const inLayers = (coordinate: number) => turn.layers.includes(Math.round(coordinate));
     for (const cubie of cubies) if (inLayers(cubie.position.getComponent(turn.axis))) pivot.add(cubie);
     cube.stickers.forEach((s, i) => {
       if (inLayers(s.position[turn.axis])) pivot.add(stickers[i]);
     });
-    turning = { move, turn, seconds, elapsed };
+    turning = { move, turn, seconds, elapsed: 0 };
   }
 
   /** Lands the turn on the model, and redraws from it so the two never drift. */
@@ -261,7 +261,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
       if (!turning) {
         const next = queue.shift();
         if (!next) break;
-        startTurn(next.move, next.seconds, 0);
+        startTurn(next.move, next.seconds);
       }
       const t = turning!;
       t.elapsed += spare;
@@ -294,6 +294,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
   const scrambleResult = document.getElementById('scramble-result')!;
   const scrambleCount = document.getElementById('scramble-count')!;
   const scrambleMoves = document.getElementById('scramble-moves')!;
+  const scrambleDetails = document.getElementById('scramble-details') as HTMLDetailsElement;
 
   scrambleButton.addEventListener('click', () => {
     const moves = scramble(Math.random);
@@ -303,7 +304,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, then scra
       scrambleButton.disabled = false;
       scrambleCount.textContent = `Scrambled: ${moves.length} moves`;
       scrambleMoves.textContent = moves.join(' ');
-      scrambleResult.querySelector('details')!.open = false;
+      scrambleDetails.open = false;
       scrambleResult.hidden = false;
       canvas.setAttribute('aria-label', 'A scrambled Rubik’s cube.');
     });

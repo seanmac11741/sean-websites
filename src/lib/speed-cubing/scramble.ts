@@ -17,13 +17,13 @@ const pick = <T>(options: readonly T[], random: () => number): T =>
   options[Math.min(Math.floor(random() * options.length), options.length - 1)];
 
 /**
- * `length` face turns in standard notation, never the same face twice in a
+ * SCRAMBLE_LENGTH face turns in standard notation, never the same face twice in a
  * row (which would just be one turn of that face, wasted).
  */
-export function scramble(random: () => number, length = SCRAMBLE_LENGTH): string[] {
+export function scramble(random: () => number): string[] {
   const moves: string[] = [];
   let previous: Face | undefined;
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < SCRAMBLE_LENGTH; i++) {
     const face = pick(
       FACES.filter((f) => f !== previous),
       random,

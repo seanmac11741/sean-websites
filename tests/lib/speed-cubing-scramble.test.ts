@@ -19,6 +19,10 @@ const always = (value: number) => () => value;
 
 const FACE_TURN = /^[UDLRFB](2|')?$/;
 
+const expectNoFaceTwiceInARow = (moves: string[]) => {
+  for (let i = 1; i < moves.length; i++) expect(moves[i][0]).not.toBe(moves[i - 1][0]);
+};
+
 describe('scramble', () => {
   it('is 100 face turns in standard notation', () => {
     expect(SCRAMBLE_LENGTH).toBe(100);
@@ -28,17 +32,11 @@ describe('scramble', () => {
   });
 
   it('never turns the same face twice in a row', () => {
-    for (let seed = 1; seed <= 50; seed++) {
-      const moves = scramble(mulberry32(seed));
-      for (let i = 1; i < moves.length; i++) expect(moves[i][0]).not.toBe(moves[i - 1][0]);
-    }
+    for (let seed = 1; seed <= 50; seed++) expectNoFaceTwiceInARow(scramble(mulberry32(seed)));
   });
 
   it('never turns the same face twice in a row, even when the random source keeps answering the same', () => {
-    for (const value of [0, 0.5, 0.999999]) {
-      const moves = scramble(always(value));
-      for (let i = 1; i < moves.length; i++) expect(moves[i][0]).not.toBe(moves[i - 1][0]);
-    }
+    for (const value of [0, 0.5, 0.999999]) expectNoFaceTwiceInARow(scramble(always(value)));
   });
 
   it('uses every face, and quarter, prime and double turns', () => {

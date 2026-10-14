@@ -4,6 +4,7 @@ import {
   faces,
   parseMove,
   solvedCube,
+  type Axis,
   type Colour,
   type Cube,
   type Vec,
@@ -186,7 +187,7 @@ describe('the Turn a move makes', () => {
   });
 
   /** Rotates a vector about an axis by an angle, the way a renderer would: with cos and sin. */
-  const rotate = (v: Vec, axis: number, angle: number): Vec => {
+  const rotate = (v: Vec, axis: Axis, angle: number): Vec => {
     const [i, j] = [(axis + 1) % 3, (axis + 2) % 3];
     const out = [...v] as [number, number, number];
     const c = Math.cos(angle);
