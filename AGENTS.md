@@ -28,11 +28,19 @@ Personal portfolio site for Sean McConnell. Live at `sean-mcconnell.com`, hosted
 viewer's Lineup, device caps, and what is saved), `sprites.ts` (the sheet's grid). The page
 `src/pages/tools/rps-royale.astro` only draws and wires the DOM. Tests: `tests/lib/rps-*.test.ts`.
 
+**Speed Cubing:** `/tools/speed-cubing`. The cube's state and every move in standard notation live
+in the pure Cube module `src/lib/speed-cubing/cube.ts` (Stickers with a position and an outward
+normal; a move rotates the Stickers in some layers about one axis). The page
+`src/pages/tools/speed-cubing.astro` renders it with three.js from geometry and materials only, no
+image or texture assets, and owns the idle spin, drag-with-momentum and ease back to the standard
+view. Tests: `tests/lib/speed-cubing-cube.test.ts`.
+
 ## Stack
 
 - **Framework:** Astro 5 (static output, no SSR)
 - **Styling:** Tailwind CSS 4 (via `@tailwindcss/vite` plugin — no `tailwind.config.ts`, config lives in `src/styles/global.css` using `@theme`)
 - **Animations:** GSAP 3 + ScrollTrigger
+- **3D:** three.js (Speed Cubing)
 - **Runtime / PM:** Bun
 - **Testing:** Vitest
 - **Hosting:** Vercel (`dist/` auto-deployed from GitHub on push to `main`)

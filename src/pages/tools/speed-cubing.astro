@@ -1,0 +1,301 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+
+const title = 'Speed Cubing — Sean McConnell';
+const description = 'A Rubik’s cube in your browser. Spin it around and take a look.';
+---
+
+<Layout {title} {description}>
+  <Nav />
+
+  <main id="main-content" class="pt-24 pb-8 px-4 min-h-screen flex flex-col items-center">
+    <div class="text-center max-w-xl">
+      <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">Speed Cubing</h1>
+      <p class="text-slate-400 leading-relaxed">Drag to spin it around.</p>
+    </div>
+
+    <div id="stage" class="stage relative w-full max-w-3xl mt-4">
+      <canvas
+        id="cube-canvas"
+        class="block w-full h-full"
+        role="img"
+        aria-label="A solved Rubik’s cube: yellow on top, green in front, orange on the right."
+      ></canvas>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .stage {
+    height: min(70vh, 640px);
+    min-height: 320px;
+    /* The indigo glow is the page's, not the scene's: CSS, no texture. */
+    background: radial-gradient(closest-side circle at 50% 55%, rgb(129 140 248 / 0.2), transparent);
+  }
+
+  #cube-canvas {
+    cursor: grab;
+    touch-action: none;
+  }
+
+  #cube-canvas:active {
+    cursor: grabbing;
+  }
+</style>
+
+<script>
+  import * as THREE from 'three';
+  import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+  import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+  import { solvedCube, type Colour, type Cube } from '../../lib/speed-cubing/cube';
+
+  /** How each Colour is drawn. The Cube module only says which is where. */
+  const PAINT: Record<Colour, number> = {
+    yellow: 0xffd500,
+    white: 0xf4f4f4,
+    green: 0x009e60,
+    blue: 0x0051ba,
+    orange: 0xff5800,
+    red: 0xc41e3a,
+  };
+
+  const CUBIE = 0.97;
+  const STICKER = 0.8;
+
+  /** The standard view: tipped forward and turned so U, F and R all show. */
+  const STANDARD_PITCH = 0.42;
+  const STANDARD_YAW = -0.62;
+
+  const IDLE_SPEED = 0.35; // rad/s
+  const DRAG_SENSITIVITY = 0.008; // rad per pixel
+  const FRICTION = 3; // per second
+  const SETTLE_SPEED = 0.4; // rad/s: slower than this, momentum hands over to the ease back
+  const RETURN_RATE = 5; // per second
+  const STALE_DRAG_MS = 80; // a pointer held still this long before release throws nothing
+
+  const stage = document.getElementById('stage')!;
+  const canvas = document.getElementById('cube-canvas') as HTMLCanvasElement;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- Scene -----------------------------------------------------------------
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.55;
+
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a1a2e, 0.6));
+
+  const key = new THREE.DirectionalLight(0xffffff, 1.6);
+  key.position.set(2.5, 9, 4);
+  key.castShadow = true;
+  key.shadow.mapSize.set(512, 512);
+  key.shadow.camera.left = key.shadow.camera.bottom = -4;
+  key.shadow.camera.right = key.shadow.camera.top = 4;
+  key.shadow.radius = 10;
+  scene.add(key);
+
+  const rim = new THREE.PointLight(0x818cf8, 40);
+  rim.position.set(-2, -1, -5);
+  scene.add(rim);
+
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.ShadowMaterial({ opacity: 0.22 }),
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -2.7;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // --- The cube --------------------------------------------------------------
+
+  const cubeGroup = new THREE.Group();
+  scene.add(cubeGroup);
+
+  const plastic = new THREE.MeshPhysicalMaterial({
+    color: 0x111114,
+    roughness: 0.45,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.4,
+  });
+  const cubieGeometry = new RoundedBoxGeometry(CUBIE, CUBIE, CUBIE, 4, 0.09);
+
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        if (x === 0 && y === 0 && z === 0) continue;
+        const cubie = new THREE.Mesh(cubieGeometry, plastic);
+        cubie.position.set(x, y, z);
+        cubie.castShadow = true;
+        cubeGroup.add(cubie);
+      }
+    }
+  }
+
+  function roundedSquare(size: number, radius: number): THREE.ShapeGeometry {
+    const h = size / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-h + radius, -h);
+    shape.lineTo(h - radius, -h);
+    shape.quadraticCurveTo(h, -h, h, -h + radius);
+    shape.lineTo(h, h - radius);
+    shape.quadraticCurveTo(h, h, h - radius, h);
+    shape.lineTo(-h + radius, h);
+    shape.quadraticCurveTo(-h, h, -h, h - radius);
+    shape.lineTo(-h, -h + radius);
+    shape.quadraticCurveTo(-h, -h, -h + radius, -h);
+    return new THREE.ShapeGeometry(shape, 6);
+  }
+
+  const stickerGeometry = roundedSquare(STICKER, 0.1);
+  const stickerMaterials = Object.fromEntries(
+    Object.entries(PAINT).map(([colour, hex]) => [
+      colour,
+      new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 }),
+    ]),
+  ) as Record<Colour, THREE.MeshPhysicalMaterial>;
+
+  const stickerGroup = new THREE.Group();
+  cubeGroup.add(stickerGroup);
+  const outward = new THREE.Vector3(0, 0, 1);
+
+  /** Draws whatever the Cube module says is where. */
+  function draw(cube: Cube) {
+    stickerGroup.clear();
+    for (const { position, normal, colour } of cube.stickers) {
+      const sticker = new THREE.Mesh(stickerGeometry, stickerMaterials[colour]);
+      const n = new THREE.Vector3(...normal);
+      sticker.position.set(...position).addScaledVector(n, CUBIE / 2 + 0.002);
+      sticker.quaternion.setFromUnitVectors(outward, n);
+      stickerGroup.add(sticker);
+    }
+    needsRender = true;
+  }
+
+  // --- Sizing ----------------------------------------------------------------
+
+  function resize() {
+    const { clientWidth: w, clientHeight: h } = stage;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    // Keep the whole cube in frame on a narrow (portrait) stage too.
+    const distance = 11.5 / Math.min(1, camera.aspect);
+    camera.position.set(0, distance * 0.16, distance);
+    camera.lookAt(0, -0.25, 0);
+    camera.updateProjectionMatrix();
+    needsRender = true;
+  }
+
+  new ResizeObserver(resize).observe(stage);
+
+  // --- View: idle spin, drag with momentum, ease back -------------------------
+
+  /** Offsets from the standard view. Zero, zero is the standard view. */
+  let yaw = 0;
+  let pitch = 0;
+  let yawVelocity = 0;
+  let pitchVelocity = 0;
+  let mode: 'idle' | 'drag' | 'coast' | 'return' | 'rest' = reduceMotion ? 'rest' : 'idle';
+  let needsRender = true;
+
+  let lastX = 0;
+  let lastY = 0;
+  let lastMove = 0;
+
+  /** The same orientation, but the fewest whole turns away from zero. */
+  const nearestTurn = (angle: number) => angle - 2 * Math.PI * Math.round(angle / (2 * Math.PI));
+
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    mode = 'drag';
+    yawVelocity = pitchVelocity = 0;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    lastMove = e.timeStamp;
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (mode !== 'drag') return;
+    const dYaw = (e.clientX - lastX) * DRAG_SENSITIVITY;
+    const dPitch = (e.clientY - lastY) * DRAG_SENSITIVITY;
+    const dt = (e.timeStamp - lastMove) / 1000;
+    yaw += dYaw;
+    pitch += dPitch;
+    if (dt > 0) {
+      // Smoothed, so one jittery event doesn't decide the throw.
+      yawVelocity = yawVelocity * 0.5 + (dYaw / dt) * 0.5;
+      pitchVelocity = pitchVelocity * 0.5 + (dPitch / dt) * 0.5;
+    }
+    lastX = e.clientX;
+    lastY = e.clientY;
+    lastMove = e.timeStamp;
+    needsRender = true;
+  });
+
+  function release(e: PointerEvent) {
+    if (mode !== 'drag') return;
+    if (reduceMotion || e.timeStamp - lastMove > STALE_DRAG_MS) yawVelocity = pitchVelocity = 0;
+    mode = 'coast';
+  }
+
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
+
+  function step(dt: number) {
+    if (mode === 'idle') {
+      yaw += IDLE_SPEED * dt;
+    } else if (mode === 'coast') {
+      yaw += yawVelocity * dt;
+      pitch += pitchVelocity * dt;
+      const decay = Math.exp(-FRICTION * dt);
+      yawVelocity *= decay;
+      pitchVelocity *= decay;
+      if (Math.hypot(yawVelocity, pitchVelocity) < SETTLE_SPEED) {
+        yaw = nearestTurn(yaw);
+        pitch = nearestTurn(pitch);
+        mode = 'return';
+      }
+    } else if (mode === 'return') {
+      const k = 1 - Math.exp(-RETURN_RATE * dt);
+      yaw -= yaw * k;
+      pitch -= pitch * k;
+      if (Math.abs(yaw) < 1e-4 && Math.abs(pitch) < 1e-4) {
+        yaw = pitch = 0;
+        mode = 'rest';
+      }
+    } else {
+      return;
+    }
+    needsRender = true;
+  }
+
+  let previous = performance.now();
+
+  function frame(now: number) {
+    // Capped, so a tab coming back from the background doesn't lurch.
+    step(Math.min((now - previous) / 1000, 0.1));
+    previous = now;
+    if (needsRender) {
+      // Yaw turns the cube about its own up axis, then the tilt is applied.
+      cubeGroup.rotation.set(STANDARD_PITCH + pitch, STANDARD_YAW + yaw, 0, 'XYZ');
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  draw(solvedCube());
+  resize();
+  requestAnimationFrame(frame);
+</script>

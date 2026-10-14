@@ -210,3 +210,34 @@ which row is which Type-and-state, how many frames it has, its frame rate, wheth
 which source rectangle a given frame occupies. Row indices are load-bearing. Pure. The art contract
 it implements is `docs/rps-royale-spritesheet-spec.md`, and the real artwork is a drop-in
 replacement at the same path.
+
+## Speed Cubing
+
+**Cube** — the state of a 3×3 puzzle: its 54 **Stickers**. Owned by the **Cube module**
+(`src/lib/speed-cubing/cube.ts`), which is pure: no DOM, no three.js. The page's renderer draws
+whatever Stickers the Cube module hands it and decides nothing about where they are.
+
+**Sticker** — one coloured square: a **Colour**, the position of the piece it sits on (each axis
+−1, 0 or 1), and the outward normal it faces along. Axes are the viewer's: x right, y up, z towards
+them. A sticker is located by where it is, not by which piece it belongs to, so every kind of move
+is the same operation — rotate the Stickers in some layers about one axis.
+
+**Scheme** — which Colour starts on which face, as the viewer holds the cube: yellow up (U), white
+down (D), green front (F), orange right (R), red left (L), blue back (B). Colours are names in the
+Cube module; their paint (the hex values) belongs to the renderer.
+
+**Move** — one token of standard notation, applied with `applyMoves(cube, "R U R' U'")`. A **face
+turn** (`U D L R F B`) turns one outer layer clockwise as seen looking at that face. A prime (`R'`)
+turns it back; a double (`R2`) turns it twice. A **two-layer turn** (`r u l d f b`) is the face and
+the slice behind it. The **slice** `M` is the middle layer between L and R, turning the way L does.
+A **rotation** (`x y z`) turns the whole cube the way R, U and F do, which relabels the faces: after
+`x`, green is on top. Anything else throws.
+
+**Faces** — a Cube read out face by face (`faces(cube)`): each face's nine Colours in reading order
+as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
+top. This is what the tests compare.
+
+**Standard view** — the renderer's resting orientation: tipped forward and turned so U, F and R all
+show. Before the viewer touches it the cube spins slowly (the **idle spin**; not under reduced
+motion). A drag turns it, a release throws it with momentum, and once that dies away it eases back
+to the Standard view by the shortest way round and rests.
