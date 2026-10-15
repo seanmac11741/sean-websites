@@ -10,9 +10,28 @@
 import { applyMoves, faces, isSolved, type Cube } from './cube';
 import type { Stage } from './solve';
 
+/** The name of each of the sixteen algorithms in the notes. */
+export type AlgorithmName =
+  | 'L-shape'
+  | 'Line'
+  | 'Dot'
+  | 'Antisune'
+  | 'Sune'
+  | 'H'
+  | 'Pi'
+  | 'L'
+  | 'T'
+  | 'U'
+  | 'Diagonal Swap'
+  | 'Adjacent Corner Swap'
+  | 'Right to Left'
+  | 'Left to Right'
+  | 'Opposite Edge Swap'
+  | 'Adjacent Edge Swap';
+
 /** One named algorithm, in the notes' shorthand: brackets for grouping, `(…)x3` to repeat. */
 export interface Algorithm {
-  readonly name: string;
+  readonly name: AlgorithmName;
   readonly notation: string;
 }
 

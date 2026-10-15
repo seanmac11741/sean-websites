@@ -8,7 +8,7 @@
  */
 
 import { applyMoves, inverseMove, solvedCube, type Cube } from './cube';
-import { algorithmMoves, LOOKS, lookTitle, type Algorithm, type Look } from './last-layer';
+import { algorithmMoves, LOOKS, lookTitle, type Algorithm, type AlgorithmName, type Look } from './last-layer';
 
 /** One entry of the notation guide: a Move to tap, and what it does. */
 export interface Notation {
@@ -42,7 +42,7 @@ export interface GalleryCase {
 }
 
 /** How to hold the cube for each case, yellow up, as it is set up in the gallery. */
-const HOLDS: Readonly<Record<string, string>> = {
+const HOLDS: Readonly<Record<AlgorithmName, string>> = {
   'L-shape': 'Two yellow edges side by side: hold them at the front and on the right.',
   Line: 'Two yellow edges in a line: hold it running left to right.',
   Dot: 'No yellow edges on top: hold it any way round.',
