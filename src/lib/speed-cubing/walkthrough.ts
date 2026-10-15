@@ -29,12 +29,14 @@ export interface LessonCase {
   readonly name: string;
   /** "This is an L-shape." */
   readonly called: string;
-  /** How to hold the cube for the case, as the algorithm gallery says it. */
+  /**
+   * How to hold the cube for the case: as the algorithm gallery says it, or,
+   * when the first move turns the top to line the case up, that turn and then
+   * how the case looks once it is lined up, as the gallery says it.
+   */
   readonly hold: string;
   /** The algorithm as the notes write it. */
   readonly notation: string;
-  /** Says which turn of the top lines the case up, when one does. */
-  readonly lineUp: string | null;
 }
 
 /** One step of the walkthrough: a Stage of the Solve, taught. */
@@ -149,14 +151,17 @@ function lookLesson(cube: Cube, l: number, moves: readonly string[]): Pick<Lesso
     return { goal: home.length ? `${already}.${finish}` : `${already}, so there is nothing to do here.`, case: null };
   }
   const { algorithm, setup } = found;
+  const hold = GALLERY.find((c) => c.algorithm === algorithm)!.hold;
   return {
     goal: goal + finish,
     case: {
       name: algorithm.name,
       called: `This is ${withArticle(algorithm.name)}.`,
-      hold: GALLERY.find((c) => c.algorithm === algorithm)!.hold,
+      hold: setup.length
+        ? `Keep yellow on top and green in front, and turn the top with ${setup.join(' ')} first to line it up. ` +
+          `Then it looks like this: ${hold[0].toLowerCase()}${hold.slice(1)}`
+        : hold,
       notation: algorithm.notation,
-      lineUp: setup.length ? `The first move, ${setup.join(' ')}, turns the top to line it up.` : null,
     },
   };
 }

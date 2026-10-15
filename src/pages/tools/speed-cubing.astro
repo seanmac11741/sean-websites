@@ -202,7 +202,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
             <div id="lesson-case" class="mt-3 rounded-xl border border-slate-700 p-3 text-sm" hidden>
               <p id="lesson-called" class="font-semibold text-white"></p>
               <p class="mt-1 text-slate-300"><span class="text-slate-500">Hold:</span> <span id="lesson-hold"></span></p>
-              <p id="lesson-line-up" class="mt-1 text-slate-300"></p>
               <p class="mt-2 font-mono text-xs text-slate-400">
                 <span class="text-slate-500 font-sans">Algorithm:</span> <span id="lesson-notation"></span>
               </p>
@@ -1382,7 +1381,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const lessonCase = document.getElementById('lesson-case')!;
   const lessonCalled = document.getElementById('lesson-called')!;
   const lessonHold = document.getElementById('lesson-hold')!;
-  const lessonLineUp = document.getElementById('lesson-line-up')!;
   const lessonNotation = document.getElementById('lesson-notation')!;
   const lessonMoves = document.getElementById('lesson-moves')!;
   const lessonBack = document.getElementById('lesson-back') as HTMLButtonElement;
@@ -1426,8 +1424,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     if (lesson.case) {
       lessonCalled.textContent = lesson.case.called;
       lessonHold.textContent = lesson.case.hold;
-      lessonLineUp.textContent = lesson.case.lineUp ?? '';
-      lessonLineUp.hidden = !lesson.case.lineUp;
       lessonNotation.textContent = lesson.case.notation;
     }
     const spans = lesson.moves.map((move) => {

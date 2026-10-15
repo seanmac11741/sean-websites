@@ -321,7 +321,8 @@ cross", "OLL: yellow corners", "PLL: corners", "PLL: edges"), exactly the Stage'
 Lesson finds it, and a **goal** in plain English chosen for that cube — for the Cross, which white edges to
 bring down next to which centres; for an F2L pair, which corner and edge to pair and which slot they go in
 (or just the missing one, or nothing to do). For OLL and PLL it also names the **case** ("This is a Sune."),
-its **hold** and its Algorithm, and says which U-turn, if any, lines it up. Next, Back and Replay slowly
+its **hold** and its Algorithm. When the Lesson's first move is a U-turn that lines the case up, the hold
+says to do that turn first, and then gives the Gallery's hold as how the case looks once lined up. Next, Back and Replay slowly
 each redraw the cube as that Lesson finds it and play the Lesson on it (slowly, for a replay), so the cube
 on screen is always the one the viewer is holding. After the last Lesson, the cube is solved and the
 Celebration plays.
@@ -329,7 +330,8 @@ Celebration plays.
 **Hold** — how to hold the cube, yellow up, green in front and orange on the right, for an Algorithm's
 case to be ready to start, from Sean's CFOP notes ("One corner yellow on top: turn the top so yellow shows
 on the front face's top right."). Pi's says the two yellow stickers are on the left, where the algorithm
-wants them; the notes said the front. Kept once, in the **Gallery**; a Lesson shows the same one.
+wants them; the notes said the front. Kept once, in the **Gallery**, and it describes the case lined up; a Lesson shows the same one, after
+the U-turn that lines it up when there is one.
 
 **Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
 sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,

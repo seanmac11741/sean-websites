@@ -128,17 +128,18 @@ describe('the CFOP walkthrough', () => {
         called: 'This is a Sune.',
         hold: 'One corner yellow on top: turn the top so yellow shows on the front face’s top right.',
         notation: "R U R' U R U2 R'",
-        lineUp: null,
       });
       expect(lesson.moves).toEqual(['R', 'U', "R'", 'U', 'R', 'U2', "R'"]);
     });
 
-    it('say which turn of the top lines the case up', () => {
+    it('say to line the case up with the first turn of the top, and how it looks once lined up', () => {
       const lesson = walkthrough(caseOf(YELLOW_CROSS, 'L-shape', 'U'))[5];
       expect(lesson.goal).toBe('Make a yellow cross on top.');
       expect(lesson.case?.called).toBe('This is an L-shape.');
-      expect(lesson.case?.hold).toBe('Two yellow edges side by side: hold them at the front and on the right.');
-      expect(lesson.case?.lineUp).toBe("The first move, U', turns the top to line it up.");
+      expect(lesson.case?.hold).toBe(
+        "Keep yellow on top and green in front, and turn the top with U' first to line it up. " +
+          'Then it looks like this: two yellow edges side by side: hold them at the front and on the right.',
+      );
       expect(lesson.moves[0]).toBe("U'");
     });
 
@@ -160,7 +161,10 @@ describe('the CFOP walkthrough', () => {
             const lesson = walkthrough(cube)[5 + i];
             expect(lesson.case?.name).toBe(algorithm.name);
             expect(lesson.case?.notation).toBe(algorithm.notation);
-            expect(lesson.case?.hold).toBe(GALLERY.find((c) => c.algorithm.name === algorithm.name)?.hold);
+            const hold = GALLERY.find((c) => c.algorithm.name === algorithm.name)!.hold;
+            // Held as the gallery says, or lined up first and then held so.
+            const said = lesson.case!.hold;
+            expect(said === hold || said.toLowerCase().endsWith(`then it looks like this: ${hold.toLowerCase()}`), said).toBe(true);
             expect(solve(cube)[5 + i].label).toBe(`${look.method}: ${algorithm.name}`);
           }
         }

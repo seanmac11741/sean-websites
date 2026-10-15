@@ -72,7 +72,8 @@ Lesson per Stage (`walkthrough(cube)`) — exactly the solver's moves, the cube 
 (`start`, which Next / Back / Replay slowly redraw from before playing it, so the cube never drifts), a
 plain-English goal chosen for that cube (which Cross edges to bring down; which F2L corner and edge go in
 which slot), and for OLL and PLL the case `recognise` found, with its name, the `hold` from
-the gallery's `GALLERY`, the notation and the U-turn that lines it up. `lessonSteps` gives
+the gallery's `GALLERY` (prefixed with the U-turn that lines the case up, when there is one, so the hold
+describes the case after it) and the notation. `lessonSteps` gives
 the move Steps to animate at the Solve's pace or slowly. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
