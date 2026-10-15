@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyMoves,
   faces,
+  fromFaces,
   inverseMove,
   isSolved,
   parseMove,
@@ -243,5 +244,21 @@ describe('inverseMove', () => {
     for (const move of ['R', "U'", 'F2', 'r', "x'", 'M', "B'"]) {
       expect(applyMoves(scrambled, `${move} ${inverseMove(move)}`)).toEqual(scrambled);
     }
+  });
+});
+
+describe('fromFaces', () => {
+  it('builds the Cube whose Faces are the ones given, so faces and fromFaces are inverses', () => {
+    const scrambled = applyMoves(solvedCube(), "R U2 F' L D B2 r M x");
+    expect(faces(fromFaces(faces(scrambled)))).toEqual(faces(scrambled));
+  });
+
+  it('keeps a sticker left blank as blank, so a part-entered cube can be drawn', () => {
+    const grid: Record<string, (Colour | null)[]> = { ...faces(solvedCube()) };
+    grid.D = [null, null, null, null, 'white', null, null, null, null];
+    const cube = fromFaces(grid as Parameters<typeof fromFaces>[0]);
+    const down = cube.stickers.filter((s) => s.normal[1] === -1);
+    expect(down.filter((s) => s.colour === null)).toHaveLength(8);
+    expect(down.find((s) => s.position[0] === 0 && s.position[2] === 0)?.colour).toBe('white');
   });
 });

@@ -85,6 +85,37 @@ export function faces(cube: Cube): Record<Face, Colour[]> {
   return out;
 }
 
+/** A Sticker carrying anything in place of its Colour: blank (`null`) in a cube still being entered. */
+export interface MaybeSticker<C> {
+  readonly position: Vec;
+  readonly normal: Vec;
+  readonly colour: C;
+}
+
+/**
+ * The Cube with these Faces, each read in the standard net's order: the
+ * inverse of `faces`. Blank (`null`) Stickers stay blank, so a cube that is
+ * only partly entered can still be drawn.
+ */
+export function fromFaces<C>(
+  grid: Readonly<Record<Face, readonly C[]>>,
+): { readonly stickers: readonly MaybeSticker<C>[] } {
+  const stickers: MaybeSticker<C>[] = [];
+  for (const face of FACES) {
+    const { normal, right, down } = FRAMES[face];
+    for (let row = -1; row <= 1; row++) {
+      for (let col = -1; col <= 1; col++) {
+        stickers.push({
+          position: add(normal, add(scale(right, col), scale(down, row))),
+          normal,
+          colour: grid[face][(row + 1) * 3 + col + 1],
+        });
+      }
+    }
+  }
+  return { stickers };
+}
+
 /** Every face is one Colour, whichever way round the cube is held. */
 export function isSolved(cube: Cube): boolean {
   return Object.values(faces(cube)).every((face) => face.every((c) => c === face[0]));
