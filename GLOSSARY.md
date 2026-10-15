@@ -327,7 +327,8 @@ bring down next to which centres; for an F2L pair, which corner and edge to pair
 its **hold** and its Algorithm. When the Lesson's first move is a U-turn that lines the case up, the hold
 says to do that turn first, and then gives the Gallery's hold as how the case looks once lined up. Next, Back and Replay slowly
 each redraw the cube as that Lesson finds it and play the Lesson on it (slowly, for a replay), so the cube
-on screen is always the one the viewer is holding. After the last Lesson, the cube is solved and the
+on screen is always the one the viewer is holding. The one-turn buttons (⏮ / ⏭) stop a Lesson playing
+itself and turn it one move at a time, forwards or back. After the last Lesson, the cube is solved and the
 Celebration plays.
 
 **Hold** — how to hold the cube, yellow up, green in front and orange on the right, for an Algorithm's

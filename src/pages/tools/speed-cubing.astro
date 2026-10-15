@@ -209,6 +209,11 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
           </div>
 
           <p id="lesson-moves" class="mt-3 font-mono text-sm leading-relaxed text-slate-300"></p>
+          <div class="mt-3 flex items-center gap-2">
+            <button id="lesson-turn-back" type="button" class="control" aria-label="Back one turn">⏮</button>
+            <button id="lesson-turn-forward" type="button" class="control" aria-label="Forward one turn">⏭</button>
+            <span class="text-xs text-slate-500">One turn at a time</span>
+          </div>
           <p class="mt-2 text-xs text-slate-500">Do this on your cube, then press Next.</p>
 
           <div class="mt-4 flex flex-wrap gap-3">
@@ -1363,11 +1368,40 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const lessonBack = document.getElementById('lesson-back') as HTMLButtonElement;
   const lessonReplay = document.getElementById('lesson-replay') as HTMLButtonElement;
   const lessonNext = document.getElementById('lesson-next') as HTMLButtonElement;
+  const lessonTurnBack = document.getElementById('lesson-turn-back') as HTMLButtonElement;
+  const lessonTurnForward = document.getElementById('lesson-turn-forward') as HTMLButtonElement;
   document.getElementById('walkthrough-hold')!.textContent = `${HOLD} Keep it that way for every step.`;
 
   /** The Lessons for the entered cube, and the one on screen: `lessons.length` is the solved cube at the end. */
   let lessons: Lesson[] = [];
   let lessonAt = 0;
+  /** The Lesson's moves as Steps, and the Playhead in them: how many have turned, or will have once the queue plays out. */
+  let lessonTurns: Step[] = [];
+  let lessonHead = 0;
+  /** Whether the Lesson is playing itself out; while it is, `lessonHead` is the move turning now. */
+  let lessonPlaying = false;
+  let highlightLessonMove: (index: number | null) => void = () => {};
+
+  function updateLessonTurnButtons() {
+    lessonTurnBack.disabled = !lessonPlaying && !back(lessonTurns, lessonHead);
+    lessonTurnForward.disabled = !lessonPlaying && !forward(lessonTurns, lessonHead);
+  }
+
+  /** One turn forwards or backwards; stops the Lesson playing itself, and queues behind a turn already asked for. */
+  function stepLesson(move: (steps: readonly Step[], at: number) => Go | null) {
+    if (lessonPlaying) {
+      stopTurns();
+      lessonPlaying = false;
+    }
+    const go = move(lessonTurns, lessonHead);
+    if (!go) return updateLessonTurnButtons();
+    lessonHead = go.to;
+    play(
+      go.beats.map((beat) => ({ move: beat.move, seconds: beat.seconds, onStart: () => highlightLessonMove(beat.step.kind === 'move' ? beat.step.index : null) })),
+      () => highlightLessonMove(lessonHead < lessonTurns.length ? lessonHead : null),
+    );
+    updateLessonTurnButtons();
+  }
 
   /**
    * Shows Lesson `at` and plays it from the cube as that Lesson finds it, so
@@ -1382,6 +1416,10 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     lessonBack.disabled = at === 0;
     lessonNext.disabled = finished;
     lessonReplay.disabled = finished || lesson.moves.length === 0;
+    lessonTurns = finished ? [] : lessonSteps(lesson, slow);
+    lessonHead = 0;
+    lessonPlaying = lessonTurns.length > 0;
+    updateLessonTurnButtons();
 
     if (finished) {
       lessonTitle.textContent = 'Solved!';
@@ -1406,7 +1444,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     const spans = moveSpans(lesson.moves);
     if (spans.length) lessonMoves.replaceChildren(...spans);
     else lessonMoves.textContent = 'Nothing to turn.';
-    const highlightMove = (index: number | null) =>
+    highlightLessonMove = (index: number | null) =>
       spans.forEach((span, i) => {
         if (i === index) span.setAttribute('aria-current', 'true');
         else span.removeAttribute('aria-current');
@@ -1416,12 +1454,20 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     draw(cube);
     canvas.setAttribute('aria-label', `Your cube, at the start of: ${lesson.title}.`);
     play(
-      lessonSteps(lesson, slow).map((step) => ({
-        move: step.move,
+      lessonTurns.map((step) => ({
+        move: step.kind === 'move' ? step.move : null,
         seconds: step.seconds,
-        onStart: () => highlightMove(step.index),
+        onStart: () => {
+          if (step.kind === 'move') lessonHead = step.index;
+          highlightLessonMove(step.kind === 'move' ? step.index : null);
+        },
       })),
-      () => highlightMove(null),
+      () => {
+        lessonPlaying = false;
+        lessonHead = lessonTurns.length;
+        highlightLessonMove(null);
+        updateLessonTurnButtons();
+      },
     );
   }
 
@@ -1440,6 +1486,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   lessonNext.addEventListener('click', () => showLesson(lessonAt + 1, false));
   lessonBack.addEventListener('click', () => showLesson(lessonAt - 1, false));
   lessonReplay.addEventListener('click', () => showLesson(lessonAt, true));
+  lessonTurnBack.addEventListener('click', () => stepLesson(back));
+  lessonTurnForward.addEventListener('click', () => stepLesson(forward));
 
   document.getElementById('walkthrough-edit')!.addEventListener('click', () => {
     showLearnPanel('enter');

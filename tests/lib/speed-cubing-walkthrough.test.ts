@@ -3,6 +3,7 @@ import { applyMoves, faces, isSolved, solvedCube } from '../../src/lib/speed-cub
 import { scramble } from '../../src/lib/speed-cubing/scramble';
 import { algorithmMoves, LOOKS, PLL_CORNERS, PLL_EDGES, YELLOW_CORNERS, YELLOW_CROSS, type Look } from '../../src/lib/speed-cubing/last-layer';
 import { GALLERY } from '../../src/lib/speed-cubing/reference';
+import { back, forward } from '../../src/lib/speed-cubing/playback';
 import { solve } from '../../src/lib/speed-cubing/solve';
 import { LESSON_TURN_SECONDS, lessonSteps, SLOW_TURN_SECONDS, walkthrough } from '../../src/lib/speed-cubing/walkthrough';
 
@@ -203,6 +204,30 @@ describe('the CFOP walkthrough', () => {
       const lesson = walkthrough(caseOf(YELLOW_CORNERS, 'Sune'))[6];
       expect(lessonSteps(lesson, true).every((s) => s.seconds === SLOW_TURN_SECONDS)).toBe(true);
       expect(SLOW_TURN_SECONDS).toBeGreaterThan(LESSON_TURN_SECONDS);
+    });
+
+    it('steps one turn at a time, forward to the end of the Lesson and back to its start', () => {
+      const lesson = walkthrough(caseOf(YELLOW_CORNERS, 'L'))[6];
+      const steps = lessonSteps(lesson, false);
+      let cube = lesson.start;
+      let at = 0;
+      for (const [i, move] of lesson.moves.entries()) {
+        const go = forward(steps, at)!;
+        expect(go.beats.map((b) => b.move)).toEqual([move]);
+        expect(go.beats[0].step).toMatchObject({ kind: 'move', index: i });
+        cube = applyMoves(cube, go.beats[0].move!);
+        at = go.to;
+      }
+      expect(forward(steps, at)).toBeNull();
+      expect(cube).toEqual(walkthrough(caseOf(YELLOW_CORNERS, 'L'))[7].start);
+
+      while (back(steps, at)) {
+        const go = back(steps, at)!;
+        cube = applyMoves(cube, go.beats[0].move!);
+        at = go.to;
+      }
+      expect(at).toBe(0);
+      expect(faces(cube)).toEqual(faces(lesson.start));
     });
   });
 });

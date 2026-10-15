@@ -77,7 +77,8 @@ plain-English goal chosen for that cube (which Cross edges to bring down; which 
 which slot), and for OLL and PLL the case `recognise` found, with its name, the `hold` from
 the gallery's `GALLERY` (prefixed with the U-turn that lines the case up, when there is one, so the hold
 describes the case after it) and the notation. `lessonSteps` gives
-the move Steps to animate at the Solve's pace or slowly. Tests: `tests/lib/speed-cubing-*.test.ts`.
+the move Steps to animate at the Solve's pace or slowly; the walkthrough's ⏮ / ⏭ one-turn buttons stop the Lesson
+playing itself and step a Playhead through those Steps with `playback.ts`'s `forward` / `back`. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 
