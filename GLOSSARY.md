@@ -316,8 +316,9 @@ white sticker facing sideways), and the viewer taps in only the stickers that di
 **Walkthrough module** (`src/lib/speed-cubing/walkthrough.ts`). The viewer does each Lesson on their real
 cube, then presses Next.
 
-**Lesson** — one Stage of the cube's Solve, taught: its title ("Cross", "F2L pair 1 of 4", "OLL: yellow
-cross", "OLL: yellow corners", "PLL: corners", "PLL: edges"), exactly the Stage's Moves, the cube as the
+**Lesson** — one Stage of the cube's Solve, taught: its title ("Cross", "F2L pair 1 of 4", "OLL: Yellow
+cross", "OLL: Yellow corners", "PLL: Corners", "PLL: Edges" — the Solve's Stage labels for the Cross and
+F2L, and each Look's step as the Gallery names it), exactly the Stage's Moves, the cube as the
 Lesson finds it, and a **goal** in plain English chosen for that cube — for the Cross, which white edges to
 bring down next to which centres; for an F2L pair, which corner and edge to pair and which slot they go in
 (or just the missing one, or nothing to do). For OLL and PLL it also names the **case** ("This is a Sune."),

@@ -4,22 +4,20 @@
  */
 
 import { applyMoves, type Colour, type Cube, type Vec } from './cube';
-import { algorithmMoves, LOOKS, recognise } from './last-layer';
+import {
+  algorithmMoves,
+  lookTitle,
+  LOOKS,
+  PLL_CORNERS,
+  PLL_EDGES,
+  recognise,
+  YELLOW_CORNERS,
+  YELLOW_CROSS,
+  type Look,
+} from './last-layer';
 import { playback, SOLVE_TURN_SECONDS, type Step } from './playback';
 import { GALLERY } from './reference';
 import { solve } from './solve';
-
-const TITLES = [
-  'Cross',
-  'F2L pair 1 of 4',
-  'F2L pair 2 of 4',
-  'F2L pair 3 of 4',
-  'F2L pair 4 of 4',
-  'OLL: yellow cross',
-  'OLL: yellow corners',
-  'PLL: corners',
-  'PLL: edges',
-];
 
 /** How the viewer holds their cube for every Lesson: white is on the bottom throughout. */
 export const HOLD = 'Hold your cube with yellow on top, green in front and orange on the right.';
@@ -126,12 +124,24 @@ function pairGoal(cube: Cube, slot: Slot, nothingToDo: boolean): string {
 }
 
 /** Each Look's goal, and what to say when it is already reached. */
-const LOOK_GOALS = [
-  ['Make a yellow cross on top.', 'The yellow cross is already there'],
-  ['Turn the yellow corners up, so the whole top is yellow.', 'The whole top is already yellow'],
-  ['Swap the top corners into place, so each side’s two top corners match.', 'The top corners are already in place'],
-  ['Swap the top edges into place, and the cube is solved.', 'The top edges are already in place'],
-] as const;
+const LOOK_GOALS: ReadonlyMap<Look, { readonly goal: string; readonly already: string }> = new Map([
+  [YELLOW_CROSS, { goal: 'Make a yellow cross on top.', already: 'The yellow cross is already there' }],
+  [
+    YELLOW_CORNERS,
+    { goal: 'Turn the yellow corners up, so the whole top is yellow.', already: 'The whole top is already yellow' },
+  ],
+  [
+    PLL_CORNERS,
+    {
+      goal: 'Swap the top corners into place, so each side’s two top corners match.',
+      already: 'The top corners are already in place',
+    },
+  ],
+  [
+    PLL_EDGES,
+    { goal: 'Swap the top edges into place, and the cube is solved.', already: 'The top edges are already in place' },
+  ],
+]);
 
 /** "a Sune", "an L-shape", "an H", "a U". A lone letter goes by how it is said. */
 function withArticle(name: string): string {
@@ -140,10 +150,10 @@ function withArticle(name: string): string {
   return `${an ? 'an' : 'a'} ${name}`;
 }
 
-/** The goal and case of the Lesson for Look `l`, playing `moves` on `cube`. */
-function lookLesson(cube: Cube, l: number, moves: readonly string[]): Pick<Lesson, 'goal' | 'case'> {
-  const [goal, already] = LOOK_GOALS[l];
-  const found = recognise(cube, LOOKS[l]);
+/** The goal and case of the Lesson for `look`, playing `moves` on `cube`. */
+function lookLesson(cube: Cube, look: Look, moves: readonly string[]): Pick<Lesson, 'goal' | 'case'> {
+  const { goal, already } = LOOK_GOALS.get(look)!;
+  const found = recognise(cube, look);
   const played = found ? found.setup.length + algorithmMoves(found.algorithm).length : 0;
   const home = moves.slice(played);
   const finish = home.length ? ` Finish with ${home.join(' ')} to turn the top home.` : '';
@@ -177,14 +187,15 @@ export function walkthrough(cube: Cube): Lesson[] {
   return solve(cube).map((stage, i): Lesson => {
     const start = at;
     at = applyMoves(at, stage.moves.join(' '));
-    const lesson = { title: TITLES[i], moves: stage.moves, start };
+    // The Cross and F2L Lessons are titled as the solve labels their Stages; a Look's
+    // Stage is labelled with the case it found, so its Lesson takes the Look's title.
+    const look: Look | undefined = LOOKS[i - 5];
+    if (look) return { title: lookTitle(look), moves: stage.moves, start, ...lookLesson(start, look, stage.moves) };
+    const lesson = { title: stage.label, moves: stage.moves, start };
     if (i === 0) return { ...lesson, goal: crossGoal(start), case: null };
-    if (i <= 4) {
-      const slot = slotFilled(start, at, taken);
-      taken.push(slot);
-      return { ...lesson, goal: pairGoal(start, slot, stage.moves.length === 0), case: null };
-    }
-    return { ...lesson, ...lookLesson(start, i - 5, stage.moves) };
+    const slot = slotFilled(start, at, taken);
+    taken.push(slot);
+    return { ...lesson, goal: pairGoal(start, slot, stage.moves.length === 0), case: null };
   });
 }
 

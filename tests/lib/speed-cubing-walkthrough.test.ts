@@ -38,11 +38,16 @@ describe('the CFOP walkthrough', () => {
       'F2L pair 2 of 4',
       'F2L pair 3 of 4',
       'F2L pair 4 of 4',
-      'OLL: yellow cross',
-      'OLL: yellow corners',
-      'PLL: corners',
-      'PLL: edges',
+      'OLL: Yellow cross',
+      'OLL: Yellow corners',
+      'PLL: Corners',
+      'PLL: Edges',
     ]);
+  });
+
+  it('titles each OLL and PLL Lesson as the algorithm gallery names its step', () => {
+    const titles = walkthrough(scrambled(2)).slice(5).map((l) => l.title);
+    expect(titles).toEqual(LOOKS.map((look) => GALLERY.find((c) => c.look === look)!.step));
   });
 
   it('plays exactly the moves the solver finds, each Lesson starting where the last one left the cube, ending solved', () => {

@@ -8,7 +8,7 @@
  */
 
 import { applyMoves, inverseMove, solvedCube, type Cube } from './cube';
-import { algorithmMoves, LOOKS, type Algorithm, type Look } from './last-layer';
+import { algorithmMoves, LOOKS, lookTitle, type Algorithm, type Look } from './last-layer';
 
 /** One entry of the notation guide: a Move to tap, and what it does. */
 export interface Notation {
@@ -65,7 +65,7 @@ export const GALLERY: readonly GalleryCase[] = LOOKS.flatMap((look) =>
   look.algorithms.map((algorithm) => ({
     look,
     algorithm,
-    step: `${look.method}: ${look.title}`,
+    step: lookTitle(look),
     hold: HOLDS[algorithm.name],
     moves: algorithmMoves(algorithm),
   })),
