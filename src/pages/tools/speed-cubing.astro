@@ -91,6 +91,48 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
         in the script shows one and hides the rest.
       -->
       <aside id="learn" class="w-full max-w-xl lg:w-96 lg:shrink-0" data-mode="learn" hidden>
+        <!-- Learn's reference panels, alongside your cube. -->
+        <div class="mb-4 flex flex-wrap gap-2" role="group" aria-label="Learn">
+          <button type="button" class="learn-nav" data-learn-nav="enter" aria-pressed="true">Your cube</button>
+          <button type="button" class="learn-nav" data-learn-nav="notation" aria-pressed="false">Notation</button>
+          <button type="button" class="learn-nav" data-learn-nav="gallery" aria-pressed="false">Algorithms</button>
+        </div>
+
+        <section data-learn-panel="notation" aria-labelledby="notation-heading" hidden>
+          <h2 id="notation-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Notation
+          </h2>
+          <p class="text-sm text-slate-400 mb-3">
+            Every move the method uses, held <strong class="text-slate-200">yellow up, green facing you</strong>. Tap
+            one to watch it turn.
+          </p>
+          <ul id="notation-list" class="flex flex-col gap-2"></ul>
+        </section>
+
+        <section data-learn-panel="gallery" aria-labelledby="gallery-heading" hidden>
+          <h2 id="gallery-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Algorithms
+          </h2>
+          <p class="text-sm text-slate-400 mb-3">
+            Every OLL and PLL case from the notes. Pick one to set the cube up in that case and watch its algorithm
+            finish the step.
+          </p>
+          <div id="gallery-case" class="mb-4 rounded-xl border border-accent/60 bg-accent/5 p-3" aria-live="polite" hidden>
+            <p id="gallery-case-step" class="text-xs uppercase tracking-wider text-slate-400"></p>
+            <h3 id="gallery-case-name" class="text-lg font-semibold text-white"></h3>
+            <p id="gallery-case-hold" class="mt-1 text-sm text-slate-300"></p>
+            <p id="gallery-case-moves" class="mt-2 font-mono text-xs leading-relaxed text-slate-300"></p>
+            <button
+              id="gallery-replay"
+              type="button"
+              class="mt-3 px-4 py-1.5 rounded-full border border-accent text-accent text-sm font-semibold transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Replay
+            </button>
+          </div>
+          <div id="gallery-list" class="flex flex-col gap-4"></div>
+        </section>
+
         <section data-learn-panel="enter" aria-labelledby="enter-heading">
           <h2 id="enter-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
             Enter your cube
@@ -229,6 +271,91 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   .mode-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .learn-nav {
+    padding: 0.3rem 0.9rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(148 163 184 / 0.3);
+    font-size: 0.875rem;
+    color: rgb(203 213 225);
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+  }
+
+  .learn-nav:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .learn-nav[aria-pressed='true'] {
+    border-color: var(--color-accent);
+    background: rgb(129 140 248 / 0.12);
+    color: white;
+  }
+
+  .learn-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* The notation guide and gallery are drawn by the script, so their states are styled here. */
+  #notation-list :global(.reference-item),
+  #gallery-list :global(.reference-item) {
+    display: flex;
+    width: 100%;
+    gap: 0.75rem;
+    align-items: baseline;
+    text-align: left;
+    border: 1px solid rgb(148 163 184 / 0.15);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    color: rgb(148 163 184);
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+  }
+
+  #notation-list :global(.reference-item:hover:not(:disabled)),
+  #gallery-list :global(.reference-item:hover:not(:disabled)) {
+    border-color: var(--color-accent);
+    color: white;
+  }
+
+  #notation-list :global(.reference-item[aria-current='true']),
+  #gallery-list :global(.reference-item[aria-current='true']) {
+    border-color: var(--color-accent);
+    background: rgb(129 140 248 / 0.08);
+    color: white;
+  }
+
+  #notation-list :global(.reference-item:disabled),
+  #gallery-list :global(.reference-item:disabled) {
+    cursor: not-allowed;
+  }
+
+  #gallery-list :global(.gallery-item) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+
+  #notation-list :global(.notation-move) {
+    min-width: 2.5rem;
+    font-family: ui-monospace, monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  #gallery-case-moves :global(.move) {
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.375rem;
+    text-align: center;
+  }
+
+  #gallery-case-moves :global(.move[aria-current='true']) {
+    background: var(--color-accent);
+    color: var(--color-dark);
   }
 
   /* Learn mode's grids are drawn by the script, so their states are styled here. */
@@ -415,6 +542,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     type Go,
     type Step,
   } from '../../lib/speed-cubing/playback';
+  import { caseStart, GALLERY, NOTATION, type GalleryCase } from '../../lib/speed-cubing/reference';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
   const PAINT: Record<Colour, number> = {
@@ -900,10 +1028,12 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   let entryOnOpening: Entry | null = null;
 
   const learnPanels = [...document.querySelectorAll<HTMLElement>('[data-learn-panel]')];
+  const learnNav = [...document.querySelectorAll<HTMLButtonElement>('[data-learn-nav]')];
 
   /** Shows one of Learn's panels and hides the rest. */
   function showLearnPanel(name: string) {
     for (const panel of learnPanels) panel.hidden = panel.dataset.learnPanel !== name;
+    for (const button of learnNav) button.setAttribute('aria-pressed', String(button.dataset.learnNav === name));
   }
 
   function setMode(next: AppMode) {
@@ -1144,6 +1274,161 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     side = 'U';
     setMode('learn');
   });
+
+  // --- Learn: the notation guide and the algorithm gallery ------------------------------
+
+  const NOTATION_TURN_SECONDS = 0.6;
+  const GALLERY_TURN_SECONDS = 0.5;
+  const GALLERY_PAUSE_SECONDS = 0.8; // a look at the case before its algorithm plays
+
+  const notationList = document.getElementById('notation-list')!;
+  const galleryList = document.getElementById('gallery-list')!;
+  const galleryCase = document.getElementById('gallery-case')!;
+  const galleryCaseStep = document.getElementById('gallery-case-step')!;
+  const galleryCaseName = document.getElementById('gallery-case-name')!;
+  const galleryCaseHold = document.getElementById('gallery-case-hold')!;
+  const galleryCaseMoves = document.getElementById('gallery-case-moves')!;
+  const galleryReplay = document.getElementById('gallery-replay') as HTMLButtonElement;
+
+  /** Every button that starts a turn in the reference panels, so none starts while one is turning. */
+  const referenceButtons: HTMLButtonElement[] = [galleryReplay];
+  let referenceTurning = false;
+
+  function setReferenceTurning(turning: boolean) {
+    referenceTurning = turning;
+    setBusy(turning);
+    for (const button of [...referenceButtons, ...learnNav]) button.disabled = turning;
+  }
+
+  /** Puts `start` on screen at the standard view, then plays `items` on it. */
+  function playReference(start: Cube, items: Queued[], done: () => void = () => {}) {
+    cube = start;
+    draw(cube);
+    faceSide(null);
+    setReferenceTurning(true);
+    play(items, () => {
+      setReferenceTurning(false);
+      canvas.setAttribute('aria-label', isSolved(cube) ? SOLVED_LABEL : SCRAMBLED_LABEL);
+      done();
+    });
+  }
+
+  /** Marks one of a list's items as the one on screen. */
+  const markCurrent = (items: HTMLElement[], current: HTMLElement | null) => {
+    for (const item of items) {
+      if (item === current) item.setAttribute('aria-current', 'true');
+      else item.removeAttribute('aria-current');
+    }
+  };
+
+  // The notation guide: tapping a move turns it on a solved cube.
+  const notationButtons = NOTATION.map(({ move, explanation }) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'reference-item';
+    button.setAttribute('aria-label', `${move}: ${explanation}`);
+    const name = document.createElement('span');
+    name.className = 'notation-move';
+    name.textContent = move;
+    const text = document.createElement('span');
+    text.className = 'text-sm';
+    text.textContent = explanation;
+    button.append(name, text);
+    button.addEventListener('click', () => {
+      if (referenceTurning) return;
+      markCurrent(notationButtons, button);
+      playReference(solvedCube(), [{ move, seconds: NOTATION_TURN_SECONDS }]);
+    });
+    const item = document.createElement('li');
+    item.append(button);
+    notationList.append(item);
+    return button;
+  });
+  referenceButtons.push(...notationButtons);
+
+  // The algorithm gallery: picking a case sets the cube up in it, then its algorithm finishes the step.
+  let shownCase: GalleryCase | null = null;
+  const galleryButtons = new Map<GalleryCase, HTMLButtonElement>();
+
+  for (const step of [...new Set(GALLERY.map((c) => c.step))]) {
+    const group = document.createElement('div');
+    const heading = document.createElement('h3');
+    heading.className = 'mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500';
+    heading.textContent = step;
+    const list = document.createElement('ul');
+    list.className = 'flex flex-col gap-2';
+    for (const c of GALLERY.filter((g) => g.step === step)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'reference-item gallery-item';
+      const name = document.createElement('span');
+      name.className = 'text-sm font-medium text-slate-200';
+      name.textContent = c.algorithm.name;
+      const notation = document.createElement('span');
+      notation.className = 'font-mono text-xs';
+      notation.textContent = c.algorithm.notation;
+      button.append(name, notation);
+      button.addEventListener('click', () => showCase(c));
+      const item = document.createElement('li');
+      item.append(button);
+      list.append(item);
+      galleryButtons.set(c, button);
+    }
+    group.append(heading, list);
+    galleryList.append(group);
+  }
+  referenceButtons.push(...galleryButtons.values());
+
+  /** Shows a case, sets the cube up in it, pauses on it, then plays its algorithm. */
+  function showCase(c: GalleryCase) {
+    if (referenceTurning) return;
+    shownCase = c;
+    markCurrent([...galleryButtons.values()], galleryButtons.get(c)!);
+    galleryCaseStep.textContent = c.step;
+    galleryCaseName.textContent = c.algorithm.name;
+    galleryCaseHold.textContent = c.hold;
+    const spans = c.moves.map((move) => {
+      const span = document.createElement('span');
+      span.className = 'move';
+      span.textContent = move;
+      return span;
+    });
+    galleryCaseMoves.replaceChildren(...spans);
+    galleryCase.hidden = false;
+    playReference(
+      caseStart(c),
+      [
+        { move: null, seconds: GALLERY_PAUSE_SECONDS },
+        ...c.moves.map((move, i) => ({
+          move,
+          seconds: GALLERY_TURN_SECONDS,
+          onStart: () => markCurrent(spans, spans[i]),
+        })),
+      ],
+      () => markCurrent(spans, null),
+    );
+  }
+
+  galleryReplay.addEventListener('click', () => {
+    if (shownCase) showCase(shownCase);
+  });
+
+  // Your cube shows the Entry; the reference panels start from a solved cube.
+  for (const button of learnNav) {
+    button.addEventListener('click', () => {
+      const name = button.dataset.learnNav!;
+      showLearnPanel(name);
+      if (name === 'enter') {
+        faceSide(side);
+        renderEntry();
+        return;
+      }
+      cube = solvedCube();
+      draw(cube);
+      faceSide(null);
+      canvas.setAttribute('aria-label', SOLVED_LABEL);
+    });
+  }
 
   // The search's tables take a moment to build: build them while the page is idle.
   const whenIdle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 200));

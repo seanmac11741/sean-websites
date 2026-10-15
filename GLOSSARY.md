@@ -317,6 +317,16 @@ a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn 
 while there is a Problem. A twist, flip or swap could be blamed on any of several pieces; the first one
 out of true is named, which on a cube that is otherwise right is the one that is wrong.
 
+**Notation guide** — Learn's list of every Move the method uses (`NOTATION`): a face turn, a prime, a
+double, the two-layer turn `f`, the slice `M` and the rotation `x`, each with what it does. Tapping one
+turns it on a solved cube. Owned by the pure **Reference module** (`src/lib/speed-cubing/reference.ts`).
+
+**Gallery** — Learn's list of every OLL and PLL case (`GALLERY`), one per Algorithm, grouped by its
+Look's step, each with its **Hold**: how to hold the cube, yellow up, for that algorithm. A case's
+starting cube (`caseStart`) is a solved cube with its algorithm undone, so its earlier Looks are done and
+the algorithm, played with no U-turn first, completes its step. Picking a case puts that cube on screen,
+pauses on it, then plays the algorithm; Replay plays it again. Owned by the Reference module.
+
 **Standard view** — the renderer's resting orientation: tipped forward and turned so U, F and R all
 show. Before the viewer touches it the cube spins slowly (the **idle spin**; not under reduced
 motion). A drag turns it, a release throws it with momentum, and once that dies away it eases back

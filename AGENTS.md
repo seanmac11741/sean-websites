@@ -60,7 +60,13 @@ flipped edge or single swapped pair (those stickers red) — and `workOutWhite(s
 that makes a solvable cube: one to confirm (`confirmWhite`), several (only the differing stickers to tap
 in), or none (and why). `readEntry` / `writeEntry` save it under `speed-cubing:entry`, guarded so the page
 works without storage. "Teach me this scramble" loads the Play cube with `entryFromCube`; a cube confirmed
-in Learn carries over into Play. Tests: `tests/lib/speed-cubing-*.test.ts`.
+in Learn carries over into Play. Buttons above the panels (`data-learn-nav`, "Your cube / Notation /
+Algorithms") switch between them. The two reference panels come from the pure module
+`src/lib/speed-cubing/reference.ts`: `NOTATION` (each move the method uses — `R`, primes, `U2`, `f`, `M`,
+`x` — with an explanation; tapping one turns it on a solved cube) and `GALLERY` (the sixteen Algorithms from
+`last-layer.ts`, each with its step, hold instructions and Moves; `caseStart(c)` is a solved cube with the
+algorithm undone by `undoMoves`, which picking a case puts on screen before its algorithm plays, with a
+Replay button). Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 
