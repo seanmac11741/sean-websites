@@ -60,7 +60,14 @@ flipped edge or single swapped pair (those stickers red) — and `workOutWhite(s
 that makes a solvable cube: one to confirm (`confirmWhite`), several (only the differing stickers to tap
 in), or none (and why). `readEntry` / `writeEntry` save it under `speed-cubing:entry`, guarded so the page
 works without storage. "Teach me this scramble" loads the Play cube with `entryFromCube`; a cube confirmed
-in Learn carries over into Play. Tests: `tests/lib/speed-cubing-*.test.ts`.
+in Learn carries over into Play. Once the cube is confirmed, "Teach me to solve it" opens the walkthrough
+panel: the pure Walkthrough module `src/lib/speed-cubing/walkthrough.ts` turns `solve(cube)` into one
+Lesson per Stage (`walkthrough(cube)`) — exactly the solver's moves, the cube as the Lesson finds it
+(`start`, which Next / Back / Replay slowly redraw from before playing it, so the cube never drifts), a
+plain-English goal chosen for that cube (which Cross edges to bring down; which F2L corner and edge go in
+which slot), and for OLL and PLL the case `recognise` found, with its name, the `hold` from Sean's notes
+(on each Algorithm in `last-layer.ts`), the notation and the U-turn that lines it up. `lessonSteps` gives
+the move Steps to animate at the Solve's pace or slowly. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 

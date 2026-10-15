@@ -121,6 +121,14 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
               Yes, it matches
             </button>
             <button
+              id="enter-walkthrough"
+              type="button"
+              class="px-4 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90"
+              hidden
+            >
+              Teach me to solve it
+            </button>
+            <button
               id="enter-next"
               type="button"
               class="px-4 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -135,6 +143,63 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
               Start over
             </button>
           </div>
+        </section>
+
+        <section data-learn-panel="walkthrough" aria-labelledby="walkthrough-heading" hidden>
+          <div class="mb-2 flex items-baseline justify-between gap-3">
+            <h2 id="walkthrough-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400">
+              Solve it with me
+            </h2>
+            <span id="lesson-count" class="text-xs text-slate-500"></span>
+          </div>
+          <p id="walkthrough-hold" class="text-sm text-slate-400 mb-3"></p>
+
+          <div id="lesson" aria-live="polite">
+            <h3 id="lesson-title" class="text-lg font-semibold text-white"></h3>
+            <p id="lesson-goal" class="mt-1 text-slate-200"></p>
+            <div id="lesson-case" class="mt-3 rounded-xl border border-slate-700 p-3 text-sm" hidden>
+              <p id="lesson-called" class="font-semibold text-white"></p>
+              <p class="mt-1 text-slate-300"><span class="text-slate-500">Hold:</span> <span id="lesson-hold"></span></p>
+              <p id="lesson-line-up" class="mt-1 text-slate-300"></p>
+              <p class="mt-2 font-mono text-xs text-slate-400">
+                <span class="text-slate-500 font-sans">Algorithm:</span> <span id="lesson-notation"></span>
+              </p>
+            </div>
+          </div>
+
+          <p id="lesson-moves" class="mt-3 font-mono text-sm leading-relaxed text-slate-300"></p>
+          <p class="mt-2 text-xs text-slate-500">Do this on your cube, then press Next.</p>
+
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button
+              id="lesson-back"
+              type="button"
+              class="px-4 py-2 rounded-full border border-slate-600 text-slate-300 transition-colors hover:border-accent hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Back
+            </button>
+            <button
+              id="lesson-replay"
+              type="button"
+              class="px-4 py-2 rounded-full border border-accent text-accent font-semibold transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Replay slowly
+            </button>
+            <button
+              id="lesson-next"
+              type="button"
+              class="px-4 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <button
+            id="walkthrough-edit"
+            type="button"
+            class="mt-4 text-xs text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
+          >
+            Change my cube
+          </button>
         </section>
       </aside>
     </div>
@@ -365,6 +430,19 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     text-align: center;
   }
 
+  #lesson-moves :global(.move) {
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 0.05rem 0.3rem;
+    border-radius: 0.375rem;
+    text-align: center;
+  }
+
+  #lesson-moves :global(.move[aria-current='true']) {
+    background: var(--color-accent);
+    color: var(--color-dark);
+  }
+
   #solve-stages :global(.move[aria-current='true']) {
     background: var(--color-accent);
     color: var(--color-dark);
@@ -415,6 +493,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     type Go,
     type Step,
   } from '../../lib/speed-cubing/playback';
+  import { HOLD, lessonSteps, walkthrough, type Lesson } from '../../lib/speed-cubing/walkthrough';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
   const PAINT: Record<Colour, number> = {
@@ -655,6 +734,22 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   function play(items: Queued[], done: () => void) {
     for (const item of items) queue.push({ ...item, seconds: reduceMotion ? 0 : item.seconds });
     onQueueEmpty = done;
+  }
+
+  /** Drops every queued move and snaps back any turn half done, leaving the model as it was. */
+  function stopTurns() {
+    queue.length = 0;
+    onQueueEmpty = null;
+    if (!turning) return;
+    turning = null;
+    for (const cubie of cubies) {
+      cubeGroup.add(cubie);
+      cubie.position.copy(cubie.userData.home);
+      cubie.quaternion.identity();
+    }
+    for (const sticker of stickers) cubeGroup.add(sticker);
+    pivot.quaternion.identity();
+    draw(cube);
   }
 
   // --- Scramble ----------------------------------------------------------------
@@ -920,6 +1015,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       faceSide(side);
       renderEntry();
     } else {
+      stopTurns();
       // A cube entered in full on this visit carries over into Play, ready to scramble or solve.
       const entered = entry !== entryOnOpening && entry.confirmed ? entryCube(entry) : null;
       cube = entered ?? playCube;
@@ -970,6 +1066,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const enterNext = document.getElementById('enter-next') as HTMLButtonElement;
   const enterConfirm = document.getElementById('enter-confirm') as HTMLButtonElement;
   const enterReset = document.getElementById('enter-reset') as HTMLButtonElement;
+  const enterWalkthrough = document.getElementById('enter-walkthrough') as HTMLButtonElement;
 
   const hex = (colour: Colour) => `#${PAINT[colour].toString(16).padStart(6, '0')}`;
 
@@ -1083,6 +1180,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     enterNext.disabled = !sideDone || problems.length > 0 || (side === 'L' && !whiteOpen);
     enterConfirm.hidden = !(side === 'D' && !entry.confirmed && white?.kind === 'one');
     enterConfirm.disabled = problems.length > 0;
+    enterWalkthrough.hidden = !entry.confirmed || problems.length > 0;
 
     const messages = [...new Set(problems.map((p) => p.message))];
     enterProblems.replaceChildren(
@@ -1143,6 +1241,110 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     writeEntry(storage, entry);
     side = 'U';
     setMode('learn');
+  });
+
+  // --- Learn: the CFOP walkthrough, Lesson by Lesson on the entered cube --------------
+
+  const lessonCount = document.getElementById('lesson-count')!;
+  const lessonTitle = document.getElementById('lesson-title')!;
+  const lessonGoal = document.getElementById('lesson-goal')!;
+  const lessonCase = document.getElementById('lesson-case')!;
+  const lessonCalled = document.getElementById('lesson-called')!;
+  const lessonHold = document.getElementById('lesson-hold')!;
+  const lessonLineUp = document.getElementById('lesson-line-up')!;
+  const lessonNotation = document.getElementById('lesson-notation')!;
+  const lessonMoves = document.getElementById('lesson-moves')!;
+  const lessonBack = document.getElementById('lesson-back') as HTMLButtonElement;
+  const lessonReplay = document.getElementById('lesson-replay') as HTMLButtonElement;
+  const lessonNext = document.getElementById('lesson-next') as HTMLButtonElement;
+  document.getElementById('walkthrough-hold')!.textContent = `${HOLD} Keep it that way for every step.`;
+
+  /** The Lessons for the entered cube, and the one on screen: `lessons.length` is the solved cube at the end. */
+  let lessons: Lesson[] = [];
+  let lessonAt = 0;
+
+  /**
+   * Shows Lesson `at` and plays it from the cube as that Lesson finds it, so
+   * whichever way the viewer steps, the cube on screen is the one they hold.
+   */
+  function showLesson(at: number, slow: boolean) {
+    stopTurns();
+    lessonAt = at;
+    const lesson = lessons[at];
+    const finished = !lesson;
+    lessonCount.textContent = finished ? '' : `${at + 1} of ${lessons.length}`;
+    lessonBack.disabled = at === 0;
+    lessonNext.disabled = finished;
+    lessonReplay.disabled = finished || lesson.moves.length === 0;
+
+    if (finished) {
+      lessonTitle.textContent = 'Solved!';
+      lessonGoal.textContent = 'That is the whole solve. Scramble your cube and enter it again to practise.';
+      lessonCase.hidden = true;
+      lessonMoves.replaceChildren();
+      cube = applyMoves(lessons[lessons.length - 1].start, lessons[lessons.length - 1].moves.join(' '));
+      draw(cube);
+      canvas.setAttribute('aria-label', SOLVED_LABEL);
+      celebrate();
+      return;
+    }
+
+    lessonTitle.textContent = lesson.title;
+    lessonGoal.textContent = lesson.goal;
+    lessonCase.hidden = !lesson.case;
+    if (lesson.case) {
+      lessonCalled.textContent = lesson.case.called;
+      lessonHold.textContent = lesson.case.hold;
+      lessonLineUp.textContent = lesson.case.lineUp ?? '';
+      lessonLineUp.hidden = !lesson.case.lineUp;
+      lessonNotation.textContent = lesson.case.notation;
+    }
+    const spans = lesson.moves.map((move) => {
+      const span = document.createElement('span');
+      span.className = 'move';
+      span.textContent = move;
+      return span;
+    });
+    if (spans.length) lessonMoves.replaceChildren(...spans);
+    else lessonMoves.textContent = 'Nothing to turn.';
+    const highlightMove = (index: number | null) =>
+      spans.forEach((span, i) => {
+        if (i === index) span.setAttribute('aria-current', 'true');
+        else span.removeAttribute('aria-current');
+      });
+
+    cube = lesson.start;
+    draw(cube);
+    canvas.setAttribute('aria-label', `Your cube, at the start of: ${lesson.title}.`);
+    play(
+      lessonSteps(lesson, slow).map((step) => ({
+        move: step.move,
+        seconds: step.seconds,
+        onStart: () => highlightMove(step.index),
+      })),
+      () => highlightMove(null),
+    );
+  }
+
+  function startWalkthrough() {
+    const entered = entryCube(entry);
+    if (!entered) return;
+    lessons = walkthrough(entered);
+    showLearnPanel('walkthrough');
+    faceSide(null);
+    showLesson(0, false);
+  }
+
+  enterWalkthrough.addEventListener('click', startWalkthrough);
+  lessonNext.addEventListener('click', () => showLesson(lessonAt + 1, false));
+  lessonBack.addEventListener('click', () => showLesson(lessonAt - 1, false));
+  lessonReplay.addEventListener('click', () => showLesson(lessonAt, true));
+
+  document.getElementById('walkthrough-edit')!.addEventListener('click', () => {
+    stopTurns();
+    showLearnPanel('enter');
+    faceSide(side);
+    renderEntry();
   });
 
   // The search's tables take a moment to build: build them while the page is idle.

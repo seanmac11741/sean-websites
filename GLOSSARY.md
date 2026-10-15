@@ -311,6 +311,26 @@ white side.
 one, and the viewer confirms it matches. Rarely there are several (three or four bottom edges with their
 white sticker facing sideways), and the viewer taps in only the stickers that differ between them.
 
+**Walkthrough** — Learn teaching the viewer to solve their own entered cube, one **Lesson** at a time
+(`walkthrough(cube)`), held yellow up, green in front, orange on the right throughout. Owned by the pure
+**Walkthrough module** (`src/lib/speed-cubing/walkthrough.ts`). The viewer does each Lesson on their real
+cube, then presses Next.
+
+**Lesson** — one Stage of the cube's Solve, taught: its title ("Cross", "F2L pair 1 of 4", "OLL: yellow
+cross", "OLL: yellow corners", "PLL: corners", "PLL: edges"), exactly the Stage's Moves, the cube as the
+Lesson finds it, and a **goal** in plain English chosen for that cube — for the Cross, which white edges to
+bring down next to which centres; for an F2L pair, which corner and edge to pair and which slot they go in
+(or just the missing one, or nothing to do). For OLL and PLL it also names the **case** ("This is a Sune."),
+its **hold** and its Algorithm, and says which U-turn, if any, lines it up. Next, Back and Replay slowly
+each redraw the cube as that Lesson finds it and play the Lesson on it (slowly, for a replay), so the cube
+on screen is always the one the viewer is holding. After the last Lesson, the cube is solved and the
+Celebration plays.
+
+**Hold** — where an Algorithm's case sits, held yellow up, green in front and orange on the right, when it
+is ready to start, from Sean's CFOP notes ("One yellow corner on top, and the front-top-right corner's
+yellow facing you."). Pi's says the two yellow stickers are on the left, where the algorithm wants them;
+the notes said the front.
+
 **Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
 sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,
 a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn red). Nothing can continue
