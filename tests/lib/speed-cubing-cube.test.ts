@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyMoves,
   faces,
+  inverseMove,
   isSolved,
   parseMove,
   solvedCube,
@@ -224,4 +225,23 @@ describe('the Turn a move makes', () => {
       expect(stickers(drawn)).toEqual(stickers(applyMoves(SCRAMBLED, move)));
     },
   );
+});
+
+describe('inverseMove', () => {
+  it.each([
+    ['R', "R'"],
+    ["U'", 'U'],
+    ['F2', 'F2'],
+    ['x', "x'"],
+    ["M'", 'M'],
+  ])('undoes %s with %s', (move, inverse) => {
+    expect(inverseMove(move)).toBe(inverse);
+  });
+
+  it('undoes every move, so the move then its inverse leaves a scrambled cube as it was', () => {
+    const scrambled = applyMoves(solvedCube(), "R U2 F' l D x M2 B'");
+    for (const move of ['R', "U'", 'F2', 'r', "x'", 'M', "B'"]) {
+      expect(applyMoves(scrambled, `${move} ${inverseMove(move)}`)).toEqual(scrambled);
+    }
+  });
 });

@@ -58,6 +58,18 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
         <h2 id="solve-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
           Solve
         </h2>
+        <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div class="flex gap-2">
+            <button id="step-back" type="button" class="control" aria-label="Back one move">⏮</button>
+            <button id="play" type="button" class="control control-play" aria-label="Pause">⏸</button>
+            <button id="step-forward" type="button" class="control" aria-label="Forward one move">⏭</button>
+          </div>
+          <label class="flex flex-1 items-center gap-2 text-xs text-slate-400">
+            Speed
+            <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1" class="min-w-0 flex-1 accent-accent" />
+            <output id="speed-value" for="speed" class="w-8 text-right font-mono text-slate-300">1×</output>
+          </label>
+        </div>
         <ol id="solve-stages" class="flex flex-col gap-2"></ol>
       </aside>
     </div>
@@ -112,6 +124,30 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     cursor: grabbing;
   }
 
+  .control {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(148 163 184 / 0.3);
+    color: white;
+    transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
+  }
+
+  .control:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background: rgb(129 140 248 / 0.1);
+  }
+
+  .control:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .control-play {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
   /* The stage list is drawn by the script, so its states are styled here. */
   #solve-stages :global(li) {
     border: 1px solid rgb(148 163 184 / 0.15);
@@ -119,6 +155,17 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     padding: 0.5rem 0.75rem;
     color: rgb(148 163 184);
     transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+  }
+
+  #solve-stages :global(.stage-label) {
+    display: block;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  #solve-stages :global(.stage-label:hover) {
+    color: var(--color-accent);
   }
 
   #solve-stages :global(li[aria-current='step']) {
@@ -161,7 +208,15 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   import { easeTurn } from '../../lib/speed-cubing/ease';
   import { scramble } from '../../lib/speed-cubing/scramble';
   import { prepareSolve, solve, type Stage } from '../../lib/speed-cubing/solve';
-  import { playback, type Step } from '../../lib/speed-cubing/playback';
+  import {
+    back,
+    forward,
+    playNext,
+    playback,
+    seekStage,
+    type Go,
+    type Step,
+  } from '../../lib/speed-cubing/playback';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
   const PAINT: Record<Colour, number> = {
@@ -190,6 +245,9 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const SCRAMBLE_TURN_SECONDS = 0.04;
 
   const CELEBRATE_SECONDS = 1.2; // the quick spin once the cube is solved
+
+  const SOLVED_LABEL = 'A solved Rubik’s cube: yellow on top, green in front, orange on the right.';
+  const SCRAMBLED_LABEL = 'A scrambled Rubik’s cube.';
 
   const stage = document.getElementById('stage')!;
   const canvas = document.getElementById('cube-canvas') as HTMLCanvasElement;
@@ -401,6 +459,12 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const solvePanel = document.getElementById('solve-panel')!;
   const solveStages = document.getElementById('solve-stages')!;
 
+  const stepBackButton = document.getElementById('step-back') as HTMLButtonElement;
+  const playButton = document.getElementById('play') as HTMLButtonElement;
+  const stepForwardButton = document.getElementById('step-forward') as HTMLButtonElement;
+  const speedInput = document.getElementById('speed') as HTMLInputElement;
+  const speedValue = document.getElementById('speed-value')!;
+
   const setBusy = (busy: boolean) => {
     scrambleButton.disabled = busy;
     solveButton.disabled = busy;
@@ -408,6 +472,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
   scrambleButton.addEventListener('click', () => {
     const moves = scramble(Math.random);
+    run = null;
     setBusy(true);
     scrambleResult.hidden = true;
     solvePanel.hidden = true;
@@ -419,21 +484,24 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
         scrambleMoves.textContent = moves.join(' ');
         scrambleDetails.open = false;
         scrambleResult.hidden = false;
-        canvas.setAttribute('aria-label', 'A scrambled Rubik’s cube.');
+        canvas.setAttribute('aria-label', SCRAMBLED_LABEL);
       },
     );
   });
 
   // --- Solve: the Cross, the four F2L pairs, then OLL and PLL --------------------
 
-  /** Lists the Stages, each with its moves, and returns their list items. */
+  /** Lists the Stages, each with its moves, and returns their list items. Clicking a Stage seeks to it. */
   function listStages(stages: Stage[]): { item: HTMLLIElement; moves: HTMLSpanElement[] }[] {
     solveStages.replaceChildren();
-    return stages.map((stage) => {
+    return stages.map((stage, s) => {
       const item = document.createElement('li');
-      const label = document.createElement('p');
-      label.className = 'text-sm font-medium';
+      const label = document.createElement('button');
+      label.type = 'button';
+      label.className = 'stage-label text-sm font-medium';
       label.textContent = stage.label;
+      label.title = 'Go to the start of this stage';
+      label.addEventListener('click', () => ask((r) => seekStage(r.steps, r.at, s), false));
       const line = document.createElement('p');
       line.className = 'mt-1 font-mono text-xs leading-relaxed';
       const moves = stage.moves.map((move) => {
@@ -464,25 +532,120 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     });
   }
 
-  solveButton.addEventListener('click', () => {
-    const wasSolved = isSolved(cube);
-    const stages = solve(cube);
-    const rows = listStages(stages);
-    setBusy(true);
-    solvePanel.hidden = false;
+  /**
+   * The Solve on screen, and its playhead (`at`, a position in its Steps).
+   * Steps and seeks asked for while a beat is turning wait their turn in
+   * `asked`; while playing, the next Step plays whenever nothing else is asked.
+   */
+  interface Run {
+    steps: Step[];
+    rows: ReturnType<typeof listStages>;
+    at: number;
+    playing: boolean;
+    wasSolved: boolean;
+    moving: boolean;
+    asked: { next: (run: Run) => Go | null; atSpeed: boolean }[];
+  }
+
+  let run: Run | null = null;
+  let speed = 1;
+
+  function ask(next: (run: Run) => Go | null, atSpeed: boolean) {
+    if (!run) return;
+    run.asked.push({ next, atSpeed });
+    pump();
+  }
+
+  /** Starts whatever is next for the playhead, if nothing is turning. */
+  function pump() {
+    const r = run;
+    if (!r || r.moving) return;
+    const asked = r.asked.shift();
+    const next = asked ?? (r.playing ? { next: (run: Run) => playNext(run.steps, run.at), atSpeed: true } : null);
+    const go = next?.next(r);
+    if (!go) {
+      // A step or seek with nowhere to go is dropped; playing with nowhere to go has reached the end.
+      if (asked) return pump();
+      r.playing = false;
+      return settle(r);
+    }
+    r.moving = true;
+    showControls(r);
     play(
-      playback(stages).map((step) => ({
-        move: step.kind === 'move' ? step.move : null,
-        seconds: step.seconds,
-        onStart: () => highlight(rows, step),
+      go.beats.map(({ step, move, seconds }) => ({
+        move,
+        seconds: next!.atSpeed ? seconds / speed : seconds,
+        onStart: () => highlight(r.rows, step),
       })),
       () => {
-        highlight(rows, 'finished');
-        setBusy(false);
-        canvas.setAttribute('aria-label', 'A solved Rubik’s cube: yellow on top, green in front, orange on the right.');
-        if (!wasSolved && isSolved(cube)) celebrate();
+        r.moving = false;
+        if (run !== r) return;
+        const arrived = go.to === r.steps.length && r.at !== go.to;
+        r.at = go.to;
+        if (arrived && !r.wasSolved && isSolved(cube)) celebrate();
+        pump();
       },
     );
+  }
+
+  /** Rests the playhead: the stage list shows where it is and the controls what can be done from there. */
+  function settle(r: Run) {
+    highlight(r.rows, r.steps[r.at] ?? 'finished');
+    canvas.setAttribute('aria-label', isSolved(cube) ? SOLVED_LABEL : SCRAMBLED_LABEL);
+    showControls(r);
+  }
+
+  function showControls(r: Run) {
+    const atEnd = r.at === r.steps.length;
+    stepBackButton.disabled = !back(r.steps, r.at) && !r.moving;
+    stepForwardButton.disabled = !forward(r.steps, r.at) && !r.moving;
+    playButton.disabled = atEnd && !r.playing;
+    playButton.textContent = r.playing ? '⏸' : '▶';
+    playButton.setAttribute('aria-label', r.playing ? 'Pause' : 'Play');
+    setBusy(r.moving || r.playing);
+  }
+
+  solveButton.addEventListener('click', () => {
+    const stages = solve(cube);
+    run = {
+      steps: playback(stages),
+      rows: listStages(stages),
+      at: 0,
+      playing: true,
+      wasSolved: isSolved(cube),
+      moving: false,
+      asked: [],
+    };
+    solvePanel.hidden = false;
+    pump();
+  });
+
+  playButton.addEventListener('click', () => {
+    if (!run) return;
+    run.playing = !run.playing;
+    showControls(run);
+    pump();
+  });
+
+  stepForwardButton.addEventListener('click', () => {
+    if (run) {
+      run.playing = false;
+      showControls(run);
+    }
+    ask((r) => forward(r.steps, r.at), true);
+  });
+
+  stepBackButton.addEventListener('click', () => {
+    if (run) {
+      run.playing = false;
+      showControls(run);
+    }
+    ask((r) => back(r.steps, r.at), true);
+  });
+
+  speedInput.addEventListener('input', () => {
+    speed = Number(speedInput.value);
+    speedValue.textContent = `${speed}×`;
   });
 
   // --- Celebration: a quick spin with a glow pulse --------------------------------

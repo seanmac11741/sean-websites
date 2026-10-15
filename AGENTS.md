@@ -45,7 +45,10 @@ sixteen algorithms from Sean's CFOP notes: each Look recognises its case by find
 after at most one U-turn, reaches its goal; algorithms starting with `x` end with `x'` so white is on the
 bottom between Stages. `solve(cube)` is the whole thing; the page celebrates (spin + glow) when it ends
 solved. `src/lib/speed-cubing/playback.ts` flattens Stages into the Steps the page animates, so
-the stage list's highlighting comes from the same Step as the turn. Tests: `tests/lib/speed-cubing-*.test.ts`.
+the stage list's highlighting comes from the same Step as the turn, and owns the Playhead behind the step
+controls (⏮ / ⏭ one move, Play / Pause, speed slider, click a stage to fast-play to its start): `forward`,
+`back` (turning `inverseMove`), `playNext` and `seekStage` each return the Beats to animate and where the
+Playhead lands; the page only queues them and waits its turn for anything asked mid-beat. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 

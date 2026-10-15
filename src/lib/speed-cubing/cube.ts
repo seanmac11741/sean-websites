@@ -148,6 +148,13 @@ export function parseMove(move: string): Turn {
   return { axis: grip.axis, layers: grip.layers, quarters: -grip.sign * clockwise };
 }
 
+/** The move that undoes `move`: `R` ↔ `R'`; a half turn undoes itself. */
+export function inverseMove(move: string): string {
+  parseMove(move); // throws on anything that isn't a move
+  if (move.endsWith('2')) return move;
+  return move.endsWith("'") ? move.slice(0, -1) : `${move}'`;
+}
+
 /** A quarter turn anticlockwise (right-hand rule) about a positive axis. */
 function quarter(v: Vec, axis: Axis): Vec {
   const [x, y, z] = v;
