@@ -15,6 +15,12 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       <p class="text-slate-400 leading-relaxed">Drag to spin it around, scramble it, then watch it solve.</p>
     </div>
 
+    <!-- Play / Learn. Each mode shows the elements marked with its data-mode. -->
+    <div class="mt-5 inline-flex rounded-full border border-slate-700 p-1" role="group" aria-label="Mode">
+      <button type="button" class="mode-button" data-mode-button="play" aria-pressed="true">Play</button>
+      <button type="button" class="mode-button" data-mode-button="learn" aria-pressed="false">Learn</button>
+    </div>
+
     <div class="mt-4 flex w-full max-w-6xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:justify-center">
       <div class="flex w-full max-w-3xl min-w-0 flex-col items-center">
         <div id="stage" class="stage relative w-full">
@@ -26,8 +32,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
           ></canvas>
         </div>
 
-        <div class="mt-2 flex flex-col items-center gap-3 w-full max-w-xl">
-          <div class="flex gap-3">
+        <div class="mt-2 flex flex-col items-center gap-3 w-full max-w-xl" data-mode="play">
+          <div class="flex flex-wrap justify-center gap-3">
             <button
               id="scramble"
               type="button"
@@ -41,6 +47,13 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
               class="px-5 py-2 rounded-full border border-accent text-accent font-semibold transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Solve
+            </button>
+            <button
+              id="teach"
+              type="button"
+              class="px-5 py-2 rounded-full border border-slate-600 text-slate-200 font-semibold transition-colors hover:border-accent hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Teach me this scramble
             </button>
           </div>
 
@@ -71,6 +84,58 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
           </label>
         </div>
         <ol id="solve-stages" class="flex flex-col gap-2"></ol>
+      </aside>
+
+      <!--
+        Learn mode. Each panel is a <section data-learn-panel="…">; showLearnPanel(name)
+        in the script shows one and hides the rest.
+      -->
+      <aside id="learn" class="w-full max-w-xl lg:w-96 lg:shrink-0" data-mode="learn" hidden>
+        <section data-learn-panel="enter" aria-labelledby="enter-heading">
+          <h2 id="enter-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Enter your cube
+          </h2>
+          <p class="text-sm text-slate-400 mb-3">
+            Hold your cube <strong class="text-slate-200">yellow up</strong> the whole time. Pick a colour, then tap
+            stickers to paint them.
+          </p>
+
+          <div id="side-tabs" class="mb-3 grid grid-cols-6 gap-2" role="tablist" aria-label="Sides"></div>
+
+          <p id="enter-prompt" class="mb-3 text-slate-200" aria-live="polite"></p>
+
+          <div class="flex items-start gap-4">
+            <div id="enter-grid" class="enter-grid" role="grid" aria-label="Stickers on this side"></div>
+            <div id="palette" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Colour to paint"></div>
+          </div>
+
+          <ul id="enter-problems" class="mt-3 flex flex-col gap-1 text-sm text-red-300" aria-live="polite"></ul>
+
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button
+              id="enter-confirm"
+              type="button"
+              class="px-4 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              hidden
+            >
+              Yes, it matches
+            </button>
+            <button
+              id="enter-next"
+              type="button"
+              class="px-4 py-2 rounded-full bg-accent text-dark font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next side
+            </button>
+            <button
+              id="enter-reset"
+              type="button"
+              class="px-4 py-2 rounded-full border border-slate-600 text-slate-300 transition-colors hover:border-accent hover:text-accent"
+            >
+              Start over
+            </button>
+          </div>
+        </section>
       </aside>
     </div>
   </main>
@@ -148,6 +213,120 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     color: var(--color-accent);
   }
 
+  .mode-button {
+    padding: 0.35rem 1.1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    color: rgb(148 163 184);
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .mode-button[aria-pressed='true'] {
+    background: var(--color-accent);
+    color: var(--color-dark);
+  }
+
+  .mode-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Learn mode's grids are drawn by the script, so their states are styled here. */
+  .enter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 3.25rem);
+    gap: 0.3rem;
+    padding: 0.4rem;
+    border-radius: 0.75rem;
+    background: #111114;
+    outline: 2px solid transparent;
+    transition: outline-color 0.2s;
+  }
+
+  .enter-grid.problem,
+  #side-tabs :global(.side-tab.problem .mini) {
+    outline-color: #f87171;
+  }
+
+  :global(.sticker-cell) {
+    aspect-ratio: 1;
+    border-radius: 0.4rem;
+    border: 1px dashed rgb(148 163 184 / 0.4);
+    outline: 3px solid transparent;
+    outline-offset: 1px;
+  }
+
+  :global(.sticker-cell.painted) {
+    border-style: solid;
+    border-color: transparent;
+  }
+
+  :global(.sticker-cell.problem) {
+    outline-color: #f87171;
+  }
+
+  :global(button.sticker-cell:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  :global(.sticker-cell.unknown) {
+    border-color: var(--color-accent);
+    border-width: 2px;
+  }
+
+  #side-tabs :global(.side-tab) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    color: rgb(148 163 184);
+  }
+
+  #side-tabs :global(.side-tab:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  #side-tabs :global(.mini) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    width: 100%;
+    max-width: 2.6rem;
+    padding: 2px;
+    border-radius: 0.3rem;
+    background: #111114;
+    outline: 2px solid transparent;
+  }
+
+  #side-tabs :global(.mini .sticker-cell) {
+    border-radius: 2px;
+    outline-width: 1px;
+    outline-offset: 0;
+  }
+
+  #side-tabs :global(.side-tab[aria-selected='true']) {
+    color: white;
+  }
+
+  #side-tabs :global(.side-tab[aria-selected='true'] .mini) {
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+
+  #palette :global(.swatch) {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: 2px solid rgb(148 163 184 / 0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  #palette :global(.swatch[aria-checked='true']) {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 3px var(--color-dark), 0 0 0 5px var(--color-accent);
+  }
+
   /* The stage list is drawn by the script, so its states are styled here. */
   #solve-stages :global(li) {
     border: 1px solid rgb(148 163 184 / 0.15);
@@ -198,13 +377,32 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
   import {
     applyMoves,
+    fromFaces,
     isSolved,
     parseMove,
     solvedCube,
     type Colour,
     type Cube,
+    type Face,
+    type MaybeSticker,
     type Turn,
   } from '../../lib/speed-cubing/cube';
+  import {
+    COLOURS,
+    ENTRY_ORDER,
+    blankEntry,
+    check,
+    confirmWhite,
+    entryCube,
+    entryFromCube,
+    paint,
+    readEntry,
+    workOutWhite,
+    writeEntry,
+    type Entry,
+    type Problem,
+    type WhiteSide,
+  } from '../../lib/speed-cubing/entry';
   import { easeTurn } from '../../lib/speed-cubing/ease';
   import { scramble } from '../../lib/speed-cubing/scramble';
   import { prepareSolve, solve, type Stage } from '../../lib/speed-cubing/solve';
@@ -234,6 +432,16 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   /** The standard view: tipped forward and turned so U, F and R all show. */
   const STANDARD_PITCH = 0.42;
   const STANDARD_YAW = -0.62;
+
+  /** Offsets from the standard view that bring a side round to face the viewer, for Learn. */
+  const SIDE_VIEWS: Record<Face, { yaw: number; pitch: number }> = {
+    U: { yaw: -STANDARD_YAW, pitch: 0.75 },
+    F: { yaw: -STANDARD_YAW + 0.35, pitch: 0 },
+    R: { yaw: -STANDARD_YAW - Math.PI / 2 + 0.35, pitch: 0 },
+    B: { yaw: -STANDARD_YAW + Math.PI + 0.35, pitch: 0 },
+    L: { yaw: -STANDARD_YAW + Math.PI / 2 + 0.35, pitch: 0 },
+    D: { yaw: -STANDARD_YAW, pitch: -STANDARD_PITCH - 1.1 },
+  };
 
   const IDLE_SPEED = 0.35; // rad/s
   const DRAG_SENSITIVITY = 0.008; // rad per pixel
@@ -343,6 +551,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 }),
     ]),
   ) as Record<Colour, THREE.MeshPhysicalMaterial>;
+  /** A sticker not yet entered in Learn. */
+  const blankMaterial = new THREE.MeshPhysicalMaterial({ color: 0x3a3a46, roughness: 0.6 });
 
   const outward = new THREE.Vector3(0, 0, 1);
   /** One mesh per Sticker, in the Cube module's order. */
@@ -353,11 +563,11 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   });
 
   /** Draws whatever the Cube module says is where. */
-  function draw(cube: Cube) {
+  function draw(cube: { readonly stickers: readonly MaybeSticker<Colour | null>[] }) {
     cube.stickers.forEach(({ position, normal, colour }, i) => {
       const sticker = stickers[i];
       const n = new THREE.Vector3(...normal);
-      sticker.material = stickerMaterials[colour];
+      sticker.material = colour ? stickerMaterials[colour] : blankMaterial;
       sticker.position.set(...position).addScaledVector(n, CUBIE / 2 + 0.002);
       sticker.quaternion.setFromUnitVectors(outward, n);
     });
@@ -465,9 +675,14 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const speedInput = document.getElementById('speed') as HTMLInputElement;
   const speedValue = document.getElementById('speed-value')!;
 
+  const teachButton = document.getElementById('teach') as HTMLButtonElement;
+  const modeButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-mode-button]')];
+
   const setBusy = (busy: boolean) => {
     scrambleButton.disabled = busy;
     solveButton.disabled = busy;
+    teachButton.disabled = busy;
+    for (const button of modeButtons) button.disabled = busy;
   };
 
   scrambleButton.addEventListener('click', () => {
@@ -676,6 +891,260 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     return 2 * Math.PI * (1 - (1 - t) ** 3);
   }
 
+  // --- Play / Learn ------------------------------------------------------------------
+
+  type AppMode = 'play' | 'learn';
+  let appMode: AppMode = 'play';
+  /** The Play cube, kept while Learn shows the Entry, and the Entry as Learn opened. */
+  let playCube: Cube = cube;
+  let entryOnOpening: Entry | null = null;
+
+  const learnPanels = [...document.querySelectorAll<HTMLElement>('[data-learn-panel]')];
+
+  /** Shows one of Learn's panels and hides the rest. */
+  function showLearnPanel(name: string) {
+    for (const panel of learnPanels) panel.hidden = panel.dataset.learnPanel !== name;
+  }
+
+  function setMode(next: AppMode) {
+    appMode = next;
+    for (const el of document.querySelectorAll<HTMLElement>('[data-mode]')) el.hidden = el.dataset.mode !== next;
+    for (const button of modeButtons) button.setAttribute('aria-pressed', String(button.dataset.modeButton === next));
+    history.replaceState(null, '', next === 'learn' ? '#learn' : location.pathname + location.search);
+    if (next === 'learn') {
+      playCube = cube;
+      entryOnOpening = entry;
+      run = null;
+      solvePanel.hidden = true;
+      showLearnPanel('enter');
+      faceSide(side);
+      renderEntry();
+    } else {
+      // A cube entered in full on this visit carries over into Play, ready to scramble or solve.
+      const entered = entry !== entryOnOpening && entry.confirmed ? entryCube(entry) : null;
+      cube = entered ?? playCube;
+      draw(cube);
+      faceSide(null);
+      canvas.setAttribute('aria-label', isSolved(cube) ? SOLVED_LABEL : SCRAMBLED_LABEL);
+    }
+  }
+
+  for (const button of modeButtons) {
+    button.addEventListener('click', () => {
+      const next = button.dataset.modeButton as AppMode;
+      if (next !== appMode) setMode(next);
+    });
+  }
+
+  // --- Learn: entering your cube -------------------------------------------------------
+
+  const storage = (() => {
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  })();
+
+  let entry: Entry = readEntry(storage);
+  /** The side being entered: the first with stickers left to paint. */
+  let side: Face = [...ENTRY_ORDER, 'D' as Face].find((f) => entry.sides[f].includes(null)) ?? 'D';
+  let brush: Colour = 'yellow';
+
+  const SIDE_ORDER: Face[] = [...ENTRY_ORDER, 'D'];
+  const SIDE_NAMES: Record<Face, string> = { U: 'Yellow', F: 'Green', R: 'Orange', B: 'Blue', L: 'Red', D: 'White' };
+  const PROMPTS: Record<Exclude<Face, 'D'>, string> = {
+    U: 'Yellow side first. Hold green facing you and look down at the top.',
+    F: 'Yellow up, green facing you.',
+    R: 'Yellow up, orange facing you.',
+    B: 'Yellow up, blue facing you.',
+    L: 'Yellow up, red facing you.',
+  };
+  const TIP_WHITE = 'Tip the top away from you so white faces you, green on top.';
+
+  const sideTabs = document.getElementById('side-tabs')!;
+  const enterPrompt = document.getElementById('enter-prompt')!;
+  const enterGrid = document.getElementById('enter-grid')!;
+  const palette = document.getElementById('palette')!;
+  const enterProblems = document.getElementById('enter-problems')!;
+  const enterNext = document.getElementById('enter-next') as HTMLButtonElement;
+  const enterConfirm = document.getElementById('enter-confirm') as HTMLButtonElement;
+  const enterReset = document.getElementById('enter-reset') as HTMLButtonElement;
+
+  const hex = (colour: Colour) => `#${PAINT[colour].toString(16).padStart(6, '0')}`;
+
+  /** What the Entry says now: anything red, and the white side as far as it can be worked out. */
+  function assess(): { problems: Problem[]; white: WhiteSide | null; shownWhite: (Colour | null)[] } {
+    const own = check(entry.sides);
+    if (entry.confirmed || own.length) return { problems: own, white: null, shownWhite: entry.sides.D };
+    const white = workOutWhite(entry.sides);
+    if (white.kind === 'none') return { problems: white.problems, white, shownWhite: entry.sides.D };
+    if (white.kind === 'one') return { problems: [], white, shownWhite: white.white };
+    if (white.kind === 'many') {
+      const shown = white.options[0].map((c, i) => (white.unknown.includes(i) ? null : c));
+      return { problems: [], white, shownWhite: shown };
+    }
+    return { problems: [], white, shownWhite: entry.sides.D };
+  }
+
+  const fiveEntered = () => ENTRY_ORDER.every((f) => !entry.sides[f].includes(null));
+
+  function cell(colour: Colour | null, tag: 'button' | 'span'): HTMLElement {
+    const el = document.createElement(tag);
+    el.className = `sticker-cell${colour ? ' painted' : ''}`;
+    if (colour) el.style.background = hex(colour);
+    return el;
+  }
+
+  function save(next: Entry) {
+    entry = next;
+    writeEntry(storage, entry);
+    renderEntry();
+  }
+
+  function renderEntry() {
+    const { problems, white, shownWhite } = assess();
+    const sideOf = (f: Face) => (f === 'D' ? shownWhite : entry.sides[f]);
+    const redSide = (f: Face) => problems.some((p) => p.sides.includes(f));
+    const redSticker = (f: Face, i: number) => problems.some((p) => p.stickers.some((s) => s.face === f && s.index === i));
+    // The white side opens once the five are in and clean, and stays open while its taps are fixed.
+    const tapped = (i: number) => i !== 4 && entry.sides.D[i] !== null;
+    const whiteOpen = fiveEntered() && (entry.confirmed || !problems.length || entry.sides.D.some((_, i) => tapped(i)));
+    if (side === 'D' && !whiteOpen) side = 'L';
+
+    // The tabs: a small copy of each side, so red anywhere shows at a glance.
+    sideTabs.replaceChildren(
+      ...SIDE_ORDER.map((f) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'side-tab';
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(f === side));
+        tab.classList.toggle('problem', redSide(f) || problems.some((p) => p.stickers.some((s) => s.face === f)));
+        tab.disabled = f === 'D' && !whiteOpen;
+        const mini = document.createElement('span');
+        mini.className = 'mini';
+        const colours = f === 'D' && !whiteOpen ? entry.sides.D : sideOf(f);
+        mini.append(
+          ...colours.map((c, i) => {
+            const el = cell(c, 'span');
+            el.classList.toggle('problem', redSticker(f, i));
+            return el;
+          }),
+        );
+        const name = document.createElement('span');
+        name.textContent = SIDE_NAMES[f];
+        tab.append(mini, name);
+        tab.addEventListener('click', () => {
+          side = f;
+          faceSide(f);
+          renderEntry();
+        });
+        return tab;
+      }),
+    );
+
+    // The prompt for this side.
+    if (side !== 'D') enterPrompt.textContent = PROMPTS[side];
+    else if (entry.confirmed) enterPrompt.textContent = 'All six sides are in. The cube on screen should match yours.';
+    else if (white?.kind === 'one') enterPrompt.textContent = `Your white side should look like this. ${TIP_WHITE} Does it?`;
+    else if (white?.kind === 'many')
+      enterPrompt.textContent = `Your white side should look like this, but the outlined stickers could go more than one way. ${TIP_WHITE} Then tap those in.`;
+    else enterPrompt.textContent = 'No white side fits the other five. Fix what is marked red first.';
+
+    // The grid for this side. On the white side, only stickers that can't be worked out can be tapped.
+    const tappable = (i: number) =>
+      side !== 'D'
+        ? i !== 4
+        : !entry.confirmed && (tapped(i) || (white?.kind === 'many' && white.unknown.includes(i)));
+    enterGrid.classList.toggle('problem', redSide(side));
+    enterGrid.setAttribute('aria-label', `Stickers on the ${SIDE_NAMES[side].toLowerCase()} side`);
+    enterGrid.replaceChildren(
+      ...sideOf(side).map((colour, i) => {
+        const button = cell(colour, 'button') as HTMLButtonElement;
+        button.type = 'button';
+        button.classList.toggle('problem', redSticker(side, i));
+        button.classList.toggle('unknown', side === 'D' && white?.kind === 'many' && white.unknown.includes(i));
+        button.disabled = !tappable(i);
+        button.setAttribute('aria-label', `${i === 4 ? 'Centre' : `Sticker ${i + 1}`}: ${colour ?? 'not painted'}`);
+        button.addEventListener('click', () => {
+          // Tapping a sticker with the colour it already has clears it.
+          const current = entry.sides[side][i];
+          save(paint(entry, side, i, current === brush ? null : brush));
+        });
+        return button;
+      }),
+    );
+
+    // Nothing can continue while anything is red.
+    const sideDone = !entry.sides[side].includes(null);
+    enterNext.hidden = side === 'D';
+    enterNext.textContent = side === 'L' ? 'Work out the white side' : 'Next side';
+    enterNext.disabled = !sideDone || problems.length > 0 || (side === 'L' && !whiteOpen);
+    enterConfirm.hidden = !(side === 'D' && !entry.confirmed && white?.kind === 'one');
+    enterConfirm.disabled = problems.length > 0;
+
+    const messages = [...new Set(problems.map((p) => p.message))];
+    enterProblems.replaceChildren(
+      ...messages.map((message) => {
+        const li = document.createElement('li');
+        li.textContent = message;
+        return li;
+      }),
+    );
+
+    // The 3D cube follows along.
+    if (appMode === 'learn') {
+      draw(fromFaces({ ...entry.sides, D: shownWhite }));
+      canvas.setAttribute('aria-label', 'Your cube, as entered so far. Grey stickers are not entered yet.');
+    }
+  }
+
+  palette.replaceChildren(
+    ...COLOURS.map((colour) => {
+      const swatch = document.createElement('button');
+      swatch.type = 'button';
+      swatch.className = 'swatch';
+      swatch.style.background = hex(colour);
+      swatch.setAttribute('role', 'radio');
+      swatch.setAttribute('aria-label', colour);
+      swatch.addEventListener('click', () => {
+        brush = colour;
+        showBrush();
+      });
+      return swatch;
+    }),
+  );
+
+  function showBrush() {
+    [...palette.children].forEach((swatch, i) => swatch.setAttribute('aria-checked', String(COLOURS[i] === brush)));
+  }
+  showBrush();
+
+  enterNext.addEventListener('click', () => {
+    side = SIDE_ORDER[SIDE_ORDER.indexOf(side) + 1] ?? 'D';
+    faceSide(side);
+    renderEntry();
+  });
+
+  enterConfirm.addEventListener('click', () => {
+    const { white } = assess();
+    if (white?.kind === 'one') save(confirmWhite(entry, white.white));
+  });
+
+  enterReset.addEventListener('click', () => {
+    side = 'U';
+    faceSide(side);
+    save(blankEntry());
+  });
+
+  teachButton.addEventListener('click', () => {
+    entry = entryFromCube(cube);
+    writeEntry(storage, entry);
+    side = 'U';
+    setMode('learn');
+  });
+
   // The search's tables take a moment to build: build them while the page is idle.
   const whenIdle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 200));
   whenIdle(() => prepareSolve());
@@ -713,6 +1182,23 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
   /** The same orientation, but the fewest whole turns away from zero. */
   const nearestTurn = (angle: number) => angle - 2 * Math.PI * Math.round(angle / (2 * Math.PI));
+
+  /** Where the view eases back to: the standard view, or in Learn the side being entered. */
+  let view = { yaw: 0, pitch: 0 };
+
+  /** Eases to `view` by the shortest way round. */
+  function settleView() {
+    yaw = view.yaw + nearestTurn(yaw - view.yaw);
+    pitch = view.pitch + nearestTurn(pitch - view.pitch);
+    mode = 'return';
+    needsRender = true;
+  }
+
+  /** Turns the view to face a side, or back to the standard view. */
+  function faceSide(face: Face | null) {
+    view = face ? SIDE_VIEWS[face] : { yaw: 0, pitch: 0 };
+    if (mode !== 'drag' && mode !== 'coast') settleView();
+  }
 
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
@@ -759,17 +1245,14 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       const decay = Math.exp(-FRICTION * dt);
       yawVelocity *= decay;
       pitchVelocity *= decay;
-      if (Math.hypot(yawVelocity, pitchVelocity) < SETTLE_SPEED) {
-        yaw = nearestTurn(yaw);
-        pitch = nearestTurn(pitch);
-        mode = 'return';
-      }
+      if (Math.hypot(yawVelocity, pitchVelocity) < SETTLE_SPEED) settleView();
     } else if (mode === 'return') {
       const k = 1 - Math.exp(-RETURN_RATE * dt);
-      yaw -= yaw * k;
-      pitch -= pitch * k;
-      if (Math.abs(yaw) < 1e-4 && Math.abs(pitch) < 1e-4) {
-        yaw = pitch = 0;
+      yaw -= (yaw - view.yaw) * k;
+      pitch -= (pitch - view.pitch) * k;
+      if (Math.abs(yaw - view.yaw) < 1e-4 && Math.abs(pitch - view.pitch) < 1e-4) {
+        yaw = view.yaw;
+        pitch = view.pitch;
         mode = 'rest';
       }
     } else {
@@ -782,7 +1265,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
   function frame(now: number) {
     // Capped, so a tab coming back from the background doesn't lurch.
-    const dt = Math.min((now - previous) / 1000, 0.1);
+    // Never negative either: a frame's timestamp can come before the time the script started.
+    const dt = Math.max(0, Math.min((now - previous) / 1000, 0.1));
     step(dt);
     stepTurns(dt);
     const spin = advanceSpin(dt);
@@ -797,6 +1281,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   }
 
   draw(cube);
+  if (location.hash === '#learn') setMode('learn');
   resize();
   requestAnimationFrame(frame);
 </script>

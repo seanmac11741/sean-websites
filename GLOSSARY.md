@@ -295,6 +295,28 @@ the cube whichever way it goes. Owned by `src/lib/speed-cubing/playback.ts`.
 as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
 top. This is what the tests compare.
 
+**Play / Learn** — the page's two modes. **Play** is the cube to scramble and solve. **Learn** teaches
+on the viewer's own cube, starting with entering it; its panels are where later lessons go. "Teach me
+this scramble" opens Learn with the Play cube already entered.
+
+**Entry** — the viewer's real cube as entered in Learn: six sides of nine Stickers each, blank until
+painted, with centres fixed to the Scheme, and whether its white side is confirmed. Held yellow up
+throughout: the yellow side is entered first, green towards the viewer, then green, orange, blue and red,
+each facing them with yellow up. Owned by the pure **Entry module** (`src/lib/speed-cubing/entry.ts`);
+saved in `localStorage`, and the page carries on without it. Changing any of the five sides forgets the
+white side.
+
+**Worked-out white side** — the white side is never entered: it is worked out from the other five
+(`workOutWhite`), as every way of painting it that makes a cube that could be solved. Usually there is
+one, and the viewer confirms it matches. Rarely there are several (three or four bottom edges with their
+white sticker facing sideways), and the viewer taps in only the stickers that differ between them.
+
+**Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
+sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,
+a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn red). Nothing can continue
+while there is a Problem. A twist, flip or swap could be blamed on any of several pieces; the first one
+out of true is named, which on a cube that is otherwise right is the one that is wrong.
+
 **Standard view** — the renderer's resting orientation: tipped forward and turned so U, F and R all
 show. Before the viewer touches it the cube spins slowly (the **idle spin**; not under reduced
 motion). A drag turns it, a release throws it with momentum, and once that dies away it eases back

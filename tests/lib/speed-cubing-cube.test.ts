@@ -10,6 +10,7 @@ import {
   type Axis,
   type Colour,
   type Cube,
+  type Face,
   type Vec,
 } from '../../src/lib/speed-cubing/cube';
 
@@ -254,9 +255,9 @@ describe('fromFaces', () => {
   });
 
   it('keeps a sticker left blank as blank, so a part-entered cube can be drawn', () => {
-    const grid: Record<string, (Colour | null)[]> = { ...faces(solvedCube()) };
+    const grid: Record<Face, (Colour | null)[]> = { ...faces(solvedCube()) };
     grid.D = [null, null, null, null, 'white', null, null, null, null];
-    const cube = fromFaces(grid as Parameters<typeof fromFaces>[0]);
+    const cube = fromFaces(grid);
     const down = cube.stickers.filter((s) => s.normal[1] === -1);
     expect(down.filter((s) => s.colour === null)).toHaveLength(8);
     expect(down.find((s) => s.position[0] === 0 && s.position[2] === 0)?.colour).toBe('white');

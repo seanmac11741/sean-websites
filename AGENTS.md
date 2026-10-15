@@ -48,7 +48,19 @@ solved. `src/lib/speed-cubing/playback.ts` flattens Stages into the Steps the pa
 the stage list's highlighting comes from the same Step as the turn, and owns the Playhead behind the step
 controls (⏮ / ⏭ one move, Play / Pause, speed slider, click a stage to fast-play to its start): `forward`,
 `back` (turning `inverseMove`), `playNext` and `seekStage` each return the Beats to animate and where the
-Playhead lands; the page only queues them and waits its turn for anything asked mid-beat. Tests: `tests/lib/speed-cubing-*.test.ts`.
+Playhead lands; the page only queues them and waits its turn for anything asked mid-beat. A **Play / Learn**
+toggle switches modes (`setMode`; `#learn` in the URL opens Learn): elements marked `data-mode="play|learn"`
+show only in their mode, and Learn's panels are `<section data-learn-panel="…">` inside `#learn`, one shown
+at a time by `showLearnPanel(name)` — add further Learn panels there. The first panel enters the viewer's
+real cube: the pure Entry module `src/lib/speed-cubing/entry.ts` holds the sides painted so far
+(`paint`, centres fixed; `fromFaces` in the Cube module turns them, blanks included, into Stickers the
+renderer draws grey), `check(sides)` returns the Problems no real cube could have — too many of a colour
+(whole sides red), a piece that doesn't exist or appears twice, and once all 54 are in a twisted corner,
+flipped edge or single swapped pair (those stickers red) — and `workOutWhite(sides)` finds every white side
+that makes a solvable cube: one to confirm (`confirmWhite`), several (only the differing stickers to tap
+in), or none (and why). `readEntry` / `writeEntry` save it under `speed-cubing:entry`, guarded so the page
+works without storage. "Teach me this scramble" loads the Play cube with `entryFromCube`; a cube confirmed
+in Learn carries over into Play. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
 
