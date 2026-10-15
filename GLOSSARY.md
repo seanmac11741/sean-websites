@@ -295,6 +295,66 @@ the cube whichever way it goes. Owned by `src/lib/speed-cubing/playback.ts`.
 as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
 top. This is what the tests compare.
 
+**Play / Learn** — the page's two modes. **Play** is the cube to scramble and solve. **Learn** teaches
+on the viewer's own cube, starting with entering it; its panels are where later lessons go. "Teach me
+this scramble" opens Learn with the Play cube already entered.
+
+**Entry** — the viewer's real cube as entered in Learn: six sides of nine Stickers each, blank until
+painted, with centres fixed to the Scheme, and whether its white side is confirmed. Held yellow up
+throughout: the yellow side is entered first, green towards the viewer, then green, orange, blue and red,
+each facing them with yellow up. Owned by the pure **Entry module** (`src/lib/speed-cubing/entry.ts`);
+saved in `localStorage`, and the page carries on without it. Changing any of the five sides forgets the
+white side.
+
+**Worked-out white side** — the white side is never entered: it is worked out from the other five
+(`workOutWhite`), as every way of painting it that makes a cube that could be solved. Usually there is
+one, and the viewer confirms it matches. Rarely there are several (three or four bottom edges with their
+white sticker facing sideways), and the viewer taps in only the stickers that differ between them. The
+white side opens once the other five are in with nothing red, and stays open while stickers tapped into
+it are being fixed (`assess`). Tapping a sticker with the colour it already has clears it (`tap`).
+
+**Walkthrough** — Learn teaching the viewer to solve their own entered cube, one **Lesson** at a time
+(`walkthrough(cube)`), held yellow up, green in front, orange on the right throughout. Owned by the pure
+**Walkthrough module** (`src/lib/speed-cubing/walkthrough.ts`). The viewer does each Lesson on their real
+cube, then presses Next.
+
+**Lesson** — one Stage of the cube's Solve, taught: its title ("Cross", "F2L pair 1 of 4", "OLL: Yellow
+cross", "OLL: Yellow corners", "PLL: Corners", "PLL: Edges" — the Solve's Stage labels for the Cross and
+F2L, and each Look's step as the Gallery names it), exactly the Stage's Moves, the cube as the
+Lesson finds it, and a **goal** in plain English chosen for that cube — for the Cross, which white edges to
+bring down next to which centres; for an F2L pair, which corner and edge to pair and which slot they go in
+(or just the missing one, or nothing to do). For OLL and PLL it also names the **case** ("This is a Sune."),
+its **hold** and its Algorithm. When the Lesson's first move is a U-turn that lines the case up, the hold
+says to do that turn first, and then gives the Gallery's hold as how the case looks once lined up. Next, Back and Replay slowly
+each redraw the cube as that Lesson finds it and play the Lesson on it (slowly, for a replay), so the cube
+on screen is always the one the viewer is holding. The one-turn buttons (⏮ / ⏭) stop a Lesson playing
+itself and turn it one move at a time, forwards or back. After the last Lesson, the cube is solved and the
+Celebration plays.
+
+**Hold** — how to hold the cube, yellow up, green in front and orange on the right, for an Algorithm's
+case to be ready to start, from Sean's CFOP notes ("One corner yellow on top: turn the top so yellow shows
+on the front face's top right."). Pi's says the two yellow stickers are on the left, where the algorithm
+wants them; the notes said the front. Kept once, in the **Gallery**, and it describes the case lined up; a Lesson shows the same one, after
+the U-turn that lines it up when there is one.
+
+**Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
+sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,
+a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn red). Nothing can continue
+while there is a Problem. A twist or flip could be blamed on any of several pieces; the first one out of
+true is named, which on a cube that is otherwise right is the one that is wrong. A swap names two pieces
+of the same kind: two sitting in each other's places if there are any, else two neighbours in a cycle of
+the kind that is an odd number of swaps from home.
+
+**Notation guide** — Learn's list of every Move the method uses (`NOTATION`): a face turn, a prime, a
+double, the two-layer turn `f`, the slice `M` and the rotation `x`, each with what it does. Tapping one
+turns it on a solved cube. Owned by the pure **Reference module** (`src/lib/speed-cubing/reference.ts`).
+
+**Gallery** — Learn's list of every OLL and PLL case (`GALLERY`), one per Algorithm, grouped by its
+Look's step, each with its **Hold**: how to hold the cube, yellow up, for that algorithm. A case's
+starting cube (`caseStart`) is a solved cube with its algorithm undone, so its earlier Looks are done and
+the algorithm, played with no U-turn first, completes its step. Picking a case puts that cube on screen,
+pauses on it, then plays the algorithm; Replay plays it again. Owned by the Reference module.
+
 **Standard view** — the renderer's resting orientation: tipped forward and turned so U, F and R all
 show. Before the viewer touches it the cube spins slowly (the **idle spin**; not under reduced
 motion). A drag turns it, a release throws it with momentum, and once that dies away it eases back

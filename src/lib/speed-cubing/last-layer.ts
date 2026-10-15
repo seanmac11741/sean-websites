@@ -10,9 +10,28 @@
 import { applyMoves, faces, isSolved, type Cube } from './cube';
 import type { Stage } from './solve';
 
+/** The name of each of the sixteen algorithms in the notes. */
+export type AlgorithmName =
+  | 'L-shape'
+  | 'Line'
+  | 'Dot'
+  | 'Antisune'
+  | 'Sune'
+  | 'H'
+  | 'Pi'
+  | 'L'
+  | 'T'
+  | 'U'
+  | 'Diagonal Swap'
+  | 'Adjacent Corner Swap'
+  | 'Right to Left'
+  | 'Left to Right'
+  | 'Opposite Edge Swap'
+  | 'Adjacent Edge Swap';
+
 /** One named algorithm, in the notes' shorthand: brackets for grouping, `(…)x3` to repeat. */
 export interface Algorithm {
-  readonly name: string;
+  readonly name: AlgorithmName;
   readonly notation: string;
 }
 
@@ -89,6 +108,9 @@ export const PLL_EDGES: Look = {
   ],
 };
 
+/** A Look's step, as the stage list and the gallery name it: "OLL: Yellow cross". */
+export const lookTitle = (look: Look): string => `${look.method}: ${look.title}`;
+
 /** The four Looks in the order a solve plays them. */
 export const LOOKS: readonly Look[] = [YELLOW_CROSS, YELLOW_CORNERS, PLL_CORNERS, PLL_EDGES];
 
@@ -134,7 +156,7 @@ export function recognise(cube: Cube, look: Look): { algorithm: Algorithm; setup
 export function solveLastLayer(cube: Cube): Stage[] {
   const stages = LOOKS.map((look): Stage => {
     const found = recognise(cube, look);
-    if (!found) return { label: `${look.method}: ${look.title}`, moves: [] };
+    if (!found) return { label: lookTitle(look), moves: [] };
     const moves = [...found.setup, ...algorithmMoves(found.algorithm)];
     cube = applyMoves(cube, moves.join(' '));
     return { label: `${look.method}: ${found.algorithm.name}`, moves };
