@@ -279,7 +279,7 @@ that reaches the Look's goal.
 **Celebration** — a quick whole turn of the cube with a glow pulse behind it, when a Solve leaves the
 cube solved (`isSolved`). The spin is skipped under reduced motion.
 
-**Step** — one beat of a Solve's playback (`playback(stages)`): a Move or a pause, tagged with its
+**Step** — one item of a Solve's playback (`playback(stages)`): a Move or a pause, tagged with its
 Stage and its place in it, so the stage list is highlighted from the same Step the cube is turning.
 
 **Playhead** — where a Solve's playback stands: a position in its Steps, those before it played and

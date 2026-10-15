@@ -561,7 +561,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     const r = run;
     if (!r || r.moving) return;
     const asked = r.asked.shift();
-    const next = asked ?? (r.playing ? { next: (r: Run) => playNext(r.steps, r.at), atSpeed: true } : null);
+    const next = asked ?? (r.playing ? { next: (run: Run) => playNext(run.steps, run.at), atSpeed: true } : null);
     const go = next?.next(r);
     if (!go) {
       // A step or seek with nowhere to go is dropped; playing with nowhere to go has reached the end.
@@ -628,12 +628,18 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   });
 
   stepForwardButton.addEventListener('click', () => {
-    if (run) run.playing = false;
+    if (run) {
+      run.playing = false;
+      showControls(run);
+    }
     ask((r) => forward(r.steps, r.at), true);
   });
 
   stepBackButton.addEventListener('click', () => {
-    if (run) run.playing = false;
+    if (run) {
+      run.playing = false;
+      showControls(run);
+    }
     ask((r) => back(r.steps, r.at), true);
   });
 

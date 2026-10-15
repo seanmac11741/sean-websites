@@ -25,13 +25,11 @@ export function playback(stages: readonly Stage[]): Step[] {
   ]);
 }
 
-// --- The playhead: stepping and seeking through the Steps -------------------------
-
-/**
- * Where playback stands is a position in the Steps: those before it have
- * played and the one at it is next, so `0` is the scrambled cube and
- * `steps.length` the end. A Stage starts at its pause.
- */
+// --- The Playhead: stepping and seeking through the Steps -------------------------
+//
+// Where playback stands is a position in the Steps: those before it have
+// played and the one at it is next, so `0` is the scrambled cube and
+// `steps.length` the end. A Stage starts at its pause.
 
 /** One beat of moving the playhead: the Step it shows, the move it turns (none for a pause), and how long it takes. */
 export interface Beat {
@@ -40,7 +38,7 @@ export interface Beat {
   seconds: number;
 }
 
-/** The beats that move the playhead, and where it lands. */
+/** The Beats that move the Playhead, and where it lands. */
 export interface Go {
   beats: Beat[];
   to: number;
