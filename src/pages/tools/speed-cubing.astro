@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
 
 const title = 'Speed Cubing — Sean McConnell';
-const description = 'A Rubik’s cube in your browser. Spin it around, scramble it, and watch it solve the cross and F2L.';
+const description = 'A Rubik’s cube in your browser. Spin it around, scramble it, and watch it solve itself, CFOP style.';
 ---
 
 <Layout {title} {description}>
@@ -56,7 +56,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
       <aside id="solve-panel" class="w-full max-w-xl lg:w-72 lg:shrink-0" aria-labelledby="solve-heading" hidden>
         <h2 id="solve-heading" class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">
-          Cross and F2L
+          Solve
         </h2>
         <ol id="solve-stages" class="flex flex-col gap-2"></ol>
       </aside>
@@ -68,8 +68,39 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   .stage {
     height: min(70vh, 640px);
     min-height: 320px;
+    isolation: isolate;
     /* The indigo glow is the page's, not the scene's: CSS, no texture. */
     background: radial-gradient(closest-side circle at 50% 55%, rgb(129 140 248 / 0.2), transparent);
+  }
+
+  /* The celebration's glow pulse: a brighter glow that swells behind the cube and fades. */
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(closest-side circle at 50% 55%, rgb(129 140 248 / 0.55), transparent);
+  }
+
+  .stage.celebrating::before {
+    animation: glow-pulse 1.4s ease-out;
+  }
+
+  @keyframes glow-pulse {
+    0% {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    30% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
   }
 
   #cube-canvas {
@@ -120,6 +151,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
   import {
     applyMoves,
+    isSolved,
     parseMove,
     solvedCube,
     type Colour,
@@ -128,7 +160,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   } from '../../lib/speed-cubing/cube';
   import { easeTurn } from '../../lib/speed-cubing/ease';
   import { scramble } from '../../lib/speed-cubing/scramble';
-  import { prepareSolve, solveF2L, type Stage } from '../../lib/speed-cubing/solve';
+  import { prepareSolve, solve, type Stage } from '../../lib/speed-cubing/solve';
   import { playback, type Step } from '../../lib/speed-cubing/playback';
 
   /** How each Colour is drawn. The Cube module only says which is where. */
@@ -156,6 +188,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   const STALE_DRAG_MS = 80; // a pointer held still this long before release throws nothing
 
   const SCRAMBLE_TURN_SECONDS = 0.04;
+
+  const CELEBRATE_SECONDS = 1.2; // the quick spin once the cube is solved
 
   const stage = document.getElementById('stage')!;
   const canvas = document.getElementById('cube-canvas') as HTMLCanvasElement;
@@ -390,7 +424,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     );
   });
 
-  // --- Solve: the Cross, then the four F2L pairs ---------------------------------
+  // --- Solve: the Cross, the four F2L pairs, then OLL and PLL --------------------
 
   /** Lists the Stages, each with its moves, and returns their list items. */
   function listStages(stages: Stage[]): { item: HTMLLIElement; moves: HTMLSpanElement[] }[] {
@@ -431,7 +465,8 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   }
 
   solveButton.addEventListener('click', () => {
-    const stages = solveF2L(cube);
+    const wasSolved = isSolved(cube);
+    const stages = solve(cube);
     const rows = listStages(stages);
     setBusy(true);
     solvePanel.hidden = false;
@@ -444,10 +479,39 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       () => {
         highlight(rows, 'finished');
         setBusy(false);
-        canvas.setAttribute('aria-label', 'A Rubik’s cube with the white cross and the first two layers solved.');
+        canvas.setAttribute('aria-label', 'A solved Rubik’s cube: yellow on top, green in front, orange on the right.');
+        if (!wasSolved && isSolved(cube)) celebrate();
       },
     );
   });
+
+  // --- Celebration: a quick spin with a glow pulse --------------------------------
+
+  /** Seconds into the spin, or null when not spinning. */
+  let spinElapsed: number | null = null;
+
+  function celebrate() {
+    // Restarts the CSS pulse even if the last one is still on.
+    stage.classList.remove('celebrating');
+    void stage.offsetWidth;
+    stage.classList.add('celebrating');
+    if (!reduceMotion) spinElapsed = 0;
+  }
+
+  stage.addEventListener('animationend', () => stage.classList.remove('celebrating'));
+
+  /** Advances the spin and returns its extra yaw: one whole turn, fast then easing out, so it lands where it began. */
+  function advanceSpin(dt: number): number {
+    if (spinElapsed === null) return 0;
+    spinElapsed += dt;
+    needsRender = true;
+    if (spinElapsed >= CELEBRATE_SECONDS) {
+      spinElapsed = null;
+      return 0;
+    }
+    const t = spinElapsed / CELEBRATE_SECONDS;
+    return 2 * Math.PI * (1 - (1 - t) ** 3);
+  }
 
   // The search's tables take a moment to build: build them while the page is idle.
   const whenIdle = window.requestIdleCallback ?? ((callback: () => void) => setTimeout(callback, 200));
@@ -558,10 +622,11 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     const dt = Math.min((now - previous) / 1000, 0.1);
     step(dt);
     stepTurns(dt);
+    const spin = advanceSpin(dt);
     previous = now;
     if (needsRender) {
       // Yaw turns the cube about its own up axis, then the tilt is applied.
-      cubeGroup.rotation.set(STANDARD_PITCH + pitch, STANDARD_YAW + yaw, 0, 'XYZ');
+      cubeGroup.rotation.set(STANDARD_PITCH + pitch, STANDARD_YAW + yaw + spin, 0, 'XYZ');
       renderer.render(scene, camera);
       needsRender = false;
     }

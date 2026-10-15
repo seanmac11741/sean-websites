@@ -40,7 +40,11 @@ turn easing (`src/lib/speed-cubing/ease.ts`) are pure too. The Solve (`src/lib/s
 returns labelled Stages — the Cross, then four F2L pairs — each the shortest face-turn sequence for that
 Stage alone that keeps earlier Stages solved, by IDA* over sticker slots whose move tables are read off
 the Cube module, bounded by BFS distance tables (built once, ~150 ms; the page builds them while idle via
-`prepareSolve`). `src/lib/speed-cubing/playback.ts` flattens Stages into the Steps the page animates, so
+`prepareSolve`). The last layer (`src/lib/speed-cubing/last-layer.ts`) is 2-look OLL then 2-look PLL using only the
+sixteen algorithms from Sean's CFOP notes: each Look recognises its case by finding the algorithm that,
+after at most one U-turn, reaches its goal; algorithms starting with `x` end with `x'` so white is on the
+bottom between Stages. `solve(cube)` is the whole thing; the page celebrates (spin + glow) when it ends
+solved. `src/lib/speed-cubing/playback.ts` flattens Stages into the Steps the page animates, so
 the stage list's highlighting comes from the same Step as the turn. Tests: `tests/lib/speed-cubing-*.test.ts`.
 
 ## Stack
