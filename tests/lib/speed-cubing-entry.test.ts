@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { applyMoves, faces, solvedCube, type Colour, type Face } from '../../src/lib/speed-cubing/cube';
 import { scramble } from '../../src/lib/speed-cubing/scramble';
 import {
+  assess,
   blankEntry,
+  canTap,
+  CENTRE,
   check,
   confirmWhite,
   entryCube,
@@ -11,6 +14,7 @@ import {
   paint,
   readEntry,
   saveEntry,
+  tap,
   workOutWhite,
   writeEntry,
   type Entry,
@@ -271,6 +275,85 @@ describe('paint', () => {
     expect(changed.sides.D).toEqual([null, null, null, null, 'white', null, null, null, null]);
     // Tapping a white sticker keeps the rest of the white side.
     expect(paint(confirmed, 'D', 0, 'red').sides.D.filter((c) => c === null)).toHaveLength(0);
+  });
+});
+
+describe('assess: what the page shows of an Entry', () => {
+  const entryOf = (sides: Sides, confirmed = false): Entry => ({ sides, confirmed });
+  const moves = "R U2 F' L D B2 R' U F2 D'";
+
+  it('keeps the white side shut until the other five are in', () => {
+    const shown = assess(entryOf(with_(fiveSidesOf(moves), ['F', 0, null])));
+    expect(shown.whiteOpen).toBe(false);
+    expect(shown.shownWhite).toEqual(fiveSidesOf().D);
+  });
+
+  it('shows the worked-out white side once the five are in, and opens it', () => {
+    const shown = assess(entryOf(fiveSidesOf(moves)));
+    expect(shown.problems).toEqual([]);
+    expect(shown.whiteOpen).toBe(true);
+    expect(shown.shownWhite).toEqual(sidesOf(moves).D);
+  });
+
+  it('leaves blank the white stickers that could go more than one way', () => {
+    const many = "F R2 R' L F' F2 B";
+    const shown = assess(entryOf(fiveSidesOf(many)));
+    if (shown.white?.kind !== 'many') throw new Error('expected many');
+    shown.shownWhite.forEach((c, i) => expect(c).toBe(shown.white?.kind === 'many' && shown.white.unknown.includes(i) ? null : sidesOf(many).D[i]));
+  });
+
+  it('keeps the white side shut while the five are wrong, but open while a white sticker tapped in is', () => {
+    const flipped = with_(fiveSidesOf(), ['U', 7, 'green'], ['F', 1, 'yellow']);
+    expect(assess(entryOf(flipped)).whiteOpen).toBe(false);
+    const tappedWrong = with_(fiveSidesOf(), ['D', 1, 'red']);
+    const shown = assess(entryOf(tappedWrong));
+    expect(shown.problems).not.toEqual([]);
+    expect(shown.whiteOpen).toBe(true);
+  });
+
+  it('shows a confirmed white side as it was confirmed', () => {
+    const shown = assess(entryFromCube(applyMoves(solvedCube(), moves)));
+    expect(shown.white).toBeNull();
+    expect(shown.whiteOpen).toBe(true);
+    expect(shown.shownWhite).toEqual(sidesOf(moves).D);
+  });
+});
+
+describe('canTap and tap', () => {
+  const entryOf = (sides: Sides, confirmed = false): Entry => ({ sides, confirmed });
+
+  it('lets any sticker but a centre be tapped on the five sides', () => {
+    const entry = entryOf(fiveSidesOf());
+    const shown = assess(entry);
+    expect(canTap(entry, shown, 'F', 0)).toBe(true);
+    expect(canTap(entry, shown, 'U', 8)).toBe(true);
+    expect(canTap(entry, shown, 'F', CENTRE)).toBe(false);
+  });
+
+  it('on the white side, lets only the stickers that cannot be worked out, or were tapped in, be tapped', () => {
+    const many = "F R2 R' L F' F2 B";
+    const entry = entryOf(fiveSidesOf(many));
+    const shown = assess(entry);
+    if (shown.white?.kind !== 'many') throw new Error('expected many');
+    const { unknown } = shown.white;
+    for (let i = 0; i < 9; i++) expect(canTap(entry, shown, 'D', i), `sticker ${i}`).toBe(unknown.includes(i));
+
+    const known = [0, 2, 6, 8].find((i) => !unknown.includes(i))!;
+    const tapped = entryOf(with_(fiveSidesOf(many), ['D', known, 'red']));
+    expect(canTap(tapped, assess(tapped), 'D', known)).toBe(true);
+  });
+
+  it('lets nothing on a confirmed white side be tapped', () => {
+    const entry = entryFromCube(applyMoves(solvedCube(), "R U F'"));
+    const shown = assess(entry);
+    expect([...Array(9).keys()].some((i) => canTap(entry, shown, 'D', i))).toBe(false);
+  });
+
+  it('paints the tapped sticker, and tapping a sticker with the colour it already has clears it', () => {
+    const painted = tap(blankEntry(), 'F', 0, 'red');
+    expect(painted.sides.F[0]).toBe('red');
+    expect(tap(painted, 'F', 0, 'blue').sides.F[0]).toBe('blue');
+    expect(tap(painted, 'F', 0, 'red').sides.F[0]).toBeNull();
   });
 });
 

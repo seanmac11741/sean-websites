@@ -309,7 +309,9 @@ white side.
 **Worked-out white side** — the white side is never entered: it is worked out from the other five
 (`workOutWhite`), as every way of painting it that makes a cube that could be solved. Usually there is
 one, and the viewer confirms it matches. Rarely there are several (three or four bottom edges with their
-white sticker facing sideways), and the viewer taps in only the stickers that differ between them.
+white sticker facing sideways), and the viewer taps in only the stickers that differ between them. The
+white side opens once the other five are in with nothing red, and stays open while stickers tapped into
+it are being fixed (`assess`). Tapping a sticker with the colour it already has clears it (`tap`).
 
 **Walkthrough** — Learn teaching the viewer to solve their own entered cube, one **Lesson** at a time
 (`walkthrough(cube)`), held yellow up, green in front, orange on the right throughout. Owned by the pure
@@ -337,8 +339,10 @@ the U-turn that lines it up when there is one.
 **Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
 sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,
 a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn red). Nothing can continue
-while there is a Problem. A twist, flip or swap could be blamed on any of several pieces; the first one
-out of true is named, which on a cube that is otherwise right is the one that is wrong.
+while there is a Problem. A twist or flip could be blamed on any of several pieces; the first one out of
+true is named, which on a cube that is otherwise right is the one that is wrong. A swap names two pieces
+of the same kind: two sitting in each other's places if there are any, else two neighbours in a cycle of
+the kind that is an odd number of swaps from home.
 
 **Notation guide** — Learn's list of every Move the method uses (`NOTATION`): a face turn, a prime, a
 double, the two-layer turn `f`, the slice `M` and the rotation `x`, each with what it does. Tapping one

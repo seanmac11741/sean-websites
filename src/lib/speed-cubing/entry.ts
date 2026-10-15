@@ -46,7 +46,8 @@ export const COLOURS: readonly Colour[] = ['yellow', 'white', 'green', 'blue', '
 /** The order the viewer enters the sides in: yellow first, then round the sides. */
 export const ENTRY_ORDER: readonly Face[] = ['U', 'F', 'R', 'B', 'L'];
 
-const CENTRE = 4;
+/** A side's centre, in reading order: fixed to the Scheme, never painted. */
+export const CENTRE = 4;
 
 const blankSide = (face: Face): (Colour | null)[] =>
   Array.from({ length: 9 }, (_, i) => (i === CENTRE ? SCHEME[face] : null));
@@ -337,6 +338,56 @@ export function workOutWhite(sides: Sides): WhiteSide {
   // The white side isn't on screen yet: point only at what the viewer entered.
   const problems = (closest ?? []).map((p: Problem) => ({ ...p, stickers: p.stickers.filter((s) => s.face !== 'D') }));
   return { kind: 'none', problems };
+}
+
+// --- What the page shows ---------------------------------------------------------------
+
+/** What an Entry says now: anything red, and the white side as far as it can be worked out. */
+export interface Assessment {
+  readonly problems: Problem[];
+  /** The worked-out white side; null once it is confirmed, or while the five sides have problems of their own. */
+  readonly white: WhiteSide | null;
+  /** The white side to show: as worked out, blank where it could go more than one way. */
+  readonly shownWhite: (Colour | null)[];
+  /** The white side opens once the five are in and clean, and stays open while stickers tapped into it are fixed. */
+  readonly whiteOpen: boolean;
+}
+
+const tappedWhite = (entry: Entry) => entry.sides.D.some((c, i) => i !== CENTRE && c !== null);
+
+export function assess(entry: Entry): Assessment {
+  const fiveEntered = ENTRY_ORDER.every((f) => !entry.sides[f].includes(null));
+  const own = check(entry.sides);
+  const open = (problems: Problem[]) => fiveEntered && (entry.confirmed || !problems.length || tappedWhite(entry));
+  if (entry.confirmed || own.length) {
+    return { problems: own, white: null, shownWhite: entry.sides.D, whiteOpen: open(own) };
+  }
+  const white = workOutWhite(entry.sides);
+  const problems = white.kind === 'none' ? white.problems : [];
+  const shownWhite =
+    white.kind === 'one'
+      ? white.white
+      : white.kind === 'many'
+        ? white.options[0].map((c, i) => (white.unknown.includes(i) ? null : c))
+        : entry.sides.D;
+  return { problems, white, shownWhite, whiteOpen: open(problems) };
+}
+
+/**
+ * Whether a Sticker can be tapped: any but a centre on the five sides; on the
+ * white side, until it is confirmed, only those tapped in already or that
+ * can't be worked out.
+ */
+export function canTap(entry: Entry, { white }: Assessment, face: Face, index: number): boolean {
+  if (index === CENTRE) return false;
+  if (face !== 'D') return true;
+  if (entry.confirmed) return false;
+  return entry.sides.D[index] !== null || (white?.kind === 'many' && white.unknown.includes(index));
+}
+
+/** Taps a Sticker with the brush: paints it, or clears it if it already has that colour. */
+export function tap(entry: Entry, face: Face, index: number, brush: Colour): Entry {
+  return paint(entry, face, index, entry.sides[face][index] === brush ? null : brush);
 }
 
 // --- Saving -------------------------------------------------------------------------

@@ -594,18 +594,17 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   import {
     COLOURS,
     ENTRY_ORDER,
+    assess,
     blankEntry,
-    check,
+    canTap,
+    CENTRE,
     confirmWhite,
     entryCube,
     entryFromCube,
-    paint,
     readEntry,
-    workOutWhite,
+    tap,
     writeEntry,
     type Entry,
-    type Problem,
-    type WhiteSide,
   } from '../../lib/speed-cubing/entry';
   import { easeTurn } from '../../lib/speed-cubing/ease';
   import { scramble } from '../../lib/speed-cubing/scramble';
@@ -928,6 +927,15 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
   // --- Solve: the Cross, the four F2L pairs, then OLL and PLL --------------------
 
+  /** A span for each Move, to highlight as it turns. */
+  const moveSpans = (moves: readonly string[]): HTMLSpanElement[] =>
+    moves.map((move) => {
+      const span = document.createElement('span');
+      span.className = 'move';
+      span.textContent = move;
+      return span;
+    });
+
   /** Lists the Stages, each with its moves, and returns their list items. Clicking a Stage seeks to it. */
   function listStages(stages: Stage[]): { item: HTMLLIElement; moves: HTMLSpanElement[] }[] {
     solveStages.replaceChildren();
@@ -941,12 +949,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       label.addEventListener('click', () => ask((r) => seekStage(r.steps, r.at, s), false));
       const line = document.createElement('p');
       line.className = 'mt-1 font-mono text-xs leading-relaxed';
-      const moves = stage.moves.map((move) => {
-        const span = document.createElement('span');
-        span.className = 'move';
-        span.textContent = move;
-        return span;
-      });
+      const moves = moveSpans(stage.moves);
       if (moves.length) line.append(...moves);
       else line.textContent = 'already solved';
       item.append(label, line);
@@ -1200,22 +1203,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
 
   const hex = (colour: Colour) => `#${PAINT[colour].toString(16).padStart(6, '0')}`;
 
-  /** What the Entry says now: anything red, and the white side as far as it can be worked out. */
-  function assess(): { problems: Problem[]; white: WhiteSide | null; shownWhite: (Colour | null)[] } {
-    const own = check(entry.sides);
-    if (entry.confirmed || own.length) return { problems: own, white: null, shownWhite: entry.sides.D };
-    const white = workOutWhite(entry.sides);
-    if (white.kind === 'none') return { problems: white.problems, white, shownWhite: entry.sides.D };
-    if (white.kind === 'one') return { problems: [], white, shownWhite: white.white };
-    if (white.kind === 'many') {
-      const shown = white.options[0].map((c, i) => (white.unknown.includes(i) ? null : c));
-      return { problems: [], white, shownWhite: shown };
-    }
-    return { problems: [], white, shownWhite: entry.sides.D };
-  }
-
-  const fiveEntered = () => ENTRY_ORDER.every((f) => !entry.sides[f].includes(null));
-
   function cell(colour: Colour | null, tag: 'button' | 'span'): HTMLElement {
     const el = document.createElement(tag);
     el.className = `sticker-cell${colour ? ' painted' : ''}`;
@@ -1230,13 +1217,11 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   }
 
   function renderEntry() {
-    const { problems, white, shownWhite } = assess();
+    const assessment = assess(entry);
+    const { problems, white, shownWhite, whiteOpen } = assessment;
     const sideOf = (f: Face) => (f === 'D' ? shownWhite : entry.sides[f]);
     const redSide = (f: Face) => problems.some((p) => p.sides.includes(f));
     const redSticker = (f: Face, i: number) => problems.some((p) => p.stickers.some((s) => s.face === f && s.index === i));
-    // The white side opens once the five are in and clean, and stays open while its taps are fixed.
-    const tapped = (i: number) => i !== 4 && entry.sides.D[i] !== null;
-    const whiteOpen = fiveEntered() && (entry.confirmed || !problems.length || entry.sides.D.some((_, i) => tapped(i)));
     if (side === 'D' && !whiteOpen) side = 'L';
 
     // The tabs: a small copy of each side, so red anywhere shows at a glance.
@@ -1280,10 +1265,6 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     else enterPrompt.textContent = 'No white side fits the other five. Fix what is marked red first.';
 
     // The grid for this side. On the white side, only stickers that can't be worked out can be tapped.
-    const tappable = (i: number) =>
-      side !== 'D'
-        ? i !== 4
-        : !entry.confirmed && (tapped(i) || (white?.kind === 'many' && white.unknown.includes(i)));
     enterGrid.classList.toggle('problem', redSide(side));
     enterGrid.setAttribute('aria-label', `Stickers on the ${SIDE_NAMES[side].toLowerCase()} side`);
     enterGrid.replaceChildren(
@@ -1292,13 +1273,9 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
         button.type = 'button';
         button.classList.toggle('problem', redSticker(side, i));
         button.classList.toggle('unknown', side === 'D' && white?.kind === 'many' && white.unknown.includes(i));
-        button.disabled = !tappable(i);
-        button.setAttribute('aria-label', `${i === 4 ? 'Centre' : `Sticker ${i + 1}`}: ${colour ?? 'not painted'}`);
-        button.addEventListener('click', () => {
-          // Tapping a sticker with the colour it already has clears it.
-          const current = entry.sides[side][i];
-          save(paint(entry, side, i, current === brush ? null : brush));
-        });
+        button.disabled = !canTap(entry, assessment, side, i);
+        button.setAttribute('aria-label', `${i === CENTRE ? 'Centre' : `Sticker ${i + 1}`}: ${colour ?? 'not painted'}`);
+        button.addEventListener('click', () => save(tap(entry, side, i, brush)));
         return button;
       }),
     );
@@ -1356,7 +1333,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
   });
 
   enterConfirm.addEventListener('click', () => {
-    const { white } = assess();
+    const { white } = assess(entry);
     if (white?.kind === 'one') save(confirmWhite(entry, white.white));
   });
 
@@ -1426,12 +1403,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
       lessonHold.textContent = lesson.case.hold;
       lessonNotation.textContent = lesson.case.notation;
     }
-    const spans = lesson.moves.map((move) => {
-      const span = document.createElement('span');
-      span.className = 'move';
-      span.textContent = move;
-      return span;
-    });
+    const spans = moveSpans(lesson.moves);
     if (spans.length) lessonMoves.replaceChildren(...spans);
     else lessonMoves.textContent = 'Nothing to turn.';
     const highlightMove = (index: number | null) =>
@@ -1587,12 +1559,7 @@ const description = 'A Rubik’s cube in your browser. Spin it around, scramble 
     galleryCaseStep.textContent = c.step;
     galleryCaseName.textContent = c.algorithm.name;
     galleryCaseHold.textContent = c.hold;
-    const spans = c.moves.map((move) => {
-      const span = document.createElement('span');
-      span.className = 'move';
-      span.textContent = move;
-      return span;
-    });
+    const spans = moveSpans(c.moves);
     galleryCaseMoves.replaceChildren(...spans);
     galleryCase.hidden = false;
     playReference(

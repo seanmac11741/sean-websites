@@ -58,7 +58,10 @@ renderer draws grey), `check(sides)` returns the Problems no real cube could hav
 (whole sides red), a piece that doesn't exist or appears twice, and once all 54 are in a twisted corner,
 flipped edge or single swapped pair (those stickers red) — and `workOutWhite(sides)` finds every white side
 that makes a solvable cube: one to confirm (`confirmWhite`), several (only the differing stickers to tap
-in), or none (and why). `readEntry` / `writeEntry` save it under `speed-cubing:entry`, guarded so the page
+in), or none (and why). `assess(entry)` is what the page shows of it — the Problems, the white side to show
+(blank where unknown) and whether the white side is open yet — `canTap` says which Stickers can be tapped
+(never a `CENTRE`), and `tap` paints with the brush or clears a Sticker already that colour; the page only
+wires these to the DOM. `readEntry` / `writeEntry` save it under `speed-cubing:entry`, guarded so the page
 works without storage. "Teach me this scramble" loads the Play cube with `entryFromCube`; a cube confirmed
 in Learn carries over into Play. Buttons above the panels (`data-learn-nav`, "Your cube / Notation /
 Algorithms") switch between them. The two reference panels come from the pure module
