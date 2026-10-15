@@ -151,6 +151,44 @@ describe('check: a cube that could be scrambled but never solved', () => {
     ]);
   });
 
+  it('turns red the two pieces sitting in each other’s places, not just any misplaced pieces', () => {
+    // The top edges cycle three ways round (a real cube can do that), and the
+    // yellow-green-red and yellow-green-orange corners have been entered swapped.
+    const cycled = sidesOf("R U' R U R U R U' R' U' R2");
+    const sides = with_(
+      cycled,
+      ['U', 6, cycled.U[8]], ['L', 2, cycled.F[2]], ['F', 0, cycled.R[0]],
+      ['U', 8, cycled.U[6]], ['R', 0, cycled.F[0]], ['F', 2, cycled.L[2]],
+    );
+    const [problem] = check(sides);
+    expect(problem.kind).toBe('swap');
+    expect(problem.stickers).toEqual([
+      { face: 'U', index: 6 },
+      { face: 'U', index: 8 },
+      { face: 'F', index: 0 },
+      { face: 'F', index: 2 },
+      { face: 'L', index: 2 },
+      { face: 'R', index: 0 },
+    ]);
+  });
+
+  it('turns red two misplaced pieces of the same kind when no two sit in each other’s places', () => {
+    // The top edges have gone a quarter turn round, but the corners stayed home.
+    const turned = sidesOf('U');
+    const solved = sidesOf();
+    const sides = with_(
+      turned,
+      ...([0, 2, 6, 8] as const).map((i): [Face, number, Colour] => ['U', i, solved.U[i]!]),
+      ...(['F', 'R', 'B', 'L'] as const).flatMap((f) => [0, 2].map((i): [Face, number, Colour] => [f, i, solved[f][i]!])),
+    );
+    const [problem] = check(sides);
+    expect(problem.kind).toBe('swap');
+    expect(problem.stickers).toHaveLength(4);
+    const edgeSticker = ({ face, index }: { face: Face; index: number }) =>
+      face === 'U' ? [1, 3, 5, 7].includes(index) : index === 1;
+    expect(problem.stickers.every(edgeSticker)).toBe(true);
+  });
+
   it('finds a twist on a scrambled cube too', () => {
     const scrambled = sidesOf("R U2 F' L D B2 R' U F2 D'");
     const [u, f, r] = [scrambled.U[8], scrambled.F[2], scrambled.R[0]];

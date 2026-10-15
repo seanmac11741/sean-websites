@@ -145,18 +145,18 @@ const shownOn = (sides: Sides, piece: Piece) => piece.stickers.map(({ face, inde
 
 // --- Checking ---------------------------------------------------------------------
 
-const MESSAGES: Record<Exclude<ProblemKind, 'count'>, (piece?: Piece, known?: number) => string> = {
-  missing: (piece, known) =>
-    piece!.kind === 'edge'
-      ? 'No edge has these two colours. Check these two stickers.'
-      : known === 3
-        ? 'No corner has these colours this way round. Check these three stickers.'
-        : 'No corner has these two colours. Check these two stickers.',
-  duplicate: () => 'Two pieces have the same colours. Check these stickers.',
-  twist: () => 'This corner is twisted. Check these three stickers.',
-  flip: () => 'This edge is flipped. Check these two stickers.',
-  swap: () => 'Two pieces are swapped. Check these stickers.',
-};
+const MESSAGES = {
+  missingEdge: 'No edge has these two colours. Check these two stickers.',
+  missingCornerWay: 'No corner has these colours this way round. Check these three stickers.',
+  missingCorner: 'No corner has these two colours. Check these two stickers.',
+  duplicate: 'Two pieces have the same colours. Check these stickers.',
+  twist: 'This corner is twisted. Check these three stickers.',
+  flip: 'This edge is flipped. Check these two stickers.',
+  swap: 'Two pieces are swapped. Check these stickers.',
+} as const;
+
+const missingMessage = (piece: Piece, known: number) =>
+  piece.kind === 'edge' ? MESSAGES.missingEdge : known === 3 ? MESSAGES.missingCornerWay : MESSAGES.missingCorner;
 
 const problem = (kind: Exclude<ProblemKind, 'count'>, stickers: StickerRef[], message: string): Problem => ({
   kind,
@@ -196,6 +196,28 @@ function odd(perm: number[]): boolean {
   return (perm.length - cycles) % 2 === 1;
 }
 
+/**
+ * The pair of pieces most likely entered swapped, given where each piece
+ * belongs (`homeAt`): two pieces of the same kind sitting in each other's
+ * homes, if any are; else two neighbours in an even-length cycle of the kind
+ * whose pieces are an odd number of swaps from home, since swapping those back
+ * would make the cube solvable.
+ */
+function swappedPair(corners: number[], edges: number[], homeAt: (i: number) => number): [number, number] {
+  for (const places of [corners, edges]) {
+    const i = places.find((i) => homeAt(i) !== i && homeAt(homeAt(i)) === i);
+    if (i !== undefined) return [i, homeAt(i)];
+  }
+  const perm = (places: number[]) => places.map((i) => places.indexOf(homeAt(i)));
+  const places = odd(perm(corners)) ? corners : edges;
+  for (const start of places) {
+    const cycle = [start];
+    for (let i = homeAt(start); i !== start; i = homeAt(i)) cycle.push(i);
+    if (cycle.length % 2 === 0) return [cycle[0], cycle[1]];
+  }
+  throw new Error('An odd permutation always has an even-length cycle');
+}
+
 /** What about these Stickers no real cube could have. Empty when they could all be real. */
 export function check(sides: Sides): Problem[] {
   const problems: Problem[] = [];
@@ -216,7 +238,7 @@ export function check(sides: Sides): Problem[] {
   PIECES.forEach((piece, i) => {
     const known = piece.stickers.filter((_, k) => shown[i][k] !== null);
     if (known.length && !exists(piece, shown[i])) {
-      problems.push(problem('missing', known, MESSAGES.missing(piece, known.length)));
+      problems.push(problem('missing', known, missingMessage(piece, known.length)));
     }
   });
 
@@ -228,7 +250,7 @@ export function check(sides: Sides): Problem[] {
     byColours.set(key, [...(byColours.get(key) ?? []), i]);
   });
   for (const same of byColours.values()) {
-    if (same.length > 1) problems.push(problem('duplicate', same.flatMap((i) => PIECES[i].stickers), MESSAGES.duplicate()));
+    if (same.length > 1) problems.push(problem('duplicate', same.flatMap((i) => PIECES[i].stickers), MESSAGES.duplicate));
   }
 
   if (problems.length || !complete.every(Boolean)) return problems;
@@ -240,17 +262,18 @@ export function check(sides: Sides): Problem[] {
 
   if (corners.reduce((sum, i) => sum + twist(PIECES[i], full[i]), 0) % 3 !== 0) {
     const first = corners.find((i) => twist(PIECES[i], full[i]) !== 0)!;
-    problems.push(problem('twist', PIECES[first].stickers, MESSAGES.twist()));
+    problems.push(problem('twist', PIECES[first].stickers, MESSAGES.twist));
   }
 
   const flips = edges.filter((i) => flipped(PIECES[i], full[i]));
-  if (flips.length % 2 === 1) problems.push(problem('flip', PIECES[flips[0]].stickers, MESSAGES.flip()));
+  if (flips.length % 2 === 1) problems.push(problem('flip', PIECES[flips[0]].stickers, MESSAGES.flip));
 
   const homeOf = new Map(HOME.map((colours, i) => [colourKey(colours), i]));
   const perm = (places: number[]) => places.map((i) => places.indexOf(homeOf.get(colourKey(full[i]))!));
   if (odd(perm(corners)) !== odd(perm(edges))) {
-    const misplaced = PIECES.flatMap((_, i) => (homeOf.get(colourKey(full[i])) === i ? [] : [i]));
-    problems.push(problem('swap', misplaced.slice(0, 2).flatMap((i) => PIECES[i].stickers), MESSAGES.swap()));
+    const homeAt = (i: number) => homeOf.get(colourKey(full[i]))!;
+    const pair = swappedPair(corners, edges, homeAt);
+    problems.push(problem('swap', pair.flatMap((i) => PIECES[i].stickers), MESSAGES.swap));
   }
 
   return problems;
