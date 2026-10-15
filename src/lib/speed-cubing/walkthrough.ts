@@ -6,6 +6,7 @@
 import { applyMoves, type Colour, type Cube, type Vec } from './cube';
 import { algorithmMoves, LOOKS, recognise } from './last-layer';
 import { playback, SOLVE_TURN_SECONDS, type Step } from './playback';
+import { GALLERY } from './reference';
 import { solve } from './solve';
 
 const TITLES = [
@@ -28,7 +29,7 @@ export interface LessonCase {
   readonly name: string;
   /** "This is an L-shape." */
   readonly called: string;
-  /** Where the case sits once lined up, from the notes. */
+  /** How to hold the cube for the case, as the algorithm gallery says it. */
   readonly hold: string;
   /** The algorithm as the notes write it. */
   readonly notation: string;
@@ -153,7 +154,7 @@ function lookLesson(cube: Cube, l: number, moves: readonly string[]): Pick<Lesso
     case: {
       name: algorithm.name,
       called: `This is ${withArticle(algorithm.name)}.`,
-      hold: algorithm.hold,
+      hold: GALLERY.find((c) => c.algorithm === algorithm)!.hold,
       notation: algorithm.notation,
       lineUp: setup.length ? `The first move, ${setup.join(' ')}, turns the top to line it up.` : null,
     },

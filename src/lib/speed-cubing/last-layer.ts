@@ -10,15 +10,10 @@
 import { applyMoves, faces, isSolved, type Cube } from './cube';
 import type { Stage } from './solve';
 
-/**
- * One named algorithm, in the notes' shorthand: brackets for grouping, `(…)x3`
- * to repeat. Its hold says where the case sits, yellow up with green in front
- * and orange on the right, when the algorithm is ready to start.
- */
+/** One named algorithm, in the notes' shorthand: brackets for grouping, `(…)x3` to repeat. */
 export interface Algorithm {
   readonly name: string;
   readonly notation: string;
-  readonly hold: string;
 }
 
 /**
@@ -50,21 +45,9 @@ export const YELLOW_CROSS: Look = {
   title: 'Yellow cross',
   done: (cube) => topMatches(cube, [1, 3, 5, 7]),
   algorithms: [
-    {
-      name: 'L-shape',
-      notation: "f (R U R' U') f'",
-      hold: 'Yellow edges at the front and on the right, making an L.',
-    },
-    {
-      name: 'Line',
-      notation: "F (R U R' U') F'",
-      hold: 'Yellow edges on the left and the right, making a line across.',
-    },
-    {
-      name: 'Dot',
-      notation: "F (R U R' U') F'  f (R U R' U') f'",
-      hold: 'No yellow edges on top, so any way round.',
-    },
+    { name: 'L-shape', notation: "f (R U R' U') f'" },
+    { name: 'Line', notation: "F (R U R' U') F'" },
+    { name: 'Dot', notation: "F (R U R' U') F'  f (R U R' U') f'" },
   ],
 };
 
@@ -73,41 +56,13 @@ export const YELLOW_CORNERS: Look = {
   title: 'Yellow corners',
   done: (cube) => topMatches(cube, [0, 1, 2, 3, 5, 6, 7, 8]),
   algorithms: [
-    {
-      name: 'Antisune',
-      notation: "L' U' L U' L' U2 L",
-      hold: 'One yellow corner on top, and the front-top-left corner’s yellow facing you.',
-    },
-    {
-      name: 'Sune',
-      notation: "R U R' U R U2 R'",
-      hold: 'One yellow corner on top, and the front-top-right corner’s yellow facing you.',
-    },
-    {
-      name: 'H',
-      notation: "F (R U R' U')x3 F'",
-      hold: 'No yellow corners on top: two yellow facing you on the front, two on the back.',
-    },
-    {
-      name: 'Pi',
-      notation: "R U2 (R2 U' R2 U' R2) U2 R",
-      hold: 'No yellow corners on top: two yellow on the left side, none on the right.',
-    },
-    {
-      name: 'L',
-      notation: "x (R' U R D') (R' U' R D)",
-      hold: 'Two yellow corners on top, diagonally across at the back-left and front-right, and the front-top-left corner’s yellow facing you.',
-    },
-    {
-      name: 'T',
-      notation: "x (L U R' U') (L' U R U')",
-      hold: 'Two yellow corners on top on the right; the two on the left have their yellow facing front and back.',
-    },
-    {
-      name: 'U',
-      notation: "R2 D (R' U2 R) D' (R' U2 R')",
-      hold: 'Two yellow corners on top at the back; the front two have their yellow facing you, like headlights.',
-    },
+    { name: 'Antisune', notation: "L' U' L U' L' U2 L" },
+    { name: 'Sune', notation: "R U R' U R U2 R'" },
+    { name: 'H', notation: "F (R U R' U')x3 F'" },
+    { name: 'Pi', notation: "R U2 (R2 U' R2 U' R2) U2 R" },
+    { name: 'L', notation: "x (R' U R D') (R' U' R D)" },
+    { name: 'T', notation: "x (L U R' U') (L' U R U')" },
+    { name: 'U', notation: "R2 D (R' U2 R) D' (R' U2 R')" },
   ],
 };
 
@@ -117,16 +72,8 @@ export const PLL_CORNERS: Look = {
   // Each side's two top corners match: the corners are in place but for a U-turn.
   done: (cube) => rowsMatch(cube, [0, 2]),
   algorithms: [
-    {
-      name: 'Diagonal Swap',
-      notation: "(F R U' R' U' R U R' F') (R U R' U' R' F R F')",
-      hold: 'No side’s top corners match, so any way round.',
-    },
-    {
-      name: 'Adjacent Corner Swap',
-      notation: "R U R' U' R' F R2 U' R' U' R U R' F'",
-      hold: 'The side whose top corners match, the solved pair, on the left.',
-    },
+    { name: 'Diagonal Swap', notation: "(F R U' R' U' R U R' F') (R U R' U' R' F R F')" },
+    { name: 'Adjacent Corner Swap', notation: "R U R' U' R' F R2 U' R' U' R U R' F'" },
   ],
 };
 
@@ -135,26 +82,10 @@ export const PLL_EDGES: Look = {
   title: 'Edges',
   done: (cube) => rowsMatch(cube, [0, 1, 2]),
   algorithms: [
-    {
-      name: 'Right to Left',
-      notation: "R U' R U R U R U' R' U' R2",
-      hold: 'The solved side at the back; the right edge belongs on the left.',
-    },
-    {
-      name: 'Left to Right',
-      notation: "R2 U R U R' U' R' U' R' U R'",
-      hold: 'The solved side at the back; the left edge belongs on the right.',
-    },
-    {
-      name: 'Opposite Edge Swap',
-      notation: "M2 U' M2 U2 M2 U' M2",
-      hold: 'Front edge swapped with the back, left with the right, so any way round.',
-    },
-    {
-      name: 'Adjacent Edge Swap',
-      notation: "M' U' M2 U' M2 U' M' U2 M2 U",
-      hold: 'Front edge swapped with the right, and back with the left.',
-    },
+    { name: 'Right to Left', notation: "R U' R U R U R U' R' U' R2" },
+    { name: 'Left to Right', notation: "R2 U R U R' U' R' U' R' U R'" },
+    { name: 'Opposite Edge Swap', notation: "M2 U' M2 U2 M2 U' M2" },
+    { name: 'Adjacent Edge Swap', notation: "M' U' M2 U' M2 U' M' U2 M2 U" },
   ],
 };
 

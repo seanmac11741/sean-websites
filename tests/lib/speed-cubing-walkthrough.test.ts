@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyMoves, faces, isSolved, solvedCube } from '../../src/lib/speed-cubing/cube';
 import { scramble } from '../../src/lib/speed-cubing/scramble';
 import { algorithmMoves, LOOKS, PLL_CORNERS, PLL_EDGES, YELLOW_CORNERS, YELLOW_CROSS, type Look } from '../../src/lib/speed-cubing/last-layer';
+import { GALLERY } from '../../src/lib/speed-cubing/reference';
 import { solve } from '../../src/lib/speed-cubing/solve';
 import { LESSON_TURN_SECONDS, lessonSteps, SLOW_TURN_SECONDS, walkthrough } from '../../src/lib/speed-cubing/walkthrough';
 
@@ -125,7 +126,7 @@ describe('the CFOP walkthrough', () => {
       expect(lesson.case).toEqual({
         name: 'Sune',
         called: 'This is a Sune.',
-        hold: 'One yellow corner on top, and the front-top-right corner’s yellow facing you.',
+        hold: 'One corner yellow on top: turn the top so yellow shows on the front face’s top right.',
         notation: "R U R' U R U2 R'",
         lineUp: null,
       });
@@ -136,7 +137,7 @@ describe('the CFOP walkthrough', () => {
       const lesson = walkthrough(caseOf(YELLOW_CROSS, 'L-shape', 'U'))[5];
       expect(lesson.goal).toBe('Make a yellow cross on top.');
       expect(lesson.case?.called).toBe('This is an L-shape.');
-      expect(lesson.case?.hold).toBe('Yellow edges at the front and on the right, making an L.');
+      expect(lesson.case?.hold).toBe('Two yellow edges side by side: hold them at the front and on the right.');
       expect(lesson.case?.lineUp).toBe("The first move, U', turns the top to line it up.");
       expect(lesson.moves[0]).toBe("U'");
     });
@@ -159,7 +160,7 @@ describe('the CFOP walkthrough', () => {
             const lesson = walkthrough(cube)[5 + i];
             expect(lesson.case?.name).toBe(algorithm.name);
             expect(lesson.case?.notation).toBe(algorithm.notation);
-            expect(lesson.case?.hold).toBe(algorithm.hold);
+            expect(lesson.case?.hold).toBe(GALLERY.find((c) => c.algorithm.name === algorithm.name)?.hold);
             expect(solve(cube)[5 + i].label).toBe(`${look.method}: ${algorithm.name}`);
           }
         }

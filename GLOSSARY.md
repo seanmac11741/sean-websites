@@ -326,16 +326,26 @@ each redraw the cube as that Lesson finds it and play the Lesson on it (slowly, 
 on screen is always the one the viewer is holding. After the last Lesson, the cube is solved and the
 Celebration plays.
 
-**Hold** — where an Algorithm's case sits, held yellow up, green in front and orange on the right, when it
-is ready to start, from Sean's CFOP notes ("One yellow corner on top, and the front-top-right corner's
-yellow facing you."). Pi's says the two yellow stickers are on the left, where the algorithm wants them;
-the notes said the front.
+**Hold** — how to hold the cube, yellow up, green in front and orange on the right, for an Algorithm's
+case to be ready to start, from Sean's CFOP notes ("One corner yellow on top: turn the top so yellow shows
+on the front face's top right."). Pi's says the two yellow stickers are on the left, where the algorithm
+wants them; the notes said the front. Kept once, in the **Gallery**; a Lesson shows the same one.
 
 **Problem** — something about an Entry no real cube could have (`check`): more than nine of a colour (the
 sides holding it turn red); a piece that doesn't exist, or exists twice; and, once all 54 Stickers are in,
 a twisted corner, a flipped edge, or a single swapped pair (those Stickers turn red). Nothing can continue
 while there is a Problem. A twist, flip or swap could be blamed on any of several pieces; the first one
 out of true is named, which on a cube that is otherwise right is the one that is wrong.
+
+**Notation guide** — Learn's list of every Move the method uses (`NOTATION`): a face turn, a prime, a
+double, the two-layer turn `f`, the slice `M` and the rotation `x`, each with what it does. Tapping one
+turns it on a solved cube. Owned by the pure **Reference module** (`src/lib/speed-cubing/reference.ts`).
+
+**Gallery** — Learn's list of every OLL and PLL case (`GALLERY`), one per Algorithm, grouped by its
+Look's step, each with its **Hold**: how to hold the cube, yellow up, for that algorithm. A case's
+starting cube (`caseStart`) is a solved cube with its algorithm undone, so its earlier Looks are done and
+the algorithm, played with no U-turn first, completes its step. Picking a case puts that cube on screen,
+pauses on it, then plays the algorithm; Replay plays it again. Owned by the Reference module.
 
 **Standard view** — the renderer's resting orientation: tipped forward and turned so U, F and R all
 show. Before the viewer touches it the cube spins slowly (the **idle spin**; not under reduced
