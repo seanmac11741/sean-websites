@@ -282,6 +282,15 @@ cube solved (`isSolved`). The spin is skipped under reduced motion.
 **Step** — one beat of a Solve's playback (`playback(stages)`): a Move or a pause, tagged with its
 Stage and its place in it, so the stage list is highlighted from the same Step the cube is turning.
 
+**Playhead** — where a Solve's playback stands: a position in its Steps, those before it played and
+the one at it next (`0` is the scrambled cube, the number of Steps the end; a Stage starts at its
+pause). The step controls move it: **⏮ / ⏭** one Move back or on (`back`, `forward`; going back turns
+the inverse Move, `inverseMove`), **Play / Pause** through the Steps at the speed slider's pace
+(`playNext`; 1× is 0.5 s a Move), and clicking a Stage fast-plays forwards or backwards to its start
+(`seekStage`, `SEEK_TURN_SECONDS`) rather than jumping. Each returns the **Beats** to animate — the
+Step shown, the Move turned, and how long — and where the Playhead lands, so the stage list follows
+the cube whichever way it goes. Owned by `src/lib/speed-cubing/playback.ts`.
+
 **Faces** — a Cube read out face by face (`faces(cube)`): each face's nine Colours in reading order
 as laid out in the standard net — side faces with U at the top, U with B at the top, D with F at the
 top. This is what the tests compare.
